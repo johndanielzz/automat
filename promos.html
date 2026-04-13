@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Promo Codes - Mat Auto</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <h1>Mat Auto</h1>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="promos.html" class="active">Promos</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Banner -->
+    <div class="page-banner">
+        <h1>🎁 Special Offers & Promo Codes</h1>
+        <p>Save big on engines and car parts</p>
+    </div>
+
+    <!-- Promo Content -->
+    <div class="page-content">
+        <div class="form-card">
+            <h2>Active Promotions</h2>
+            <div id="promosContainer" style="display:grid;gap:1rem;margin-top:1.5rem;">
+                <!-- Promos will be loaded here -->
+            </div>
+        </div>
+
+        <div class="form-card">
+            <h2>🏆 How to Use Promo Codes</h2>
+            <ol style="margin: 1rem 0; padding-left: 2rem; line-height: 2;">
+                <li>Select the items you want to purchase</li>
+                <li>Go to checkout</li>
+                <li>Enter the promo code when contacting sales team</li>
+                <li>Mention the code in WhatsApp or Facebook message</li>
+                <li>Receive your discount immediately</li>
+            </ol>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+            <div class="feature-card">
+                <h3>🚚 FREE SHIPPING</h3>
+                <p><strong>Code:</strong> FREESHIP2026</p>
+                <p>Free shipping on orders over GMD 500</p>
+            </div>
+            <div class="feature-card">
+                <h3>💰 Spring Sale</h3>
+                <p><strong>Code:</strong> SPRING25</p>
+                <p>25% off all engines this season</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎯 First Time</h3>
+                <p><strong>Code:</strong> WELCOME15</p>
+                <p>15% off for first-time buyers</p>
+            </div>
+            <div class="feature-card">
+                <h3>👥 Bulk Order</h3>
+                <p><strong>Code:</strong> BULK20</p>
+                <p>20% off orders of 5+ items</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Mat Auto</h4>
+                <ul>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="promos.html">Promotions</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Returns</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">WhatsApp</a></li>
+                    <li><a href="#">Instagram</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Newsletter</h4>
+                <input type="email" placeholder="Enter your email" class="newsletter-input">
+                <button class="btn btn-primary" style="margin-top: 0.5rem;">Subscribe</button>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mat Auto. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

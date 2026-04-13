@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mat Auto | Quality Engines &amp; Car Parts — Gambia</title>
+    <meta name="description" content="Shop in-stock engines and car parts at Mat Auto. Search inventory, save favorites, request quotes, and place orders fast.">
+    <meta property="og:title" content="Mat Auto | Engines &amp; Car Parts">
+    <meta property="og:description" content="Quality automotive parts for workshops, drivers, and fleets across Gambia.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body id="homePage">
+
+<!-- ── NAVBAR ────────────────────────────────────────────── -->
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html" aria-label="Mat Auto home">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy">
+                <strong>Mat Auto</strong>
+                <small>Parts Marketplace</small>
+            </span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navLinks">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="#products">Products</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="promos.html">Promos</a></li>
+            <li><a href="reviews.html">Reviews</a></li>
+            <li><a href="orders.html">Orders</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="admin.html">Admin</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+            <li><button class="nav-icon-btn" id="wishlistTrigger" type="button">♡ Wishlist <span id="wishlistCount">0</span></button></li>
+            <li><button class="nav-icon-btn nav-icon-btn-primary" id="cartTrigger" type="button">🛒 Cart <span id="cartCount">0</span></button></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ── HERO ──────────────────────────────────────────────── -->
+<header class="hero">
+    <div class="container hero-grid">
+        <div class="hero-copy">
+            <p class="eyebrow">In-stock inventory for workshops, drivers &amp; fleets</p>
+            <h1>Find the right engine or part — faster, with fewer dead ends.</h1>
+            <p class="hero-text">Search inventory, compare products side-by-side, save a shortlist, request a quote, and reach checkout without leaving the site.</p>
+
+            <form id="heroSearchForm" class="hero-search" role="search">
+                <label class="sr-only" for="searchInput">Search products</label>
+                <input type="search" id="searchInput" class="search-input" placeholder="Search by part, engine, or keyword…">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </form>
+
+            <div class="hero-actions">
+                <a href="#products" class="btn btn-primary">Browse Catalog</a>
+                <a href="#quote" class="btn btn-secondary">Request a Quote</a>
+            </div>
+
+            <div class="hero-stats">
+                <article class="stat-card">
+                    <strong id="catalogCount">0</strong>
+                    <span>Products</span>
+                </article>
+                <article class="stat-card">
+                    <strong id="engineCount">0</strong>
+                    <span>Engines</span>
+                </article>
+                <article class="stat-card">
+                    <strong>24/7</strong>
+                    <span>Quote Support</span>
+                </article>
+            </div>
+        </div>
+
+        <div class="hero-panel">
+            <div class="hero-panel-card">
+                <p class="panel-kicker">Why Mat Auto?</p>
+                <h2>Built for urgency</h2>
+                <ul class="hero-checklist">
+                    <li>Live stock visibility on all products</li>
+                    <li>Cart, wishlist, compare &amp; promo support</li>
+                    <li>Trackable orders with status updates</li>
+                </ul>
+            </div>
+            <div class="hero-panel-card hero-panel-card-accent">
+                <p class="panel-kicker">Top Offers</p>
+                <div id="heroPromoList" class="promo-mini-list"></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ── ANNOUNCEMENT STRIP ────────────────────────────────── -->
+<section class="announcement-strip" aria-label="Store highlights">
+    <div class="container announcement-grid">
+        <div><strong>Fast dispatch</strong><span>Popular parts ready for same-day processing.</span></div>
+        <div><strong>Bulk quote support</strong><span>Fleet and garage orders get priority handling.</span></div>
+        <div><strong>Compare products</strong><span>Select up to 3 items and compare side-by-side.</span></div>
+    </div>
+</section>
+
+<!-- ── MAIN ───────────────────────────────────────────────── -->
+<main>
+    <!-- Category Shortcuts -->
+    <section class="section section-alt">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Quick Start</p>
+                <h2>Shop by intent</h2>
+                <p>Jump straight to the products you need.</p>
+            </div>
+            <div class="category-grid">
+                <button class="category-card" type="button" data-category-shortcut="engine">
+                    <span class="category-badge">Engines</span>
+                    <h3>Performance &amp; replacement engines</h3>
+                    <p>Complete assemblies for faster swaps and upgrades.</p>
+                </button>
+                <button class="category-card" type="button" data-category-shortcut="parts">
+                    <span class="category-badge">Parts</span>
+                    <h3>Maintenance &amp; repair essentials</h3>
+                    <p>Brake, cooling, filtration, and ignition products.</p>
+                </button>
+                <a class="category-card category-card-link" href="#quote">
+                    <span class="category-badge">Quote</span>
+                    <h3>Need a custom quote?</h3>
+                    <p>Tell us the vehicle, budget, and urgency — we'll handle it.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured -->
+    <section class="section">
+        <div class="container">
+            <div class="section-heading with-action">
+                <div>
+                    <p class="eyebrow">Best picks</p>
+                    <h2>Featured inventory</h2>
+                </div>
+                <a href="#products" class="text-link">View full catalog →</a>
+            </div>
+            <div class="products-grid" id="featuredGrid"></div>
+        </div>
+    </section>
+
+    <!-- Full Catalog -->
+    <section id="products" class="section section-surface">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Catalog</p>
+                <h2>All inventory</h2>
+                <p id="resultsSummary">Browse all available products.</p>
+            </div>
+
+            <div class="catalog-toolbar">
+                <div class="filter-buttons" role="group" aria-label="Filter by category">
+                    <button class="filter-btn active" data-filter="all"    type="button">All</button>
+                    <button class="filter-btn"         data-filter="engine" type="button">Engines</button>
+                    <button class="filter-btn"         data-filter="parts"  type="button">Car Parts</button>
+                </div>
+                <div class="toolbar-actions">
+                    <label class="sr-only" for="secondarySearchInput">Refine results</label>
+                    <input type="search" id="secondarySearchInput" class="toolbar-input" placeholder="Refine results…">
+                    <label class="sr-only" for="sortSelect">Sort</label>
+                    <select id="sortSelect" class="sort-select">
+                        <option value="featured">⭐ Featured First</option>
+                        <option value="newest">🆕 Newest</option>
+                        <option value="price-low">💰 Price: Low → High</option>
+                        <option value="price-high">💎 Price: High → Low</option>
+                        <option value="popular">👁 Most Viewed</option>
+                        <option value="rating">⭐ Highest Rated</option>
+                        <option value="stock">📦 Best Stocked</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="products-grid" id="productsGrid"></div>
+            <div id="paginationBar"></div>
+            <div class="empty-state" id="catalogEmpty" hidden>
+                <h3>No matching products found</h3>
+                <p>Try another keyword, switch category, or request a custom quote.</p>
+                <a href="#quote" class="btn btn-primary">Request a Quote</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recently Viewed -->
+    <section class="section">
+        <div class="container">
+            <div class="section-heading with-action">
+                <div>
+                    <p class="eyebrow">Personalized</p>
+                    <h2>Recently viewed</h2>
+                </div>
+                <a href="#products" class="text-link">Keep shopping →</a>
+            </div>
+            <div class="products-grid compact-grid" id="recentlyViewedGrid"></div>
+            <div class="empty-state" id="recentlyViewedEmpty">
+                <h3>Your shortlist starts here</h3>
+                <p>Open a product and it will appear here for quick return visits.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quote Form -->
+    <section id="quote" class="section section-alt">
+        <div class="container quote-grid">
+            <div class="quote-copy">
+                <p class="eyebrow">Lead Capture</p>
+                <h2>Request a custom quote for a vehicle, fleet, or urgent repair.</h2>
+                <p>Fill in your details and we'll contact you with a personalised price — usually within 30 minutes.</p>
+                <div class="check-grid">
+                    <div class="check-card"><strong>Vehicle fit notes</strong><span>Capture make, model, and year in one request.</span></div>
+                    <div class="check-card"><strong>Budget awareness</strong><span>Let us know your price target upfront.</span></div>
+                    <div class="check-card"><strong>Urgency flag</strong><span>Same-day demand separated from routine shopping.</span></div>
+                </div>
+            </div>
+            <div class="form-card quote-form-card">
+                <h3>Get a Quote</h3>
+                <form id="quoteForm">
+                    <div class="form-group"><label for="quoteName">Full Name *</label><input id="quoteName" type="text" required autocomplete="name"></div>
+                    <div class="form-group"><label for="quotePhone">Phone / WhatsApp *</label><input id="quotePhone" type="tel" required autocomplete="tel" placeholder="+220 7XX XXXX"></div>
+                    <div class="form-group"><label for="quoteVehicle">Vehicle / Fitment *</label><input id="quoteVehicle" type="text" placeholder="e.g. 2018 Toyota Camry 2.5L" required></div>
+                    <div class="form-group"><label for="quotePart">Part or Engine Needed *</label><input id="quotePart" type="text" placeholder="e.g. starter motor, V6 engine" required></div>
+                    <div class="form-split">
+                        <div class="form-group"><label for="quoteBudget">Budget (GMD)</label><input id="quoteBudget" type="text" placeholder="e.g. 5,000"></div>
+                        <div class="form-group">
+                            <label for="quoteUrgency">Urgency</label>
+                            <select id="quoteUrgency">
+                                <option value="Routine">Routine</option>
+                                <option value="This week">This week</option>
+                                <option value="Urgent today">Urgent today</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label for="quoteNotes">Additional Notes</label><textarea id="quoteNotes" rows="3" placeholder="Any extra fitment or delivery details…"></textarea></div>
+                    <button class="btn btn-primary btn-block btn-large" type="submit">Submit Quote Request</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Trust Signals</p>
+                <h2>What customers say</h2>
+            </div>
+            <div class="testimonials-grid">
+                <article class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"New search and saved cart make repeat orders much faster for our workshop."</p>
+                    <p class="testimonial-author">Fleet Buyer — Banjul</p>
+                </article>
+                <article class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Requesting a quote for exact vehicle fitment saves a lot of back and forth."</p>
+                    <p class="testimonial-author">Repair Customer</p>
+                </article>
+                <article class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Product comparison feature helped me choose the right engine for my budget."</p>
+                    <p class="testimonial-author">Repeat Shopper</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section-alt">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">FAQ</p>
+                <h2>Common buying questions</h2>
+            </div>
+            <div class="faq-grid">
+                <details class="faq-item">
+                    <summary>How do I compare products?</summary>
+                    <p>Click the "+ Compare" button on any product card. Select up to 3 products, then click "Compare Now" in the bar at the bottom of the screen.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Can I place an order directly from this site?</summary>
+                    <p>Yes. The checkout creates a real order entry and lets you continue to WhatsApp or Facebook with the order reference to confirm payment.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Do promo codes actually apply discounts?</summary>
+                    <p>Yes. Enter your code on the checkout page to see the discount applied to your total before contacting the sales team.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Will my cart and wishlist be saved if I close the browser?</summary>
+                    <p>Yes. All data (cart, wishlist, orders, quotes) is saved to Firebase so it persists across sessions and devices.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer class="footer">
+    <div class="container footer-content">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Quality engines and car parts for workshops, drivers, and fleets across Gambia.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Explore</h4>
+            <ul>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="promos.html">Promotions</a></li>
+                <li><a href="reviews.html">Reviews</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Support</h4>
+            <ul>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="orders.html">Track Orders</a></li>
+                <li><a href="#quote">Get a Quote</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Newsletter</h4>
+            <form data-newsletter-form>
+                <label class="sr-only" for="newsletterEmail">Email address</label>
+                <input id="newsletterEmail" name="email" type="email" class="newsletter-input" placeholder="Your email address" required>
+                <button class="btn btn-primary btn-block" type="submit">Subscribe</button>
+            </form>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 Mat Auto. All rights reserved. Quality engines &amp; parts — Gambia.</p>
+    </div>
+</footer>
+
+<!-- ── PRODUCT MODAL ──────────────────────────────────────── -->
+<div id="productModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-content modal-large">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-body">
+            <div class="modal-image">
+                <img id="modalImage" src="" alt="">
+                <div id="modalGallery" class="modal-gallery"></div>
+            </div>
+            <div class="modal-info">
+                <div class="modal-meta-row">
+                    <span class="modal-category" id="modalCategory"></span>
+                    <span class="stock-status" id="stockStatus"></span>
+                </div>
+                <h2 id="modalTitle"></h2>
+                <div class="rating" id="modalRating"></div>
+                <p class="price" id="modalPrice"></p>
+                <p class="description" id="modalDescription"></p>
+                <p class="product-spec-line" id="modalSpecs"></p>
+                <div class="quantity-selector">
+                    <button type="button" id="decreaseQtyBtn" aria-label="Decrease">−</button>
+                    <input type="number" id="quantityInput" value="1" min="1" aria-label="Quantity">
+                    <button type="button" id="increaseQtyBtn" aria-label="Increase">+</button>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" id="modalAddToCart" type="button">Add to Cart</button>
+                    <button class="btn btn-secondary-dark" id="modalBuyNow" type="button">Buy Now</button>
+                </div>
+                <button class="text-button" id="wishlistBtn" type="button">♡ Save to wishlist</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── CART MODAL ─────────────────────────────────────────── -->
+<div id="cartModal" class="modal" aria-hidden="true" role="dialog" aria-label="Shopping Cart">
+    <div class="modal-content modal-medium">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>Shopping Cart</h2>
+                <p id="cartSummaryText">Your saved items appear here.</p>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+            <div class="cart-summary">
+                <div class="summary-row"><span>Subtotal</span><strong id="subtotal">GMD 0.00</strong></div>
+                <div class="summary-row total"><span>Total</span><strong id="total">GMD 0.00</strong></div>
+                <button class="btn btn-primary btn-block btn-large" id="checkoutFromCartBtn" type="button">Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── WISHLIST MODAL ─────────────────────────────────────── -->
+<div id="wishlistModal" class="modal" aria-hidden="true" role="dialog" aria-label="Wishlist">
+    <div class="modal-content modal-medium">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>♡ Wishlist</h2>
+                <p>Your saved products for later review.</p>
+            </div>
+            <div id="wishlistItems" class="wishlist-items"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── COMPARE MODAL (NEW) ───────────────────────────────── -->
+<div id="compareModal" class="modal" aria-hidden="true" role="dialog" aria-label="Product Comparison">
+    <div class="modal-content modal-xl">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>Product Comparison</h2>
+                <p>Side-by-side comparison of selected products.</p>
+            </div>
+            <div id="compareModalBody" style="overflow-x:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── COMPARE BAR (NEW) ─────────────────────────────────── -->
+<div id="compareBar" role="region" aria-label="Compare products"></div>
+
+<!-- ── TOAST STACK ───────────────────────────────────────── -->
+<div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

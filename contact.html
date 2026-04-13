@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Contact Us - Mat Auto</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <h1>Mat Auto</h1>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="contact.html" class="active">Contact</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Banner -->
+    <div class="page-banner">
+        <h1>Contact Us</h1>
+        <p>We're here to help! Get in touch with our team</p>
+    </div>
+
+    <!-- Contact Content -->
+    <div class="page-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+            <div class="feature-card">
+                <h3>📞 Phone</h3>
+                <p>+220 678 5316</p>
+            </div>
+            <div class="feature-card">
+                <h3>💬 WhatsApp</h3>
+                <p>+220 232 8902</p>
+            </div>
+            <div class="feature-card">
+                <h3>📧 Email</h3>
+                <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a8c1c6cec7e8c5c9dcc9dddcc786cbc7c5">[email&#160;protected]</a></p>
+            </div>
+            <div class="feature-card">
+                <h3>📍 Address</h3>
+                <p>123 Auto Street<br>Motor City, MC 12345</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+            <!-- Contact Form -->
+            <div class="form-card">
+                <h2>Send us a Message</h2>
+                <form id="contactForm" onsubmit="handleContactForm(event)">
+                    <div class="form-group">
+                        <label for="contactName">Name *</label>
+                        <input type="text" id="contactName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactEmail">Email *</label>
+                        <input type="email" id="contactEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactPhone">Phone</label>
+                        <input type="tel" id="contactPhone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactSubject">Subject *</label>
+                        <input type="text" id="contactSubject" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactMessage">Message *</label>
+                        <textarea id="contactMessage" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">Send Message</button>
+                </form>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="form-card">
+                <h2>Quick Links</h2>
+                
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary);">📞 Direct Contact</h3>
+                <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem; text-align: center;">💬 Chat on WhatsApp (Primary)</a>
+                <a href="https://wa.me/qr/FDKDUI5V625OE1" target="_blank" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem; text-align: center;">💬 Chat on WhatsApp (Alt)</a>
+                <a href="https://www.facebook.com/profile.php?id=61574154117727" target="_blank" class="btn btn-facebook" style="width: 100%; margin-bottom: 1rem; text-align: center;">👤 Message on Facebook</a>
+
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary);">🕐 Business Hours</h3>
+                <p><strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM</p>
+                <p><strong>Saturday:</strong> 10:00 AM - 4:00 PM</p>
+                <p><strong>Sunday:</strong> Closed</p>
+
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary);">ℹ️ Support</h3>
+                <p>Average response time: 30 minutes</p>
+                <p>Available in multiple languages</p>
+                <p>Dedicated customer support team</p>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <section style="margin-top: 3rem;">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div style="display: grid; gap: 1rem;">
+                <div class="feature-card">
+                    <h3>How do I place an order?</h3>
+                    <p>Browse our products, click "View Details" on any item, and then click "Buy Now" to proceed to checkout. Follow the instructions to complete your order.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>What payment methods do you accept?</h3>
+                    <p>We accept payments via WhatsApp and Facebook Messenger. Contact our sales team for pricing and payment details.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>How long does delivery take?</h3>
+                    <p>Delivery times vary based on location. Contact us for current delivery estimates to your area.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Do you offer returns or exchanges?</h3>
+                    <p>Yes! We offer returns and exchanges within 30 days of purchase. Contact our support team for assistance.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Is there a warranty on products?</h3>
+                    <p>All products come with a warranty. Specific warranty terms vary by product. Contact us for details.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Do you ship internationally?</h3>
+                    <p>Currently, we ship within the local region. Contact us to inquire about international shipping options.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Mat Auto</h4>
+                <ul>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Returns</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">WhatsApp</a></li>
+                    <li><a href="#">Instagram</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Newsletter</h4>
+                <input type="email" placeholder="Enter your email" class="newsletter-input">
+                <button class="btn btn-primary" style="margin-top: 0.5rem;">Subscribe</button>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mat Auto. All rights reserved. | Quality Engines & Car Parts</p>
+        </div>
+    </footer>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+

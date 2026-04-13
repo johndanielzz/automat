@@ -1,0 +1,411 @@
+
+<h2 class="sr-only">GM Auto — Firebase-powered vehicle management dashboard with authentication</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+#root{padding:1rem 0}
+.page{display:none}.page.active{display:block}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--border-radius-md);font-size:12px;font-weight:500}
+.badge-success{background:var(--color-background-success);color:var(--color-text-success)}
+.badge-warning{background:var(--color-background-warning);color:var(--color-text-warning)}
+.badge-info{background:var(--color-background-info);color:var(--color-text-info)}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
+.metric-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric-value{font-size:24px;font-weight:500;color:var(--color-text-primary)}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:8px 12px;color:var(--color-text-secondary);font-weight:500;font-size:13px;border-bottom:0.5px solid var(--color-border-tertiary)}
+td{padding:10px 12px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+tr:last-child td{border-bottom:none}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:0.5px solid var(--color-border-tertiary)}
+.nav-title{font-size:18px;font-weight:500}
+.nav-user{font-size:13px;color:var(--color-text-secondary)}
+.tab-bar{display:flex;gap:4px;margin-bottom:1.5rem;border-bottom:0.5px solid var(--color-border-tertiary)}
+.tab{padding:8px 16px;font-size:14px;cursor:pointer;border:none;background:none;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary)}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:13px;color:var(--color-text-secondary);margin-bottom:6px}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-logo .logo-icon{width:48px;height:48px;border-radius:var(--border-radius-lg);background:var(--color-background-info);display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+.auth-logo .logo-text{font-size:20px;font-weight:500}
+.auth-logo .logo-sub{font-size:13px;color:var(--color-text-secondary)}
+.auth-wrap{max-width:380px;margin:0 auto}
+.divider{display:flex;align-items:center;gap:12px;margin:1rem 0;color:var(--color-text-secondary);font-size:13px}
+.divider::before,.divider::after{content:'';flex:1;height:0.5px;background:var(--color-border-tertiary)}
+.error-msg{background:var(--color-background-danger);color:var(--color-text-danger);padding:10px 14px;border-radius:var(--border-radius-md);font-size:13px;margin-bottom:1rem;display:none}
+.success-msg{background:var(--color-background-success);color:var(--color-text-success);padding:10px 14px;border-radius:var(--border-radius-md);font-size:13px;margin-bottom:1rem;display:none}
+.action-btn{background:none;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:4px 10px;font-size:12px;cursor:pointer;color:var(--color-text-secondary)}
+.action-btn:hover{background:var(--color-background-secondary)}
+.action-btn.danger{color:var(--color-text-danger);border-color:var(--color-border-secondary)}
+.modal-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:10;align-items:center;justify-content:center;border-radius:var(--border-radius-lg)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:1.5rem;width:100%;max-width:400px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.modal-title{font-size:16px;font-weight:500}
+.close-btn{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;line-height:1}
+.loading{text-align:center;padding:2rem;color:var(--color-text-secondary);font-size:14px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--color-text-info);flex-shrink:0}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.green{background:#639922}.status-dot.amber{background:#BA7517}.status-dot.red{background:#E24B4A}
+.empty-state{text-align:center;padding:2.5rem;color:var(--color-text-secondary);font-size:14px}
+select{width:100%}
+</style>
+
+<div id="root" style="position:relative">
+
+<!-- AUTH PAGE -->
+<div class="page active" id="page-auth">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="var(--color-text-info)" stroke-width="2" fill="none"/>
+          <polyline points="9 22 9 12 15 12 15 22" stroke="var(--color-text-info)" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="logo-text">GM Auto</div>
+      <div class="logo-sub">Fleet Management System</div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchAuthTab('login')">Sign in</button>
+      <button class="tab" onclick="switchAuthTab('register')">Create account</button>
+    </div>
+
+    <div id="auth-error" class="error-msg"></div>
+    <div id="auth-success" class="success-msg"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" id="login-email" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••"/>
+      </div>
+      <button onclick="doLogin()" style="width:100%;margin-top:4px">Sign in</button>
+      <div class="divider">or</div>
+      <button onclick="doGoogleLogin()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label>Full name</label>
+        <input type="text" id="reg-name" placeholder="John Doe"/>
+      </div>
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" id="reg-email" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min. 6 characters"/>
+      </div>
+      <button onclick="doRegister()" style="width:100%;margin-top:4px">Create account</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dashboard">
+  <div class="nav">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#639922"></div>
+      <span class="nav-title">GM Auto Dashboard</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="nav-user" id="user-label"></span>
+      <div class="avatar" id="user-avatar">?</div>
+      <button onclick="doLogout()" style="font-size:13px;padding:6px 14px">Sign out</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchDashTab('overview')">Overview</button>
+    <button class="tab" onclick="switchDashTab('vehicles')">Vehicles</button>
+    <button class="tab" onclick="switchDashTab('profile')">Profile</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview">
+    <div class="grid-4" id="metrics-grid">
+      <div class="metric"><div class="metric-label">Total vehicles</div><div class="metric-value" id="m-total">—</div></div>
+      <div class="metric"><div class="metric-label">Available</div><div class="metric-value" id="m-avail">—</div></div>
+      <div class="metric"><div class="metric-label">Sold</div><div class="metric-value" id="m-sold">—</div></div>
+      <div class="metric"><div class="metric-label">Reserved</div><div class="metric-value" id="m-res">—</div></div>
+    </div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Recent activity</div>
+      <div id="recent-list"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- VEHICLES TAB -->
+  <div id="tab-vehicles" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:15px;font-weight:500">Vehicle inventory</div>
+      <button onclick="openAddModal()" style="font-size:13px;padding:6px 14px">+ Add vehicle</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Vehicle</th><th>Year</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="vehicles-tbody"><tr><td colspan="5"><div class="loading">Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE TAB -->
+  <div id="tab-profile" style="display:none">
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Account info</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">
+          <div class="avatar" style="width:48px;height:48px;font-size:18px" id="profile-avatar">?</div>
+          <div>
+            <div style="font-weight:500" id="profile-name">—</div>
+            <div style="font-size:13px;color:var(--color-text-secondary)" id="profile-email">—</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--color-text-secondary)">UID</div>
+        <div style="font-size:12px;font-family:var(--font-mono);color:var(--color-text-secondary);margin-top:2px;word-break:break-all" id="profile-uid">—</div>
+      </div>
+      <div class="card">
+        <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Firebase project</div>
+        <table style="font-size:13px">
+          <tr><td style="color:var(--color-text-secondary);padding:4px 0">Project ID</td><td style="padding:4px 0 4px 12px;font-family:var(--font-mono)">gm-auto-9c02f</td></tr>
+          <tr><td style="color:var(--color-text-secondary);padding:4px 0">Database</td><td style="padding:4px 0 4px 12px"><span class="badge badge-success">Connected</span></td></tr>
+          <tr><td style="color:var(--color-text-secondary);padding:4px 0">Auth</td><td style="padding:4px 0 4px 12px"><span class="badge badge-success">Active</span></td></tr>
+          <tr><td style="color:var(--color-text-secondary);padding:4px 0">Analytics</td><td style="padding:4px 0 4px 12px"><span class="badge badge-info">Enabled</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD VEHICLE MODAL -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add vehicle</span>
+        <button class="close-btn" onclick="closeAddModal()">×</button>
+      </div>
+      <div id="modal-error" class="error-msg"></div>
+      <div class="form-group"><label>Make</label><input type="text" id="v-make" placeholder="Toyota, Ford, BMW…"/></div>
+      <div class="form-group"><label>Model</label><input type="text" id="v-model" placeholder="Camry, F-150…"/></div>
+      <div class="form-group"><label>Year</label><input type="number" id="v-year" placeholder="2024" min="1990" max="2030"/></div>
+      <div class="form-group"><label>Price (GMD)</label><input type="number" id="v-price" placeholder="500000"/></div>
+      <div class="form-group"><label>Status</label>
+        <select id="v-status"><option value="available">Available</option><option value="reserved">Reserved</option><option value="sold">Sold</option></select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="closeAddModal()" style="flex:1;background:none;border:0.5px solid var(--color-border-secondary)">Cancel</button>
+        <button onclick="saveVehicle()" style="flex:1">Save vehicle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics-compat.js"></script>
+<script>
+const firebaseConfig={apiKey:"AIzaSyCsM3bpflTPQtVvjxC8JCNCwlElxc5QkDk",authDomain:"gm-auto-9c02f.firebaseapp.com",databaseURL:"https://gm-auto-9c02f-default-rtdb.firebaseio.com",projectId:"gm-auto-9c02f",storageBucket:"gm-auto-9c02f.firebasestorage.app",messagingSenderId:"910842464490",appId:"1:910842464490:web:598bc7b97a71b21177ef93",measurementId:"G-S74811TTQF"};
+
+const app=firebase.apps?.length?firebase.app():firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(app);
+const db=firebase.firestore(app);
+let analytics;
+try{analytics=firebase.analytics();}catch(e){}
+
+let unsubVehicles=null;
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    showPage('dashboard');
+    setUserUI(user);
+    listenVehicles();
+  } else {
+    showPage('auth');
+    if(unsubVehicles){unsubVehicles();unsubVehicles=null;}
+  }
+});
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+}
+
+function setUserUI(user){
+  const name=user.displayName||user.email.split('@')[0];
+  const initials=(name.split(' ').map(n=>n[0]).join('').toUpperCase()+'').slice(0,2);
+  document.getElementById('user-label').textContent=name;
+  document.getElementById('user-avatar').textContent=initials;
+  document.getElementById('profile-name').textContent=user.displayName||name;
+  document.getElementById('profile-email').textContent=user.email;
+  document.getElementById('profile-uid').textContent=user.uid;
+  document.getElementById('profile-avatar').textContent=initials;
+}
+
+function switchAuthTab(t){
+  document.querySelectorAll('#page-auth .tab').forEach((el,i)=>{el.classList.toggle('active',i===(t==='login'?0:1))});
+  document.getElementById('login-form').style.display=t==='login'?'block':'none';
+  document.getElementById('register-form').style.display=t==='register'?'block':'none';
+  hideAuthMsgs();
+}
+
+function switchDashTab(t){
+  const tabs=['overview','vehicles','profile'];
+  document.querySelectorAll('#page-dashboard .tab').forEach((el,i)=>{el.classList.toggle('active',tabs[i]===t)});
+  tabs.forEach(tab=>{document.getElementById('tab-'+tab).style.display=tab===t?'block':'none';});
+}
+
+function showAuthError(msg){const el=document.getElementById('auth-error');el.textContent=msg;el.style.display='block';document.getElementById('auth-success').style.display='none';}
+function showAuthSuccess(msg){const el=document.getElementById('auth-success');el.textContent=msg;el.style.display='block';document.getElementById('auth-error').style.display='none';}
+function hideAuthMsgs(){document.getElementById('auth-error').style.display='none';document.getElementById('auth-success').style.display='none';}
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-password').value;
+  if(!email||!pass){showAuthError('Please fill in all fields.');return;}
+  try{
+    await auth.signInWithEmailAndPassword(email,pass);
+    if(analytics)analytics.logEvent('login',{method:'email'});
+  }catch(e){showAuthError(friendlyError(e.code));}
+}
+
+async function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-password').value;
+  if(!name||!email||!pass){showAuthError('Please fill in all fields.');return;}
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pass);
+    await cred.user.updateProfile({displayName:name});
+    await db.collection('users').doc(cred.user.uid).set({name,email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    if(analytics)analytics.logEvent('sign_up',{method:'email'});
+  }catch(e){showAuthError(friendlyError(e.code));}
+}
+
+async function doGoogleLogin(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  try{
+    const result=await auth.signInWithPopup(provider);
+    await db.collection('users').doc(result.user.uid).set({name:result.user.displayName,email:result.user.email,lastLogin:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  }catch(e){showAuthError(friendlyError(e.code));}
+}
+
+async function doLogout(){
+  await auth.signOut();
+  switchDashTab('overview');
+}
+
+function listenVehicles(){
+  const uid=auth.currentUser?.uid;
+  if(!uid)return;
+  unsubVehicles=db.collection('vehicles').where('ownerId','==',uid).onSnapshot(snap=>{
+    const vehicles=snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>{
+        const ta=a.createdAt?.toMillis?.()||0;
+        const tb=b.createdAt?.toMillis?.()||0;
+        return tb-ta;
+      });
+    renderVehicles(vehicles);
+    renderMetrics(vehicles);
+    renderRecent(vehicles);
+  },err=>{
+    document.getElementById('vehicles-tbody').innerHTML='<tr><td colspan="5" style="color:var(--color-text-danger);padding:1rem">'+err.message+'</td></tr>';
+  });
+}
+
+function renderMetrics(v){
+  document.getElementById('m-total').textContent=v.length;
+  document.getElementById('m-avail').textContent=v.filter(x=>x.status==='available').length;
+  document.getElementById('m-sold').textContent=v.filter(x=>x.status==='sold').length;
+  document.getElementById('m-res').textContent=v.filter(x=>x.status==='reserved').length;
+}
+
+function renderRecent(v){
+  const el=document.getElementById('recent-list');
+  if(!v.length){el.innerHTML='<div class="empty-state">No vehicles yet. Add one from the Vehicles tab.</div>';return;}
+  el.innerHTML=v.slice(0,5).map(x=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar">${(x.make||'?')[0].toUpperCase()}</div>
+      <div><div style="font-size:14px;font-weight:500">${x.make} ${x.model}</div><div style="font-size:12px;color:var(--color-text-secondary)">${x.year||'—'}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px">GMD ${Number(x.price||0).toLocaleString()}</span>
+      ${statusBadge(x.status)}
+    </div>
+  </div>`).join('')+'<div style="border-bottom:none"></div>';
+}
+
+function renderVehicles(v){
+  const tb=document.getElementById('vehicles-tbody');
+  if(!v.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state">No vehicles added yet.</div></td></tr>';return;}
+  tb.innerHTML=v.map(x=>`<tr>
+    <td style="font-weight:500">${x.make||'—'} ${x.model||''}</td>
+    <td>${x.year||'—'}</td>
+    <td>GMD ${Number(x.price||0).toLocaleString()}</td>
+    <td>${statusBadge(x.status)}</td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap">
+      ${x.status!=='sold'?`<button class="action-btn" onclick="markSold('${x.id}')">Mark sold</button>`:''}
+      <button class="action-btn danger" onclick="deleteVehicle('${x.id}')">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+function statusBadge(s){
+  const map={available:'badge-success',reserved:'badge-warning',sold:'badge-info'};
+  return `<span class="badge ${map[s]||'badge-info'}">${s||'unknown'}</span>`;
+}
+
+function openAddModal(){document.getElementById('add-modal').classList.add('open');document.getElementById('modal-error').style.display='none';}
+function closeAddModal(){document.getElementById('add-modal').classList.remove('open');}
+
+async function saveVehicle(){
+  const make=document.getElementById('v-make').value.trim();
+  const model=document.getElementById('v-model').value.trim();
+  const year=document.getElementById('v-year').value;
+  const price=document.getElementById('v-price').value;
+  const status=document.getElementById('v-status').value;
+  if(!make||!model){const e=document.getElementById('modal-error');e.textContent='Make and model are required.';e.style.display='block';return;}
+  try{
+    await db.collection('vehicles').add({make,model,year:parseInt(year)||new Date().getFullYear(),price:parseFloat(price)||0,status,ownerId:auth.currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    if(analytics)analytics.logEvent('add_vehicle',{make,status});
+    ['v-make','v-model','v-year','v-price'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('v-status').value='available';
+    closeAddModal();
+    switchDashTab('vehicles');
+  }catch(e){const el=document.getElementById('modal-error');el.textContent=e.message;el.style.display='block';}
+}
+
+async function markSold(id){
+  await db.collection('vehicles').doc(id).update({status:'sold'});
+}
+
+async function deleteVehicle(id){
+  if(confirm('Delete this vehicle?'))await db.collection('vehicles').doc(id).delete();
+}
+
+function friendlyError(code){
+  const m={'auth/user-not-found':'No account found with that email.','auth/wrong-password':'Incorrect password.','auth/email-already-in-use':'That email is already registered.','auth/weak-password':'Password must be at least 6 characters.','auth/invalid-email':'Please enter a valid email address.','auth/popup-closed-by-user':'Sign-in popup was closed.','auth/invalid-credential':'Invalid email or password.'};
+  return m[code]||'Something went wrong. Please try again.';
+}
+</script>
+

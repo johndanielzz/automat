@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Checkout — Mat Auto</title>
+    <meta name="description" content="Complete your Mat Auto order. Review your cart, apply a promo code, and confirm via WhatsApp or Facebook.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body id="checkoutPage">
+
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>Checkout</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#products">Products</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="checkout-container">
+    <h1 class="checkout-title">Complete Your Purchase</h1>
+
+    <!-- Order Summary -->
+    <div class="checkout-card">
+        <h2>📋 Order Summary</h2>
+        <div class="product-summary">
+            <p id="productName" style="font-size:.82rem;color:var(--text-mid);font-family:monospace;margin-bottom:.75rem;"></p>
+            <div id="productDetails"></div>
+            <div class="summary-row" style="margin-top:1rem;padding-top:1rem;border-top:2px solid var(--border);">
+                <strong>Total</strong>
+                <span class="summary-price" id="productCost"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promo Code -->
+    <div class="checkout-card">
+        <h2>🎁 Have a Promo Code?</h2>
+        <div class="promo-row">
+            <input type="text" id="checkoutPromoInput" placeholder="e.g. WELCOME15" style="text-transform:uppercase;">
+            <button class="btn btn-outline" id="checkoutPromoApply" type="button">Apply</button>
+        </div>
+        <p id="checkoutPromoMessage" class="promo-message"></p>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="checkout-card">
+        <h2>👤 Your Details</h2>
+        <p style="color:var(--text-mid);font-size:.88rem;margin-bottom:1rem;">Help us prepare your order faster by sharing your contact info.</p>
+        <form id="customerInfoForm">
+            <div class="form-split">
+                <div class="form-group">
+                    <label for="customerName">Your Name</label>
+                    <input type="text" id="customerName" placeholder="e.g. Lamin Jallow">
+                </div>
+                <div class="form-group">
+                    <label for="customerPhone">WhatsApp Number *</label>
+                    <input type="tel" id="customerPhone" placeholder="+220 7XX XXXX" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="customerNotes">Delivery Notes (optional)</label>
+                <textarea id="customerNotes" rows="2" placeholder="e.g. Deliver to Banjul market, near Serrekunda junction…"></textarea>
+            </div>
+        </form>
+    </div>
+
+    <!-- Contact to Complete -->
+    <div class="checkout-card">
+        <h2>📞 Confirm Your Order</h2>
+        <p style="margin-bottom:1.5rem;color:var(--text-mid);font-size:.9rem;">
+            Click below to send your order details to our team. We'll confirm payment and delivery within <strong>30 minutes</strong>.
+        </p>
+        <div class="contact-buttons">
+            <a id="whatsappBtn" href="#" class="contact-btn btn-whatsapp" role="button">
+                <span>💬</span><span>Confirm on WhatsApp</span>
+            </a>
+            <a id="facebookBtn" href="#" target="_blank" rel="noopener" class="contact-btn btn-facebook">
+                <span>👤</span><span>Message on Facebook</span>
+            </a>
+        </div>
+        <p style="margin-top:1rem;text-align:center;color:var(--text-mid);font-size:.8rem;">
+            ⏱ Response time: ~30 min · Available 7 days a week
+        </p>
+    </div>
+
+    <!-- Back to shop -->
+    <div style="text-align:center;margin-top:.5rem;">
+        <a href="index.html#products" class="btn btn-ghost">← Continue Shopping</a>
+    </div>
+
+    <!-- FAQ -->
+    <div class="checkout-card" style="margin-top:1.25rem;">
+        <h2>❓ Common Questions</h2>
+        <div style="display:grid;gap:.75rem;">
+            <div class="feature-card">
+                <h3>🛡️ Is my order secure?</h3>
+                <p>Yes. Every order gets a unique Order ID that you and our team can reference at any time.</p>
+            </div>
+            <div class="feature-card">
+                <h3>💳 How do I pay?</h3>
+                <p>Our team will confirm payment options (mobile money, bank transfer, or cash) via WhatsApp.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📦 When will it arrive?</h3>
+                <p>Delivery dates are confirmed based on your location. Most Banjul orders are next-day.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

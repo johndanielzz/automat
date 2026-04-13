@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>My Orders — Mat Auto</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>My Orders</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#products">Products</a></li>
+            <li><a href="orders.html" class="active">My Orders</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-banner">
+    <h1>📦 My Orders</h1>
+    <p>Track and manage your purchases</p>
+</div>
+
+<div class="page-content">
+    <!-- Order History -->
+    <div class="form-card">
+        <h2 class="section-title">Order History</h2>
+        <div id="ordersContainer"></div>
+    </div>
+
+    <!-- Track Order — FIXED: replaced alert() with visual stepper UI -->
+    <div class="form-card">
+        <h2 class="section-title">Track an Order</h2>
+        <p style="color:var(--text-mid);margin-bottom:1rem;font-size:.9rem;">Enter your order ID to see its current status.</p>
+        <div class="form-group" style="display:flex;gap:.75rem;flex-wrap:wrap;">
+            <input type="text" id="orderTrackingId" placeholder="e.g. order-lp4k2x-1a2b" style="flex:1;min-width:200px;">
+            <button class="btn btn-primary" id="trackOrderBtn" type="button">Track Order</button>
+        </div>
+        <!-- Result renders here — no alert() -->
+        <div id="orderTrackingResult"></div>
+    </div>
+
+    <!-- Shipping Info -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:2rem;">
+        <div class="feature-card">
+            <h3>🚚 Standard Shipping</h3>
+            <p><strong>3–5 Business Days</strong></p>
+            <p>Free on orders over GMD 500</p>
+        </div>
+        <div class="feature-card">
+            <h3>⚡ Express Shipping</h3>
+            <p><strong>1–2 Business Days</strong></p>
+            <p>Additional charges apply</p>
+        </div>
+        <div class="feature-card">
+            <h3>📍 Store Pickup</h3>
+            <p><strong>Same Day</strong></p>
+            <p>Available at our location</p>
+        </div>
+    </div>
+
+    <!-- Status Reference -->
+    <div class="form-card">
+        <h2 class="section-title">Order Status Guide</h2>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr style="background:var(--bg);">
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);font-weight:700;">📋 Pending</td>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);color:var(--text-mid);">Order received and being processed</td>
+            </tr>
+            <tr>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);font-weight:700;">🔄 Processing</td>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);color:var(--text-mid);">Confirmed and being prepared for dispatch</td>
+            </tr>
+            <tr style="background:var(--bg);">
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);font-weight:700;">✅ Completed</td>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);color:var(--text-mid);">Order fulfilled and delivered</td>
+            </tr>
+            <tr>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);font-weight:700;">❌ Cancelled</td>
+                <td style="padding:.85rem 1rem;border:1px solid var(--border);color:var(--text-mid);">Order has been cancelled</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Support -->
+    <div class="form-card" style="background:var(--primary-light);border-color:var(--primary);">
+        <h2 class="section-title">Need Help?</h2>
+        <p style="margin-bottom:1.25rem;color:var(--text-mid);">Our team is available 7 days a week to help with your order.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+            <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" class="btn btn-whatsapp">💬 WhatsApp Support</a>
+            <a href="https://www.facebook.com/profile.php?id=61574154117727" target="_blank" class="btn btn-facebook">📱 Facebook Support</a>
+        </div>
+        <p style="margin-top:.75rem;font-size:.85rem;color:var(--text-mid);"><a href="https://wa.me/qr/FDKDUI5V625OE1" target="_blank">Use alternate WhatsApp contact</a></p>
+    </div>
+</div>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-content container">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Quality engines and car parts — Gambia.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
+
+

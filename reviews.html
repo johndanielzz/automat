@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Product Reviews - Mat Auto</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <h1>Mat Auto</h1>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="reviews.html" class="active">Reviews</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Banner -->
+    <div class="page-banner">
+        <h1>⭐ Customer Reviews</h1>
+        <p>See what our customers say about our products</p>
+    </div>
+
+    <!-- Reviews Content -->
+    <div class="page-content">
+        <div class="form-card">
+            <h2>Recent Customer Reviews</h2>
+            
+            <div id="reviewsContainer" style="display: grid; gap: 1.5rem; margin-top: 1.5rem;">
+                <div class="review-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">⭐⭐⭐⭐⭐ Excellent Quality Engine</h3>
+                            <p style="color: #666; margin-bottom: 0.3rem;"><strong>Product:</strong> V8 Engine</p>
+                            <p style="color: #666;"><strong>By:</strong> Ahmed M. • 2 weeks ago</p>
+                        </div>
+                    </div>
+                    <p>"The V8 engine I purchased runs perfectly. Installation was smooth, and customer service was very helpful. Highly recommend Mat Auto!"</p>
+                </div>
+
+                <div class="review-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">⭐⭐⭐⭐⭐ Best Brake Pads Ever</h3>
+                            <p style="color: #666; margin-bottom: 0.3rem;"><strong>Product:</strong> Brake Pads</p>
+                            <p style="color: #666;"><strong>By:</strong> Sarah K. • 1 month ago</p>
+                        </div>
+                    </div>
+                    <p>"Great quality brake pads at an affordable price. My car stops smoothly now. Customer service was excellent too!"</p>
+                </div>
+
+                <div class="review-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">⭐⭐⭐⭐⭐ Fast Delivery</h3>
+                            <p style="color: #666; margin-bottom: 0.3rem;"><strong>Product:</strong> Air Filter</p>
+                            <p style="color: #666;"><strong>By:</strong> John D. • 1 month ago</p>
+                        </div>
+                    </div>
+                    <p>"Amazing experience! Product arrived quickly, packaged well, and works as described. Will definitely order again."</p>
+                </div>
+
+                <div class="review-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">⭐⭐⭐⭐⭐ Professional Service</h3>
+                            <p style="color: #666; margin-bottom: 0.3rem;"><strong>Product:</strong> V6 Engine</p>
+                            <p style="color: #666;"><strong>By:</strong> Mike T. • 2 months ago</p>
+                        </div>
+                    </div>
+                    <p>"Mat Auto's team answered all my questions before purchase. The V6 engine is perfect for my car. Truly professional!"</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <h2>📝 Leave a Review</h2>
+            <form onsubmit="submitReview(event)" style="margin-top: 1.5rem;">
+                <div class="form-group">
+                    <label for="reviewProduct">Select Product *</label>
+                    <select id="reviewProduct" required>
+                        <option value="">-- Choose a product --</option>
+                        <option value="V8 Engine">V8 Engine</option>
+                        <option value="Air Filter">Air Filter</option>
+                        <option value="V6 Engine">V6 Engine</option>
+                        <option value="Brake Pads">Brake Pads</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reviewName">Your Name *</label>
+                    <input type="text" id="reviewName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="reviewEmail">Your Email *</label>
+                    <input type="email" id="reviewEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="reviewRating">Rating *</label>
+                    <select id="reviewRating" required>
+                        <option value="">-- Select rating --</option>
+                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ Very Good</option>
+                        <option value="3">⭐⭐⭐ Good</option>
+                        <option value="2">⭐⭐ Fair</option>
+                        <option value="1">⭐ Poor</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reviewTitle">Review Title *</label>
+                    <input type="text" id="reviewTitle" required placeholder="e.g. Excellent quality!">
+                </div>
+                <div class="form-group">
+                    <label for="reviewText">Your Review *</label>
+                    <textarea id="reviewText" placeholder="Share your experience with this product..." required></textarea>
+                </div>
+                <p style="font-size:.82rem;color:var(--text-mid);margin-bottom:.75rem;">⏳ Reviews appear after approval — usually within a few hours.</p>
+                <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">Submit Review</button>
+            </form>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+            <div class="feature-card" style="background: linear-gradient(135deg, var(--success) 0%, #229954 100%); color: white; text-align: center;">
+                <h3>4.8/5</h3>
+                <p>Average Rating</p>
+            </div>
+            <div class="feature-card" style="background: linear-gradient(135deg, var(--primary) 0%, #c0392b 100%); color: white; text-align: center;">
+                <h3>1,250+</h3>
+                <p>Total Reviews</p>
+            </div>
+            <div class="feature-card" style="background: linear-gradient(135deg, var(--accent) 0%, #e67e22 100%); color: white; text-align: center;">
+                <h3>98%</h3>
+                <p>Satisfied Customers</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Mat Auto</h4>
+                <ul>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Returns</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">WhatsApp</a></li>
+                    <li><a href="#">Instagram</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Newsletter</h4>
+                <input type="email" placeholder="Enter your email" class="newsletter-input">
+                <button class="btn btn-primary" style="margin-top: 0.5rem;">Subscribe</button>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mat Auto. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

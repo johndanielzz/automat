@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>About Us - Mat Auto</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <h1>Mat Auto</h1>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html" class="active">About</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Banner -->
+    <div class="page-banner">
+        <h1>About Mat Auto</h1>
+        <p>Your Trusted Partner in Quality Engines & Car Parts</p>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        <section>
+            <h2 class="section-title">Who We Are</h2>
+            <p>Mat Auto is a leading provider of high-quality automotive engines and car parts. With years of experience in the industry, we've earned the trust of thousands of satisfied customers across the region.</p>
+            <p>We believe in providing not just products, but solutions. Every engine and part we offer undergoes strict quality control to ensure durability and performance.</p>
+        </section>
+
+        <section>
+            <h2 class="section-title">Our Mission</h2>
+            <p>To provide affordable, reliable, and high-quality automotive solutions that keep vehicles running smoothly and safely on the road.</p>
+        </section>
+
+        <section>
+            <h2 class="section-title">Why Choose Mat Auto?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>🎯 Quality Assurance</h3>
+                    <p>All products are tested and verified to meet the highest standards before reaching our customers.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💰 Competitive Pricing</h3>
+                    <p>We offer the best prices in the market without compromising on quality.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🚀 Fast Delivery</h3>
+                    <p>Quick and reliable delivery service to get your parts when you need them.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📞 Expert Support</h3>
+                    <p>Our knowledgeable team is ready to help you with any questions or concerns.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>✅ Warranty</h3>
+                    <p>We stand behind our products with comprehensive warranty coverage.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🤝 Customer First</h3>
+                    <p>Your satisfaction is our top priority. We're committed to excellent service.</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Our Expertise</h2>
+            <p>With decades of combined experience in the automotive industry, our team understands what drivers need. We specialize in:</p>
+            <ul style="margin: 1rem 0; padding-left: 2rem; line-height: 2;">
+                <li>High-performance engines for sports and racing vehicles</li>
+                <li>Reliable engines for commercial and industrial use</li>
+                <li>Premium car parts and components</li>
+                <li>OEM and aftermarket solutions</li>
+                <li>Custom engine tuning and modifications</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="section-title">Our Commitment</h2>
+            <p>We're committed to sustainability and ethical business practices. All our suppliers meet strict environmental and labor standards. By choosing Mat Auto, you're not just buying a product—you're supporting a company that cares about the future.</p>
+        </section>
+
+        <section style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary-color) 100%); color: white; padding: 2rem; border-radius: 10px; margin: 2rem 0; text-align: center;">
+            <h2 class="section-title" style="color: white;">Ready to Experience Mat Auto?</h2>
+            <p>Browse our extensive catalog of engines and car parts today.</p>
+            <a href="index.html#products" class="btn btn-secondary" style="margin-top: 1rem;">Shop Now</a>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Mat Auto</h4>
+                <ul>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Returns</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">WhatsApp</a></li>
+                    <li><a href="#">Instagram</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Newsletter</h4>
+                <input type="email" placeholder="Enter your email" class="newsletter-input">
+                <button class="btn btn-primary" style="margin-top: 0.5rem;">Subscribe</button>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mat Auto. All rights reserved. | Quality Engines & Car Parts</p>
+        </div>
+    </footer>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
