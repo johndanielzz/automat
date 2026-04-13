@@ -8,8 +8,14 @@
     <meta property="og:title" content="Mat Auto | Engines &amp; Car Parts">
     <meta property="og:description" content="Quality automotive parts for workshops, drivers, and fleets across Gambia.">
     <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
 </head>
 <body id="homePage">
 
@@ -430,5 +436,44 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 <script src="app.js"></script>
+<script>
+// Register Service Worker for PWA support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(function(registration) {
+        console.log('Service Worker registered:', registration);
+      })
+      .catch(function(error) {
+        console.log('Service Worker registration failed:', error);
+      });
+  });
+}
+
+// Prompt user to install app
+let installPrompt;
+window.addEventListener('beforeinstallprompt', function(event) {
+  event.preventDefault();
+  installPrompt = event;
+  // Show install button when app is ready to be installed
+  const installBtn = document.getElementById('installAppBtn');
+  if (installBtn) {
+    installBtn.style.display = 'block';
+  }
+});
+
+// Handle install button click
+function installApp() {
+  if (installPrompt) {
+    installPrompt.prompt();
+    installPrompt.userChoice.then(function(choiceResult) {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted install prompt');
+      }
+      installPrompt = null;
+    });
+  }
+}
+</script>
 </body>
 </html>

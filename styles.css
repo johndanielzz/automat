@@ -1210,12 +1210,12 @@ kbd {
     grid-template-columns: repeat(auto-fill, minmax(clamp(145px, 34vw, 225px), 1fr));
 }
 
-/* Mobile only - 2 columns - strict breakpoint */
-@media (max-width: 640px) {
+/* Mobile only - 2 columns */
+@media (max-width: 768px) {
     .products-grid,
     .compact-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: clamp(8px, 2vw, 14px) !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: clamp(8px, 2vw, 16px);
     }
 }
 
