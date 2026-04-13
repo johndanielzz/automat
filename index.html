@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Mat Auto | Quality Engines &amp; Car Parts — Gambia</title>
-    <meta name="description" content="Shop in-stock engines and car parts at Mat Auto. Search inventory, save favorites, request quotes, and place orders fast.">
-    <meta property="og:title" content="Mat Auto | Engines &amp; Car Parts">
-    <meta property="og:description" content="Quality automotive parts for workshops, drivers, and fleets across Gambia.">
+    <meta name="description" content="Shop in-stock engines, car parts &amp; accessories at Mat Auto. Search by vehicle make/model, compare side-by-side, get instant quotes. Serving workshops &amp; fleets across Gambia.">
+    <meta property="og:title" content="Mat Auto | Engines &amp; Car Parts — Gambia">
+    <meta property="og:description" content="Quality automotive parts for workshops, drivers, and fleets across Gambia. Fast dispatch. Real-time stock.">
     <meta property="og:type" content="website">
-    <meta name="theme-color" content="#1a73e8">
+    <meta name="theme-color" content="#1B2A4A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Mat Auto">
@@ -16,8 +16,986 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
     <link rel="apple-touch-icon" href="image.jpg">
+
+    <!-- ── PAGE-SPECIFIC STYLES ── -->
+    <style>
+        /* ── MARQUEE TICKER ── */
+        .ticker-wrap {
+            background: var(--primary);
+            overflow: hidden;
+            white-space: nowrap;
+            padding-block: 9px;
+            position: relative;
+            z-index: 99;
+        }
+        .ticker-track {
+            display: inline-flex;
+            animation: ticker 28s linear infinite;
+            gap: 0;
+        }
+        .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-inline: 2.5rem;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #fff;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .ticker-dot {
+            width: 5px; height: 5px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+
+        /* ── VEHICLE SEARCH BANNER ── */
+        .vsearch-banner {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding-block: clamp(18px, 3.5vw, 28px);
+            box-shadow: var(--shadow-sm);
+        }
+        .vsearch-label {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.85rem, 1.8vw, 1rem);
+            color: var(--text-dark);
+            margin-bottom: var(--sp-3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .vsearch-label span { color: var(--primary); }
+        .vsearch-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: clamp(8px, 1.5vw, 12px);
+            align-items: end;
+        }
+        .vsearch-group label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-family: 'Syne', sans-serif;
+            margin-bottom: 5px;
+        }
+        .vsearch-group select,
+        .vsearch-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-md);
+            font-size: 0.9rem;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            outline: none;
+            transition: var(--transition);
+            min-height: 46px;
+            -webkit-appearance: none;
+            box-shadow: var(--shadow-inset);
+        }
+        .vsearch-group select:focus,
+        .vsearch-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(244,130,31,0.12), var(--shadow-inset);
+            background: var(--surface);
+        }
+        @media (max-width: 900px) {
+            .vsearch-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 560px) {
+            .vsearch-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── FLASH SALE BANNER ── */
+        .flash-banner {
+            background: linear-gradient(135deg, #0b1526 0%, #1B2A4A 50%, #0b1526 100%);
+            border-bottom: 1px solid rgba(244,130,31,0.2);
+            padding-block: clamp(16px, 3vw, 24px);
+            position: relative;
+            overflow: hidden;
+        }
+        .flash-banner::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(244,130,31,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .flash-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: clamp(12px, 3vw, 24px);
+            flex-wrap: wrap;
+        }
+        .flash-left {
+            display: flex;
+            align-items: center;
+            gap: clamp(12px, 2vw, 20px);
+            flex-wrap: wrap;
+        }
+        .flash-badge {
+            background: var(--grad-primary);
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: var(--r-full);
+            font-weight: 900;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-family: 'Syne', sans-serif;
+            box-shadow: 0 4px 16px rgba(244,130,31,0.4);
+            animation: glowPulse 2.5s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        .flash-text strong {
+            display: block;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            color: #fff;
+        }
+        .flash-text span {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.45);
+        }
+        .countdown {
+            display: flex;
+            gap: clamp(6px, 1.5vw, 10px);
+            align-items: center;
+        }
+        .countdown-unit {
+            text-align: center;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--r-md);
+            padding: 8px clamp(10px, 2vw, 16px);
+            min-width: 52px;
+        }
+        .countdown-unit strong {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(1.3rem, 3vw, 1.8rem);
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+        .countdown-unit span {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px;
+        }
+        .countdown-sep {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: rgba(255,255,255,0.3);
+            font-family: 'JetBrains Mono', monospace;
+            animation: breathe 1s ease-in-out infinite;
+        }
+
+        /* ── WHY US STRIP ── */
+        .why-strip {
+            background: var(--navy);
+            padding-block: clamp(20px, 3.5vw, 30px);
+            position: relative;
+            overflow: hidden;
+        }
+        .why-strip::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: var(--grad-mesh);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(10px, 2vw, 20px);
+        }
+        .why-item {
+            display: flex;
+            align-items: center;
+            gap: clamp(10px, 1.5vw, 14px);
+            padding: clamp(10px, 2vw, 16px);
+            border-radius: var(--r-lg);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: var(--transition);
+            position: relative;
+        }
+        .why-item:hover {
+            background: rgba(244,130,31,0.07);
+            border-color: rgba(244,130,31,0.15);
+            transform: translateY(-2px);
+        }
+        .why-icon {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            flex-shrink: 0;
+            filter: drop-shadow(0 0 8px rgba(244,130,31,0.3));
+        }
+        .why-text strong {
+            display: block;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.82rem, 1.6vw, 0.92rem);
+            color: #fff;
+            margin-bottom: 1px;
+        }
+        .why-text span {
+            font-size: clamp(0.72rem, 1.3vw, 0.78rem);
+            color: rgba(255,255,255,0.38);
+        }
+        @media (max-width: 768px) {
+            .why-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 420px) {
+            .why-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── BRANDS SECTION ── */
+        .brands-strip {
+            background: var(--surface);
+            padding-block: clamp(22px, 4vw, 36px);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
+        }
+        .brands-label {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: clamp(14px, 2.5vw, 22px);
+        }
+        .brands-track-wrap { overflow: hidden; position: relative; }
+        .brands-track-wrap::before,
+        .brands-track-wrap::after {
+            content: "";
+            position: absolute; top: 0; bottom: 0; width: 80px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .brands-track-wrap::before {
+            left: 0;
+            background: linear-gradient(to right, var(--surface), transparent);
+        }
+        .brands-track-wrap::after {
+            right: 0;
+            background: linear-gradient(to left, var(--surface), transparent);
+        }
+        .brands-track {
+            display: flex;
+            gap: clamp(20px, 4vw, 44px);
+            animation: ticker 22s linear infinite;
+            width: max-content;
+            align-items: center;
+        }
+        .brand-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 8px clamp(16px, 2.5vw, 24px);
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-full);
+            font-size: clamp(0.75rem, 1.4vw, 0.84rem);
+            font-weight: 800;
+            color: var(--text-mid);
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+        .brand-pill:hover {
+            border-color: rgba(244,130,31,0.35);
+            color: var(--primary);
+            background: var(--primary-pale);
+        }
+
+        /* ── DEAL CARDS ── */
+        .deals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(260px, 40vw, 320px), 1fr));
+            gap: clamp(12px, 2.5vw, 20px);
+        }
+        .deal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-2xl);
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-spring);
+            display: grid;
+            grid-template-columns: 130px 1fr;
+        }
+        .deal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(244,130,31,0.1);
+            border-color: rgba(244,130,31,0.25);
+        }
+        .deal-card-img {
+            aspect-ratio: 1;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+        .deal-card-body {
+            padding: clamp(12px, 2.5vw, 18px);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            justify-content: center;
+        }
+        .deal-save-badge {
+            background: var(--danger);
+            color: #fff;
+            font-size: 0.66rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: var(--r-full);
+            width: fit-content;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.06em;
+        }
+        .deal-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.88rem, 1.8vw, 0.98rem);
+            color: var(--text-dark);
+            line-height: 1.3;
+        }
+        .deal-price-row { display: flex; align-items: baseline; gap: 6px; }
+        .deal-price {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .deal-old-price {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+        @media (max-width: 480px) {
+            .deal-card { grid-template-columns: 1fr; }
+            .deal-card-img { aspect-ratio: 16/7; }
+        }
+
+        /* ── CATEGORY ENHANCED ── */
+        .category-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: clamp(8px, 1.5vw, 14px);
+        }
+        .cat-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: clamp(14px, 2.5vw, 22px) clamp(8px, 1.5vw, 14px);
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-xl);
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-dark);
+            text-align: center;
+            transition: var(--transition-spring);
+            box-shadow: var(--shadow-xs);
+        }
+        .cat-pill:hover {
+            border-color: rgba(244,130,31,0.4);
+            background: var(--primary-pale);
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: var(--shadow-md), 0 0 0 1px rgba(244,130,31,0.1);
+        }
+        .cat-icon {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            line-height: 1;
+        }
+        .cat-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.68rem, 1.3vw, 0.78rem);
+            letter-spacing: 0.025em;
+        }
+        .cat-count {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        @media (max-width: 900px) {
+            .category-grid-v2 { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .category-grid-v2 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        }
+
+        /* ── PART FINDER WIDGET ── */
+        .part-finder {
+            background: linear-gradient(145deg, var(--navy-dark) 0%, var(--navy) 50%, var(--navy-mid) 100%);
+            border-radius: var(--r-2xl);
+            padding: clamp(24px, 5vw, 44px);
+            position: relative;
+            overflow: hidden;
+        }
+        .part-finder::before {
+            content: "";
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 60% 70% at 90% 20%, rgba(244,130,31,0.12) 0%, transparent 60%),
+                var(--grad-noise-heavy);
+            pointer-events: none;
+        }
+        .part-finder-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: clamp(20px, 4vw, 32px);
+            position: relative; z-index: 1;
+        }
+        .part-finder-head h2 {
+            color: #fff;
+            font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+            letter-spacing: -0.025em;
+        }
+        .part-finder-head p { color: rgba(255,255,255,0.42); font-size: 0.9rem; max-width: 38ch; }
+        .part-finder-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: clamp(10px, 2vw, 16px);
+            position: relative; z-index: 1;
+        }
+        .pf-group { display: flex; flex-direction: column; gap: 5px; }
+        .pf-group label {
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.38);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .pf-group select,
+        .pf-group input {
+            padding: 12px 16px;
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: var(--r-md);
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            font-size: 0.9rem;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            outline: none;
+            transition: var(--transition);
+            min-height: 48px;
+            backdrop-filter: blur(12px);
+            -webkit-appearance: none;
+        }
+        .pf-group select option { background: var(--navy-dark); color: #fff; }
+        .pf-group select:focus,
+        .pf-group input:focus {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-glow-soft);
+        }
+        .pf-group select::placeholder,
+        .pf-group input::placeholder { color: rgba(255,255,255,0.25); }
+        @media (max-width: 768px) {
+            .part-finder-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .part-finder-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── TRUST BAR ── */
+        .trust-bar {
+            background: var(--surface);
+            border-radius: var(--r-2xl);
+            padding: clamp(22px, 4vw, 34px);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(16px, 3vw, 28px);
+            text-align: center;
+        }
+        .trust-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .trust-num {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        .trust-label {
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(0.78rem, 1.5vw, 0.88rem);
+            color: var(--text-dark);
+        }
+        .trust-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        @media (max-width: 700px) {
+            .trust-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── WORKSHOP CTA ── */
+        .workshop-cta {
+            background: var(--grad-hero);
+            border-radius: var(--r-2xl);
+            padding: clamp(28px, 5.5vw, 52px);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: clamp(20px, 4vw, 40px);
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .workshop-cta::before {
+            content: "";
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 55% 70% at 95% 30%, rgba(244,130,31,0.16) 0%, transparent 55%),
+                var(--grad-noise-heavy);
+            pointer-events: none;
+        }
+        .wcta-badge {
+            background: rgba(244,130,31,0.18);
+            border: 1px solid rgba(244,130,31,0.3);
+            color: var(--primary);
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 12px;
+            border-radius: var(--r-full);
+            width: fit-content;
+            margin-bottom: var(--sp-2);
+            position: relative; z-index: 1;
+        }
+        .workshop-cta h2 {
+            color: #fff;
+            font-size: clamp(1.4rem, 3.8vw, 2.2rem);
+            margin-bottom: var(--sp-2);
+            letter-spacing: -0.025em;
+            position: relative; z-index: 1;
+        }
+        .workshop-cta p {
+            color: rgba(255,255,255,0.42);
+            font-size: clamp(0.86rem, 1.7vw, 0.96rem);
+            max-width: 44ch;
+            position: relative; z-index: 1;
+        }
+        .wcta-actions {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.5vw, 12px);
+            align-items: flex-end;
+            flex-shrink: 0;
+            position: relative; z-index: 1;
+        }
+        @media (max-width: 700px) {
+            .workshop-cta { grid-template-columns: 1fr; }
+            .wcta-actions { align-items: stretch; flex-direction: row; flex-wrap: wrap; }
+        }
+
+        /* ── BLOG/TIPS STRIP ── */
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(12px, 2.5vw, 22px);
+        }
+        .tip-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            overflow: hidden;
+            transition: var(--transition-spring);
+            box-shadow: var(--shadow-xs);
+        }
+        .tip-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-dark);
+        }
+        .tip-thumb {
+            aspect-ratio: 16/9;
+            background: var(--bg-alt);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .tip-body { padding: clamp(14px, 2.5vw, 20px); }
+        .tip-tag {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-family: 'Syne', sans-serif;
+            color: var(--primary);
+            background: var(--primary-pale);
+            padding: 2px 8px;
+            border-radius: var(--r-xs);
+            margin-bottom: 7px;
+        }
+        .tip-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.88rem, 1.8vw, 0.98rem);
+            color: var(--text-dark);
+            line-height: 1.35;
+            margin-bottom: 5px;
+        }
+        .tip-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        @media (max-width: 700px) {
+            .tips-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── FLOATING WHATSAPP ── */
+        .float-wa {
+            position: fixed;
+            bottom: max(1.5rem, calc(1.2rem + env(safe-area-inset-bottom)));
+            left: max(1.5rem, calc(1.2rem + env(safe-area-inset-left)));
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #25D366;
+            color: #fff;
+            border: none;
+            border-radius: var(--r-full);
+            padding: 13px 20px 13px 16px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 6px 28px rgba(37,211,102,0.45), 0 2px 8px rgba(0,0,0,0.14);
+            transition: var(--transition-spring);
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .float-wa:hover {
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 10px 36px rgba(37,211,102,0.55);
+        }
+        .float-wa svg { flex-shrink: 0; }
+        .float-wa .wa-text { display: block; }
+        @media (max-width: 480px) {
+            .float-wa .wa-text { display: none; }
+            .float-wa { padding: 14px; border-radius: 50%; }
+        }
+
+        /* ── BACK TO TOP ── */
+        #backToTop {
+            position: fixed;
+            bottom: max(1.5rem, calc(1.2rem + env(safe-area-inset-bottom)));
+            right: max(1.5rem, calc(1.2rem + env(safe-area-inset-right)));
+            z-index: 200;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            background: var(--navy);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-spring);
+            opacity: 0; pointer-events: none;
+            transform: translateY(12px);
+            -webkit-tap-highlight-color: transparent;
+        }
+        #backToTop.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        #backToTop:hover { background: var(--primary); box-shadow: var(--shadow-glow); }
+
+        /* ── INSTALL APP BANNER ── */
+        #installBanner {
+            background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
+            border-bottom: 1px solid rgba(244,130,31,0.15);
+            padding: 10px 0;
+            display: none;
+        }
+        .install-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .install-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.84rem;
+        }
+        .install-text strong { color: #fff; font-family: 'Syne', sans-serif; }
+
+        /* ── COMPARE BADGE FIX ── */
+        #compareCount { display: none; }
+        #compareCount.has-items { display: inline-block; }
+
+        /* ── HERO ORB EXTRAS ── */
+        .hero-orb-4 {
+            position: absolute;
+            width: clamp(80px, 15vw, 160px);
+            height: clamp(80px, 15vw, 160px);
+            background: radial-gradient(circle, rgba(61,155,233,0.08) 0%, transparent 70%);
+            filter: blur(40px);
+            top: 30%; right: 30%;
+            animation: orbFloat 6s ease-in-out 1s infinite;
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ── SEARCH CHIPS ── */
+        .search-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .search-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--r-full);
+            font-size: 0.74rem;
+            color: rgba(255,255,255,0.55);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Cabinet Grotesk', sans-serif;
+        }
+        .search-chip:hover {
+            background: rgba(244,130,31,0.15);
+            border-color: rgba(244,130,31,0.3);
+            color: var(--primary);
+        }
+
+        /* ── MOBILE APP PROMO SECTION ── */
+        .app-cta-section {
+            background: var(--bg);
+            padding-block: clamp(48px, 8vw, 68px);
+        }
+        .app-cta-inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(24px, 5vw, 56px);
+            align-items: center;
+        }
+        .app-phones {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        .app-phone {
+            width: clamp(100px, 18vw, 150px);
+            background: var(--navy-dark);
+            border-radius: 24px;
+            border: 2px solid rgba(255,255,255,0.08);
+            aspect-ratio: 9/19;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: var(--shadow-navy);
+            position: relative;
+        }
+        .app-phone::before {
+            content: "";
+            position: absolute;
+            top: 8px; left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 4px;
+            background: rgba(255,255,255,0.12);
+            border-radius: var(--r-full);
+        }
+        .app-phone-2 {
+            transform: translateY(24px) scale(0.92);
+            opacity: 0.6;
+        }
+        .app-store-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: var(--sp-4); }
+        .store-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--navy-dark);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: var(--r-lg);
+            padding: 10px 18px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .store-btn:hover { background: var(--navy); border-color: rgba(244,130,31,0.3); }
+        .store-btn-label { display: flex; flex-direction: column; }
+        .store-btn-label small { font-size: 0.62rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
+        .store-btn-label strong { font-family: 'Syne', sans-serif; font-size: 0.9rem; }
+        @media (max-width: 700px) {
+            .app-cta-inner { grid-template-columns: 1fr; }
+            .app-phones { display: none; }
+        }
+
+        /* ── PART TYPE CARDS (enhanced category) ── */
+        .part-types-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: clamp(10px, 2vw, 16px);
+        }
+        .part-type-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-2xl);
+            padding: clamp(20px, 4vw, 32px);
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: var(--transition-spring);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 190px;
+            position: relative;
+            overflow: hidden;
+        }
+        .part-type-card::after {
+            content: "";
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 40%;
+            aspect-ratio: 1;
+            background: radial-gradient(circle at 100% 100%, rgba(244,130,31,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .part-type-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(244,130,31,0.1);
+            border-color: rgba(244,130,31,0.28);
+        }
+        .part-type-icon { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: var(--sp-2); }
+        .part-type-card h3 { font-size: clamp(1rem, 2.5vw, 1.28rem); font-weight: 800; letter-spacing: -0.018em; }
+        .part-type-card p { font-size: 0.84rem; color: var(--text-soft); margin-top: 4px; }
+        .part-type-card-accent {
+            background: var(--grad-navy);
+            border-color: transparent;
+        }
+        .part-type-card-accent h3,
+        .part-type-card-accent p { color: #fff; }
+        .part-type-card-accent p { color: rgba(255,255,255,0.42); }
+        @media (max-width: 768px) {
+            .part-types-grid { grid-template-columns: 1fr 1fr; }
+            .part-type-card:first-child { grid-column: 1 / -1; }
+        }
+        @media (max-width: 480px) {
+            .part-types-grid { grid-template-columns: 1fr; }
+            .part-type-card:first-child { grid-column: unset; }
+        }
+
+        /* ── REVIEW STARS HERO ── */
+        .hero-rating-strip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: clamp(16px, 3vw, 24px);
+        }
+        .hero-stars { color: var(--accent); letter-spacing: 0.08em; font-size: 0.9rem; }
+        .hero-rating-text { font-size: 0.8rem; color: rgba(255,255,255,0.38); font-family: 'JetBrains Mono', monospace; }
+        .hero-avatar-stack { display: flex; align-items: center; }
+        .hero-avatar {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: var(--navy-mid);
+            border: 2px solid rgba(255,255,255,0.2);
+            margin-right: -8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.6);
+            font-weight: 800;
+        }
+    </style>
 </head>
 <body id="homePage">
+
+<!-- ── PWA INSTALL BANNER ───────────────────────────────── -->
+<div id="installBanner">
+    <div class="container install-inner">
+        <div class="install-text">
+            <span>📱</span>
+            <span><strong>Mat Auto App</strong> — Install for offline access &amp; faster browsing</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="installApp()" type="button">Install App</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('installBanner').style.display='none'" type="button" style="color:rgba(255,255,255,0.5)">Dismiss</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── TICKER ─────────────────────────────────────────────── -->
+<div class="ticker-wrap" aria-hidden="true">
+    <div class="ticker-track">
+        <!-- First set -->
+        <span class="ticker-item">🔥 Flash Sale — Up to 30% off selected engines <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🚛 Fast dispatch on all in-stock parts <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🔧 Bulk orders? Request a fleet quote <span class="ticker-dot"></span></span>
+        <span class="ticker-item">⭐ 4.9/5 rated by 200+ customers <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🛡️ Genuine OEM &amp; quality aftermarket brands <span class="ticker-dot"></span></span>
+        <span class="ticker-item">📞 WhatsApp support 8am–8pm daily <span class="ticker-dot"></span></span>
+        <!-- Duplicate for seamless loop -->
+        <span class="ticker-item">🔥 Flash Sale — Up to 30% off selected engines <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🚛 Fast dispatch on all in-stock parts <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🔧 Bulk orders? Request a fleet quote <span class="ticker-dot"></span></span>
+        <span class="ticker-item">⭐ 4.9/5 rated by 200+ customers <span class="ticker-dot"></span></span>
+        <span class="ticker-item">🛡️ Genuine OEM &amp; quality aftermarket brands <span class="ticker-dot"></span></span>
+        <span class="ticker-item">📞 WhatsApp support 8am–8pm daily <span class="ticker-dot"></span></span>
+    </div>
+</div>
 
 <!-- ── NAVBAR ────────────────────────────────────────────── -->
 <nav class="navbar">
@@ -42,6 +1020,9 @@
             <li><a href="contact.html">Contact</a></li>
             <li><a href="admin.html">Admin</a></li>
             <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+            <li>
+                <button class="nav-icon-btn" id="compareNavBtn" type="button">⚖️ Compare <span id="compareCount" class="nav-badge">0</span></button>
+            </li>
             <li><button class="nav-icon-btn" id="wishlistTrigger" type="button">♡ Wishlist <span id="wishlistCount">0</span></button></li>
             <li><button class="nav-icon-btn nav-icon-btn-primary" id="cartTrigger" type="button">🛒 Cart <span id="cartCount">0</span></button></li>
         </ul>
@@ -50,21 +1031,50 @@
 
 <!-- ── HERO ──────────────────────────────────────────────── -->
 <header class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-orb hero-orb-4"></div>
+    <div class="hero-ray hero-ray-1"></div>
+    <div class="hero-ray hero-ray-2"></div>
+    <div class="hero-ray hero-ray-3"></div>
+    <div class="hero-bottom-line"></div>
+
     <div class="container hero-grid">
         <div class="hero-copy">
-            <p class="eyebrow">In-stock inventory for workshops, drivers &amp; fleets</p>
-            <h1>Find the right engine or part — faster, with fewer dead ends.</h1>
-            <p class="hero-text">Search inventory, compare products side-by-side, save a shortlist, request a quote, and reach checkout without leaving the site.</p>
+            <div class="hero-rating-strip">
+                <div class="hero-avatar-stack">
+                    <div class="hero-avatar">AB</div>
+                    <div class="hero-avatar">MK</div>
+                    <div class="hero-avatar">JD</div>
+                    <div class="hero-avatar">+</div>
+                </div>
+                <span class="hero-stars">★★★★★</span>
+                <span class="hero-rating-text">4.9 · 200+ customers</span>
+            </div>
+
+            <p class="eyebrow">Gambia's #1 Auto Parts Marketplace</p>
+            <h1>Find the engine or part you need — <span class="text-gradient">in minutes, not days.</span></h1>
+            <p class="hero-text">Search live inventory, compare products side-by-side, save a shortlist, and reach checkout — all without leaving the site. Used by workshops, fleets &amp; individual drivers.</p>
 
             <form id="heroSearchForm" class="hero-search" role="search">
                 <label class="sr-only" for="searchInput">Search products</label>
-                <input type="search" id="searchInput" class="search-input" placeholder="Search by part, engine, or keyword…">
+                <input type="search" id="searchInput" class="search-input" placeholder="Search by part, engine, or keyword…" autocomplete="off">
                 <button class="btn btn-primary" type="submit">Search</button>
             </form>
 
-            <div class="hero-actions">
-                <a href="#products" class="btn btn-primary">Browse Catalog</a>
-                <a href="#quote" class="btn btn-secondary">Request a Quote</a>
+            <div class="search-chips" role="list" aria-label="Popular searches">
+                <button class="search-chip" type="button" data-search="Toyota engine">Toyota Engine</button>
+                <button class="search-chip" type="button" data-search="brake pads">Brake Pads</button>
+                <button class="search-chip" type="button" data-search="starter motor">Starter Motor</button>
+                <button class="search-chip" type="button" data-search="alternator">Alternator</button>
+                <button class="search-chip" type="button" data-search="filter">Filters</button>
+            </div>
+
+            <div class="hero-actions" style="margin-top: clamp(20px, 3.5vw, 28px);">
+                <a href="#products" class="btn btn-primary btn-large">Browse Catalog</a>
+                <a href="#quote" class="btn btn-glass btn-large">Request a Quote</a>
+                <a href="#part-finder" class="btn btn-glass btn-large">🔍 Find My Part</a>
             </div>
 
             <div class="hero-stats">
@@ -75,6 +1085,10 @@
                 <article class="stat-card">
                     <strong id="engineCount">0</strong>
                     <span>Engines</span>
+                </article>
+                <article class="stat-card">
+                    <strong>200+</strong>
+                    <span>Happy Clients</span>
                 </article>
                 <article class="stat-card">
                     <strong>24/7</strong>
@@ -88,264 +1102,794 @@
                 <p class="panel-kicker">Why Mat Auto?</p>
                 <h2>Built for urgency</h2>
                 <ul class="hero-checklist">
-                    <li>Live stock visibility on all products</li>
+                    <li>Live stock visibility on every product</li>
                     <li>Cart, wishlist, compare &amp; promo support</li>
-                    <li>Trackable orders with status updates</li>
+                    <li>Trackable orders with live status updates</li>
+                    <li>Fleet &amp; workshop bulk quote system</li>
+                    <li>WhatsApp &amp; Facebook checkout handoff</li>
                 </ul>
             </div>
             <div class="hero-panel-card hero-panel-card-accent">
-                <p class="panel-kicker">Top Offers</p>
+                <p class="panel-kicker">🔥 Flash Deals</p>
                 <div id="heroPromoList" class="promo-mini-list"></div>
+            </div>
+            <div class="hero-panel-card" style="text-align:center;padding:clamp(12px,2.5vw,16px);">
+                <p class="panel-kicker">⏱ Flash Sale Ends</p>
+                <div class="countdown" style="justify-content:center;" id="heroCountdown">
+                    <div class="countdown-unit"><strong id="cdHours">00</strong><span>HRS</span></div>
+                    <span class="countdown-sep">:</span>
+                    <div class="countdown-unit"><strong id="cdMins">00</strong><span>MIN</span></div>
+                    <span class="countdown-sep">:</span>
+                    <div class="countdown-unit"><strong id="cdSecs">00</strong><span>SEC</span></div>
+                </div>
             </div>
         </div>
     </div>
 </header>
 
-<!-- ── ANNOUNCEMENT STRIP ────────────────────────────────── -->
-<section class="announcement-strip" aria-label="Store highlights">
-    <div class="container announcement-grid">
-        <div><strong>Fast dispatch</strong><span>Popular parts ready for same-day processing.</span></div>
-        <div><strong>Bulk quote support</strong><span>Fleet and garage orders get priority handling.</span></div>
-        <div><strong>Compare products</strong><span>Select up to 3 items and compare side-by-side.</span></div>
+<!-- ── WHY US BAR ─────────────────────────────────────────── -->
+<div class="why-strip">
+    <div class="container">
+        <div class="why-grid">
+            <div class="why-item">
+                <span class="why-icon">🚀</span>
+                <div class="why-text">
+                    <strong>Same-Day Dispatch</strong>
+                    <span>Popular parts processed fast</span>
+                </div>
+            </div>
+            <div class="why-item">
+                <span class="why-icon">🛡️</span>
+                <div class="why-text">
+                    <strong>Genuine OEM Parts</strong>
+                    <span>Verified suppliers only</span>
+                </div>
+            </div>
+            <div class="why-item">
+                <span class="why-icon">💬</span>
+                <div class="why-text">
+                    <strong>WhatsApp Support</strong>
+                    <span>Real humans, 8am–8pm daily</span>
+                </div>
+            </div>
+            <div class="why-item">
+                <span class="why-icon">🔄</span>
+                <div class="why-text">
+                    <strong>Easy Returns</strong>
+                    <span>30-day return on unused parts</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── FLASH SALE BANNER ──────────────────────────────────── -->
+<section class="flash-banner" aria-label="Flash sale">
+    <div class="container flash-inner">
+        <div class="flash-left">
+            <span class="flash-badge">⚡ Flash Sale</span>
+            <div class="flash-text">
+                <strong>Up to 30% OFF Selected Engines &amp; Parts</strong>
+                <span>Limited stock — offer ends when timer hits zero</span>
+            </div>
+        </div>
+        <div class="countdown" id="flashCountdown" aria-label="Time remaining">
+            <div class="countdown-unit"><strong id="fcdHours">--</strong><span>HRS</span></div>
+            <span class="countdown-sep">:</span>
+            <div class="countdown-unit"><strong id="fcdMins">--</strong><span>MIN</span></div>
+            <span class="countdown-sep">:</span>
+            <div class="countdown-unit"><strong id="fcdSecs">--</strong><span>SEC</span></div>
+        </div>
     </div>
 </section>
 
-<!-- ── MAIN ───────────────────────────────────────────────── -->
-<main>
-    <!-- Category Shortcuts -->
-    <section class="section section-alt">
-        <div class="container">
-            <div class="section-heading">
-                <p class="eyebrow">Quick Start</p>
-                <h2>Shop by intent</h2>
-                <p>Jump straight to the products you need.</p>
-            </div>
-            <div class="category-grid">
-                <button class="category-card" type="button" data-category-shortcut="engine">
-                    <span class="category-badge">Engines</span>
-                    <h3>Performance &amp; replacement engines</h3>
-                    <p>Complete assemblies for faster swaps and upgrades.</p>
-                </button>
-                <button class="category-card" type="button" data-category-shortcut="parts">
-                    <span class="category-badge">Parts</span>
-                    <h3>Maintenance &amp; repair essentials</h3>
-                    <p>Brake, cooling, filtration, and ignition products.</p>
-                </button>
-                <a class="category-card category-card-link" href="#quote">
-                    <span class="category-badge">Quote</span>
-                    <h3>Need a custom quote?</h3>
-                    <p>Tell us the vehicle, budget, and urgency — we'll handle it.</p>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Featured -->
-    <section class="section">
-        <div class="container">
-            <div class="section-heading with-action">
-                <div>
-                    <p class="eyebrow">Best picks</p>
-                    <h2>Featured inventory</h2>
-                </div>
-                <a href="#products" class="text-link">View full catalog →</a>
-            </div>
-            <div class="products-grid" id="featuredGrid"></div>
-        </div>
-    </section>
-
-    <!-- Full Catalog -->
-    <section id="products" class="section section-surface">
-        <div class="container">
-            <div class="section-heading">
-                <p class="eyebrow">Catalog</p>
-                <h2>All inventory</h2>
-                <p id="resultsSummary">Browse all available products.</p>
-            </div>
-
-            <div class="catalog-toolbar">
-                <div class="filter-buttons" role="group" aria-label="Filter by category">
-                    <button class="filter-btn active" data-filter="all"    type="button">All</button>
-                    <button class="filter-btn"         data-filter="engine" type="button">Engines</button>
-                    <button class="filter-btn"         data-filter="parts"  type="button">Car Parts</button>
-                </div>
-                <div class="toolbar-actions">
-                    <label class="sr-only" for="secondarySearchInput">Refine results</label>
-                    <input type="search" id="secondarySearchInput" class="toolbar-input" placeholder="Refine results…">
-                    <label class="sr-only" for="sortSelect">Sort</label>
-                    <select id="sortSelect" class="sort-select">
-                        <option value="featured">⭐ Featured First</option>
-                        <option value="newest">🆕 Newest</option>
-                        <option value="price-low">💰 Price: Low → High</option>
-                        <option value="price-high">💎 Price: High → Low</option>
-                        <option value="popular">👁 Most Viewed</option>
-                        <option value="rating">⭐ Highest Rated</option>
-                        <option value="stock">📦 Best Stocked</option>
+<!-- ── VEHICLE SEARCH ─────────────────────────────────────── -->
+<section class="vsearch-banner" id="part-finder" aria-label="Vehicle-based part search">
+    <div class="container">
+        <div class="vsearch-label">🔍 Find Parts for Your Vehicle — <span>Select make, model &amp; year to filter compatible parts</span></div>
+        <form id="vehicleSearchForm">
+            <div class="vsearch-grid">
+                <div class="vsearch-group">
+                    <label for="vsMake">Make</label>
+                    <select id="vsMake" onchange="updateVehicleModels()">
+                        <option value="">All Makes</option>
+                        <option>Toyota</option>
+                        <option>Honda</option>
+                        <option>Nissan</option>
+                        <option>Hyundai</option>
+                        <option>Mercedes-Benz</option>
+                        <option>BMW</option>
+                        <option>Ford</option>
+                        <option>Mitsubishi</option>
+                        <option>Kia</option>
+                        <option>Volkswagen</option>
+                        <option>Land Rover</option>
+                        <option>Suzuki</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="products-grid" id="productsGrid"></div>
-            <div id="paginationBar"></div>
-            <div class="empty-state" id="catalogEmpty" hidden>
-                <h3>No matching products found</h3>
-                <p>Try another keyword, switch category, or request a custom quote.</p>
-                <a href="#quote" class="btn btn-primary">Request a Quote</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Recently Viewed -->
-    <section class="section">
-        <div class="container">
-            <div class="section-heading with-action">
+                <div class="vsearch-group">
+                    <label for="vsModel">Model</label>
+                    <select id="vsModel">
+                        <option value="">All Models</option>
+                    </select>
+                </div>
+                <div class="vsearch-group">
+                    <label for="vsYear">Year</label>
+                    <select id="vsYear">
+                        <option value="">Any Year</option>
+                    </select>
+                </div>
+                <div class="vsearch-group">
+                    <label for="vsPartType">Part Type</label>
+                    <select id="vsPartType">
+                        <option value="">Any Part</option>
+                        <option>Engine</option>
+                        <option>Brakes</option>
+                        <option>Suspension</option>
+                        <option>Electrical</option>
+                        <option>Cooling</option>
+                        <option>Transmission</option>
+                        <option>Filters</option>
+                        <option>Exhaust</option>
+                    </select>
+                </div>
                 <div>
-                    <p class="eyebrow">Personalized</p>
-                    <h2>Recently viewed</h2>
+                    <button class="btn btn-primary" type="submit" style="min-height:46px;width:100%;">Find Parts</button>
                 </div>
-                <a href="#products" class="text-link">Keep shopping →</a>
             </div>
-            <div class="products-grid compact-grid" id="recentlyViewedGrid"></div>
-            <div class="empty-state" id="recentlyViewedEmpty">
-                <h3>Your shortlist starts here</h3>
-                <p>Open a product and it will appear here for quick return visits.</p>
+        </form>
+    </div>
+</section>
+
+<!-- ── PART TYPE CARDS ─────────────────────────────────────── -->
+<section class="section section-surface">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">What are you looking for?</p>
+            <h2>Shop by category</h2>
+            <p>Every part type, in one place. From complete engine swaps to service items.</p>
+        </div>
+        <div class="part-types-grid">
+            <button class="part-type-card part-type-card-accent" type="button" data-category-shortcut="engine">
+                <div>
+                    <div class="part-type-icon">🏎️</div>
+                    <h3>Complete Engines</h3>
+                    <p>Drop-in replacements &amp; performance builds for all vehicle types.</p>
+                </div>
+                <a href="#products" class="btn btn-primary btn-sm" style="width:fit-content;" tabindex="-1">Shop Engines →</a>
+            </button>
+            <button class="part-type-card" type="button" data-category-shortcut="parts">
+                <div class="part-type-icon">🔧</div>
+                <h3>Repair Parts</h3>
+                <p>Brakes, cooling, suspension &amp; more.</p>
+            </button>
+            <a class="part-type-card" href="#quote">
+                <div class="part-type-icon">📋</div>
+                <h3>Custom Quote</h3>
+                <p>Can't find it? We'll source it for you.</p>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ── CATEGORY PILLS ─────────────────────────────────────── -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Quick Filters</p>
+            <h2>Browse by part type</h2>
+        </div>
+        <div class="category-grid-v2" role="list">
+            <button class="cat-pill" type="button" data-filter-part="Engine" role="listitem">
+                <span class="cat-icon">🔩</span>
+                <span class="cat-name">Engines</span>
+                <span class="cat-count" id="countEngine">—</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Brakes" role="listitem">
+                <span class="cat-icon">🛑</span>
+                <span class="cat-name">Brakes</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Suspension" role="listitem">
+                <span class="cat-icon">🔗</span>
+                <span class="cat-name">Suspension</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Electrical" role="listitem">
+                <span class="cat-icon">⚡</span>
+                <span class="cat-name">Electrical</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Cooling" role="listitem">
+                <span class="cat-icon">🌡️</span>
+                <span class="cat-name">Cooling</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Filters" role="listitem">
+                <span class="cat-icon">🔍</span>
+                <span class="cat-name">Filters</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- ── BRANDS STRIP ───────────────────────────────────────── -->
+<div class="brands-strip">
+    <div class="container">
+        <p class="brands-label">Compatible with leading vehicle brands</p>
+        <div class="brands-track-wrap">
+            <div class="brands-track">
+                <!-- set 1 -->
+                <span class="brand-pill">🚗 Toyota</span>
+                <span class="brand-pill">🚙 Honda</span>
+                <span class="brand-pill">🚐 Nissan</span>
+                <span class="brand-pill">🏎 Mercedes</span>
+                <span class="brand-pill">🔧 BMW</span>
+                <span class="brand-pill">🚕 Hyundai</span>
+                <span class="brand-pill">🛻 Ford</span>
+                <span class="brand-pill">🚌 Mitsubishi</span>
+                <span class="brand-pill">🏁 Kia</span>
+                <span class="brand-pill">🌐 VW</span>
+                <span class="brand-pill">🏔 Land Rover</span>
+                <span class="brand-pill">⚡ Suzuki</span>
+                <!-- set 2 (duplicate for seamless scroll) -->
+                <span class="brand-pill">🚗 Toyota</span>
+                <span class="brand-pill">🚙 Honda</span>
+                <span class="brand-pill">🚐 Nissan</span>
+                <span class="brand-pill">🏎 Mercedes</span>
+                <span class="brand-pill">🔧 BMW</span>
+                <span class="brand-pill">🚕 Hyundai</span>
+                <span class="brand-pill">🛻 Ford</span>
+                <span class="brand-pill">🚌 Mitsubishi</span>
+                <span class="brand-pill">🏁 Kia</span>
+                <span class="brand-pill">🌐 VW</span>
+                <span class="brand-pill">🏔 Land Rover</span>
+                <span class="brand-pill">⚡ Suzuki</span>
             </div>
         </div>
-    </section>
+    </div>
+</div>
 
-    <!-- Quote Form -->
-    <section id="quote" class="section section-alt">
-        <div class="container quote-grid">
-            <div class="quote-copy">
-                <p class="eyebrow">Lead Capture</p>
-                <h2>Request a custom quote for a vehicle, fleet, or urgent repair.</h2>
-                <p>Fill in your details and we'll contact you with a personalised price — usually within 30 minutes.</p>
-                <div class="check-grid">
-                    <div class="check-card"><strong>Vehicle fit notes</strong><span>Capture make, model, and year in one request.</span></div>
-                    <div class="check-card"><strong>Budget awareness</strong><span>Let us know your price target upfront.</span></div>
-                    <div class="check-card"><strong>Urgency flag</strong><span>Same-day demand separated from routine shopping.</span></div>
-                </div>
+<!-- ── HOT DEALS ──────────────────────────────────────────── -->
+<section class="section section-surface">
+    <div class="container">
+        <div class="section-heading with-action">
+            <div>
+                <p class="eyebrow">⚡ Flash Deals</p>
+                <h2>Hot deals right now</h2>
             </div>
-            <div class="form-card quote-form-card">
-                <h3>Get a Quote</h3>
-                <form id="quoteForm">
-                    <div class="form-group"><label for="quoteName">Full Name *</label><input id="quoteName" type="text" required autocomplete="name"></div>
-                    <div class="form-group"><label for="quotePhone">Phone / WhatsApp *</label><input id="quotePhone" type="tel" required autocomplete="tel" placeholder="+220 7XX XXXX"></div>
-                    <div class="form-group"><label for="quoteVehicle">Vehicle / Fitment *</label><input id="quoteVehicle" type="text" placeholder="e.g. 2018 Toyota Camry 2.5L" required></div>
-                    <div class="form-group"><label for="quotePart">Part or Engine Needed *</label><input id="quotePart" type="text" placeholder="e.g. starter motor, V6 engine" required></div>
-                    <div class="form-split">
-                        <div class="form-group"><label for="quoteBudget">Budget (GMD)</label><input id="quoteBudget" type="text" placeholder="e.g. 5,000"></div>
-                        <div class="form-group">
-                            <label for="quoteUrgency">Urgency</label>
-                            <select id="quoteUrgency">
-                                <option value="Routine">Routine</option>
-                                <option value="This week">This week</option>
-                                <option value="Urgent today">Urgent today</option>
-                            </select>
-                        </div>
+            <a href="#products" class="text-link">See all products →</a>
+        </div>
+        <div class="deals-grid" id="hotDealsGrid">
+            <!-- Populated by JS using product data; static fallbacks below -->
+            <div class="deal-card">
+                <div style="background:var(--bg-alt);display:flex;align-items:center;justify-content:center;font-size:3rem;">🔩</div>
+                <div class="deal-card-body">
+                    <span class="deal-save-badge">SAVE 25%</span>
+                    <span class="deal-name">Toyota Camry 2.5L Engine Assembly</span>
+                    <div class="deal-price-row">
+                        <span class="deal-price">GMD 18,500</span>
+                        <span class="deal-old-price">GMD 24,000</span>
                     </div>
-                    <div class="form-group"><label for="quoteNotes">Additional Notes</label><textarea id="quoteNotes" rows="3" placeholder="Any extra fitment or delivery details…"></textarea></div>
-                    <button class="btn btn-primary btn-block btn-large" type="submit">Submit Quote Request</button>
-                </form>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('searchInput').value='engine';document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));" type="button">View Deal</button>
+                </div>
+            </div>
+            <div class="deal-card">
+                <div style="background:var(--bg-alt);display:flex;align-items:center;justify-content:center;font-size:3rem;">🛑</div>
+                <div class="deal-card-body">
+                    <span class="deal-save-badge">SAVE 30%</span>
+                    <span class="deal-name">Premium Brake Pad Set — Universal</span>
+                    <div class="deal-price-row">
+                        <span class="deal-price">GMD 850</span>
+                        <span class="deal-old-price">GMD 1,200</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" type="button" data-category-shortcut="parts">View Deal</button>
+                </div>
+            </div>
+            <div class="deal-card">
+                <div style="background:var(--bg-alt);display:flex;align-items:center;justify-content:center;font-size:3rem;">⚡</div>
+                <div class="deal-card-body">
+                    <span class="deal-save-badge">SAVE 20%</span>
+                    <span class="deal-name">Alternator — Nissan / Toyota Compatible</span>
+                    <div class="deal-price-row">
+                        <span class="deal-price">GMD 2,400</span>
+                        <span class="deal-old-price">GMD 3,000</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" type="button" data-category-shortcut="parts">View Deal</button>
+                </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Testimonials -->
-    <section class="section">
-        <div class="container">
-            <div class="section-heading">
-                <p class="eyebrow">Trust Signals</p>
-                <h2>What customers say</h2>
+<!-- ── FEATURED INVENTORY ─────────────────────────────────── -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-heading with-action">
+            <div>
+                <p class="eyebrow">Best picks</p>
+                <h2>Featured inventory</h2>
             </div>
-            <div class="testimonials-grid">
-                <article class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"New search and saved cart make repeat orders much faster for our workshop."</p>
-                    <p class="testimonial-author">Fleet Buyer — Banjul</p>
-                </article>
-                <article class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"Requesting a quote for exact vehicle fitment saves a lot of back and forth."</p>
-                    <p class="testimonial-author">Repair Customer</p>
-                </article>
-                <article class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"Product comparison feature helped me choose the right engine for my budget."</p>
-                    <p class="testimonial-author">Repeat Shopper</p>
-                </article>
-            </div>
+            <a href="#products" class="text-link">View full catalog →</a>
         </div>
-    </section>
+        <div class="products-grid" id="featuredGrid"></div>
+    </div>
+</section>
 
-    <!-- FAQ -->
-    <section class="section section-alt">
-        <div class="container">
-            <div class="section-heading">
-                <p class="eyebrow">FAQ</p>
-                <h2>Common buying questions</h2>
+<!-- ── FULL CATALOG ───────────────────────────────────────── -->
+<section id="products" class="section section-surface">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Catalog</p>
+            <h2>All inventory</h2>
+            <p id="resultsSummary">Browse all available products.</p>
+        </div>
+
+        <div class="catalog-toolbar">
+            <div class="filter-buttons" role="group" aria-label="Filter by category">
+                <button class="filter-btn active" data-filter="all"    type="button">All</button>
+                <button class="filter-btn"         data-filter="engine" type="button">🔩 Engines</button>
+                <button class="filter-btn"         data-filter="parts"  type="button">🔧 Car Parts</button>
             </div>
-            <div class="faq-grid">
-                <details class="faq-item">
-                    <summary>How do I compare products?</summary>
-                    <p>Click the "+ Compare" button on any product card. Select up to 3 products, then click "Compare Now" in the bar at the bottom of the screen.</p>
-                </details>
-                <details class="faq-item">
-                    <summary>Can I place an order directly from this site?</summary>
-                    <p>Yes. The checkout creates a real order entry and lets you continue to WhatsApp or Facebook with the order reference to confirm payment.</p>
-                </details>
-                <details class="faq-item">
-                    <summary>Do promo codes actually apply discounts?</summary>
-                    <p>Yes. Enter your code on the checkout page to see the discount applied to your total before contacting the sales team.</p>
-                </details>
-                <details class="faq-item">
-                    <summary>Will my cart and wishlist be saved if I close the browser?</summary>
-                    <p>Yes. All data (cart, wishlist, orders, quotes) is saved to Firebase so it persists across sessions and devices.</p>
-                </details>
+            <div class="toolbar-actions">
+                <label class="sr-only" for="secondarySearchInput">Refine results</label>
+                <input type="search" id="secondarySearchInput" class="toolbar-input" placeholder="Refine results…" autocomplete="off">
+                <label class="sr-only" for="sortSelect">Sort</label>
+                <select id="sortSelect" class="sort-select">
+                    <option value="featured">⭐ Featured First</option>
+                    <option value="newest">🆕 Newest</option>
+                    <option value="price-low">💰 Low → High</option>
+                    <option value="price-high">💎 High → Low</option>
+                    <option value="popular">👁 Most Viewed</option>
+                    <option value="rating">⭐ Top Rated</option>
+                    <option value="stock">📦 Best Stocked</option>
+                </select>
             </div>
         </div>
-    </section>
-</main>
+
+        <div class="products-grid" id="productsGrid"></div>
+        <div id="paginationBar"></div>
+        <div class="empty-state" id="catalogEmpty" hidden>
+            <h3>No matching products found</h3>
+            <p>Try another keyword, switch category, or request a custom quote.</p>
+            <a href="#quote" class="btn btn-primary">Request a Quote</a>
+        </div>
+    </div>
+</section>
+
+<!-- ── RECENTLY VIEWED ────────────────────────────────────── -->
+<section class="section">
+    <div class="container">
+        <div class="section-heading with-action">
+            <div>
+                <p class="eyebrow">Personalized</p>
+                <h2>Recently viewed</h2>
+            </div>
+            <a href="#products" class="text-link">Keep shopping →</a>
+        </div>
+        <div class="products-grid compact-grid" id="recentlyViewedGrid"></div>
+        <div class="empty-state" id="recentlyViewedEmpty">
+            <p>Open a product and it will appear here for quick return visits.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── PART FINDER WIDGET ─────────────────────────────────── -->
+<section class="section section-alt" id="part-finder-widget">
+    <div class="container">
+        <div class="part-finder">
+            <div class="part-finder-head">
+                <div>
+                    <p class="eyebrow" style="color:var(--primary);">Advanced Search</p>
+                    <h2 style="color:#fff;">Can't find your exact part?</h2>
+                    <p>Describe what you need and we'll search our full catalogue — including parts not yet listed online.</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0;">
+                    <div style="text-align:center;padding:14px 20px;background:rgba(244,130,31,0.12);border:1px solid rgba(244,130,31,0.2);border-radius:var(--r-lg);">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--primary);line-height:1;" id="livePartCount">—</div>
+                        <div style="font-size:0.66rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.1em;font-family:'JetBrains Mono',monospace;margin-top:3px;">Parts in stock</div>
+                    </div>
+                </div>
+            </div>
+            <form id="partFinderForm">
+                <div class="part-finder-grid">
+                    <div class="pf-group">
+                        <label for="pfVehicle">Vehicle (Make &amp; Model)</label>
+                        <input id="pfVehicle" type="text" placeholder="e.g. Toyota Camry, Honda Civic…">
+                    </div>
+                    <div class="pf-group">
+                        <label for="pfYear">Year Range</label>
+                        <select id="pfYear">
+                            <option value="">Any Year</option>
+                            <option>2020 – Present</option>
+                            <option>2015 – 2019</option>
+                            <option>2010 – 2014</option>
+                            <option>2005 – 2009</option>
+                            <option>2000 – 2004</option>
+                            <option>Before 2000</option>
+                        </select>
+                    </div>
+                    <div class="pf-group">
+                        <label for="pfPart">Part Name or OEM Number</label>
+                        <input id="pfPart" type="text" placeholder="e.g. starter motor, 12345-XY…">
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:clamp(12px,2.5vw,18px);flex-wrap:wrap;position:relative;z-index:1;">
+                    <button class="btn btn-primary btn-large" type="submit">🔍 Search Part</button>
+                    <a href="#quote" class="btn btn-glass btn-large">📋 Request Quote Instead</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ── TRUST NUMBERS ──────────────────────────────────────── -->
+<section class="section section-surface">
+    <div class="container">
+        <div class="trust-bar">
+            <div class="trust-grid">
+                <div class="trust-item">
+                    <span class="trust-num" data-target="200">0</span>
+                    <span class="trust-label">Happy Customers</span>
+                    <span class="trust-sub">Since 2020</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-num" data-target="98">0</span>
+                    <span class="trust-label">% Parts in Stock</span>
+                    <span class="trust-sub">Live inventory</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-num" data-target="30">0</span>
+                    <span class="trust-label">Min Avg Quote Time</span>
+                    <span class="trust-sub">Fast response</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-num" data-target="12">0</span>
+                    <span class="trust-label">Vehicle Brands Supported</span>
+                    <span class="trust-sub">Toyota, Honda &amp; more</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── WORKSHOP / FLEET CTA ───────────────────────────────── -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="workshop-cta">
+            <div>
+                <div class="wcta-badge">🏭 For Workshops &amp; Fleets</div>
+                <h2>Running a garage or fleet operation?</h2>
+                <p>Get bulk pricing, priority dispatch, and a dedicated account manager for your workshop or fleet. Most bulk orders are quoted within 30 minutes.</p>
+                <div class="hero-actions" style="margin-top:clamp(16px,3vw,24px);">
+                    <a href="#quote" class="btn btn-primary btn-large">Get Fleet Quote</a>
+                    <a href="contact.html" class="btn btn-glass btn-large">Talk to Us</a>
+                </div>
+            </div>
+            <div class="wcta-actions" style="position:relative;z-index:1;">
+                <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r-xl);padding:clamp(16px,3vw,24px);text-align:center;min-width:180px;">
+                    <div style="font-size:2.8rem;margin-bottom:8px;">🏭</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:0.94rem;">30+ Active</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;">Workshop Accounts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── QUOTE FORM ─────────────────────────────────────────── -->
+<section id="quote" class="section section-surface">
+    <div class="container quote-grid">
+        <div class="quote-copy">
+            <p class="eyebrow">Lead Capture</p>
+            <h2>Request a custom quote for any vehicle, fleet, or urgent repair.</h2>
+            <p>Fill in your details and we'll contact you with a personalised price — usually within 30 minutes during business hours.</p>
+            <div class="check-grid" style="display:flex;flex-direction:column;gap:14px;margin-top:clamp(18px,3.5vw,28px);">
+                <div class="check-card">
+                    <strong>🚗 Vehicle fit notes</strong>
+                    <span style="font-size:0.85rem;color:var(--text-mid);">Capture make, model, and year in one request.</span>
+                </div>
+                <div class="check-card">
+                    <strong>💰 Budget awareness</strong>
+                    <span style="font-size:0.85rem;color:var(--text-mid);">Let us know your price target upfront.</span>
+                </div>
+                <div class="check-card">
+                    <strong>⚡ Urgency flag</strong>
+                    <span style="font-size:0.85rem;color:var(--text-mid);">Same-day demand separated from routine shopping.</span>
+                </div>
+            </div>
+        </div>
+        <div class="form-card quote-form-card">
+            <h3>Get a Quote</h3>
+            <form id="quoteForm">
+                <div class="form-group"><label for="quoteName">Full Name *</label><input id="quoteName" type="text" required autocomplete="name"></div>
+                <div class="form-group"><label for="quotePhone">Phone / WhatsApp *</label><input id="quotePhone" type="tel" required autocomplete="tel" placeholder="+220 7XX XXXX"></div>
+                <div class="form-group"><label for="quoteVehicle">Vehicle / Fitment *</label><input id="quoteVehicle" type="text" placeholder="e.g. 2018 Toyota Camry 2.5L" required></div>
+                <div class="form-group"><label for="quotePart">Part or Engine Needed *</label><input id="quotePart" type="text" placeholder="e.g. starter motor, V6 engine" required></div>
+                <div class="form-split">
+                    <div class="form-group"><label for="quoteBudget">Budget (GMD)</label><input id="quoteBudget" type="text" placeholder="e.g. 5,000"></div>
+                    <div class="form-group">
+                        <label for="quoteUrgency">Urgency</label>
+                        <select id="quoteUrgency">
+                            <option value="Routine">Routine</option>
+                            <option value="This week">This week</option>
+                            <option value="Urgent today">Urgent today</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label for="quoteNotes">Additional Notes</label><textarea id="quoteNotes" rows="3" placeholder="Extra fitment or delivery details…"></textarea></div>
+                <button class="btn btn-primary btn-block btn-large" type="submit">Submit Quote Request</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ── MAINTENANCE TIPS / BLOG ────────────────────────────── -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-heading with-action">
+            <div>
+                <p class="eyebrow">Expert Advice</p>
+                <h2>Maintenance tips &amp; guides</h2>
+            </div>
+            <a href="#" class="text-link">All guides →</a>
+        </div>
+        <div class="tips-grid">
+            <article class="tip-card">
+                <div class="tip-thumb">🔩</div>
+                <div class="tip-body">
+                    <span class="tip-tag">Engines</span>
+                    <p class="tip-title">How to know when your engine needs a full swap vs a rebuild</p>
+                    <span class="tip-meta">5 min read · Engine Care</span>
+                </div>
+            </article>
+            <article class="tip-card">
+                <div class="tip-thumb">🛑</div>
+                <div class="tip-body">
+                    <span class="tip-tag">Brakes</span>
+                    <p class="tip-title">5 warning signs your brake pads need replacing this week</p>
+                    <span class="tip-meta">3 min read · Safety</span>
+                </div>
+            </article>
+            <article class="tip-card">
+                <div class="tip-thumb">🌡️</div>
+                <div class="tip-body">
+                    <span class="tip-tag">Cooling</span>
+                    <p class="tip-title">Preventing overheating in Gambia's climate — what to check</p>
+                    <span class="tip-meta">4 min read · Cooling System</span>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ── TESTIMONIALS ───────────────────────────────────────── -->
+<section class="section">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Social Proof</p>
+            <h2>What customers say</h2>
+            <p>Trusted by workshops, fleet managers, and individual car owners across Gambia.</p>
+        </div>
+        <div class="testimonials-grid">
+            <article class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"The vehicle-specific search saved us hours. Ordered brake parts for our entire 12-vehicle fleet in one session."</p>
+                <p class="testimonial-author">Fleet Manager — Banjul</p>
+            </article>
+            <article class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"Quote came back in 20 minutes with exact fitment specs for my 2017 Camry. Very impressed with response speed."</p>
+                <p class="testimonial-author">Individual Buyer — Serekunda</p>
+            </article>
+            <article class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"Compare feature helped me choose between two engines. Side-by-side specs made the decision easy. Great site."</p>
+                <p class="testimonial-author">Workshop Owner — Brikama</p>
+            </article>
+        </div>
+        <div style="text-align:center;margin-top:clamp(20px,4vw,32px);">
+            <a href="reviews.html" class="btn btn-ghost">Read All Reviews</a>
+        </div>
+    </div>
+</section>
+
+<!-- ── FEATURES GRID ──────────────────────────────────────── -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Platform Features</p>
+            <h2>Built for how you actually shop for parts</h2>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">🔍</div>
+                <h3>Smart Search</h3>
+                <p>Find parts by keyword, part number, or vehicle type. Results update as you type.</p>
+            </div>
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">⚖️</div>
+                <h3>Compare Side-by-Side</h3>
+                <p>Select up to 3 products and compare specs, prices, and stock levels instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">♡</div>
+                <h3>Wishlist</h3>
+                <p>Save products across sessions. Your shortlist persists across devices via Firebase.</p>
+            </div>
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">📦</div>
+                <h3>Live Stock Status</h3>
+                <p>See exactly how many units remain. Avoid ordering out-of-stock items.</p>
+            </div>
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">💬</div>
+                <h3>WhatsApp Checkout</h3>
+                <p>Complete orders with your real reference number sent directly to WhatsApp.</p>
+            </div>
+            <div class="feature-card">
+                <div style="font-size:1.8rem;margin-bottom:var(--sp-3);">🎟️</div>
+                <h3>Promo Codes</h3>
+                <p>Apply discount codes at checkout and see final pricing before you confirm.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FAQ ────────────────────────────────────────────────── -->
+<section class="section section-surface">
+    <div class="container container-narrow">
+        <div class="section-heading">
+            <p class="eyebrow">FAQ</p>
+            <h2>Common buying questions</h2>
+        </div>
+        <div class="faq-grid">
+            <details class="faq-item">
+                <summary>How do I find parts compatible with my specific vehicle?</summary>
+                <p>Use the "Find Parts for Your Vehicle" search at the top of this page. Select your make, model, year, and part type. You can also enter a keyword or OEM part number in the main search bar.</p>
+            </details>
+            <details class="faq-item">
+                <summary>How do I compare products?</summary>
+                <p>Click the "+ Compare" button on any product card. Select up to 3 products, then click "Compare Now" in the bar at the bottom of the screen to see a side-by-side specification table.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Can I place an order directly from this site?</summary>
+                <p>Yes. The checkout creates a real order entry and lets you continue to WhatsApp or Facebook with the order reference to confirm payment and delivery details.</p>
+            </details>
+            <details class="faq-item">
+                <summary>How fast will I get a quote response?</summary>
+                <p>Most quotes are responded to within 30 minutes during business hours (8am–8pm). Urgent same-day requests are flagged and handled first.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Do promo codes actually apply discounts?</summary>
+                <p>Yes. Enter your code on the checkout page to see the discount applied to your total before you confirm with the sales team.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Will my cart and wishlist be saved if I close the browser?</summary>
+                <p>Yes. All data (cart, wishlist, orders, quotes) is saved to Firebase so it persists across sessions and devices.</p>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- ── MOBILE APP CTA ─────────────────────────────────────── -->
+<section class="app-cta-section">
+    <div class="container">
+        <div class="app-cta-inner">
+            <div>
+                <p class="eyebrow">Mobile App</p>
+                <h2>Shop Mat Auto from your phone</h2>
+                <p style="color:var(--text-mid);line-height:1.76;margin-bottom:0;">Install Mat Auto as an app on your phone for faster browsing, offline access, and push notifications when new parts arrive or your order status changes.</p>
+                <div class="app-store-btns">
+                    <button class="store-btn" onclick="installApp()" type="button">
+                        <span style="font-size:1.6rem;">📱</span>
+                        <div class="store-btn-label">
+                            <small>Add to</small>
+                            <strong>Home Screen</strong>
+                        </div>
+                    </button>
+                    <a class="store-btn" href="https://wa.me/2207000000?text=Hi Mat Auto, I'd like to shop for parts" target="_blank" rel="noopener">
+                        <span style="font-size:1.6rem;">💬</span>
+                        <div class="store-btn-label">
+                            <small>Order via</small>
+                            <strong>WhatsApp</strong>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="app-phones">
+                <div class="app-phone">📱</div>
+                <div class="app-phone app-phone-2">⚙️</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── NEWSLETTER + SOCIAL ────────────────────────────────── -->
+<section class="section" style="background: var(--navy); position: relative; overflow: hidden;">
+    <div style="position:absolute;inset:0;background:var(--grad-mesh);opacity:0.4;pointer-events:none;"></div>
+    <div style="position:absolute;inset:0;background:var(--grad-noise-heavy);pointer-events:none;"></div>
+    <div class="container" style="position:relative;z-index:1;text-align:center;">
+        <p class="eyebrow" style="color:var(--primary);justify-content:center;">Stay Updated</p>
+        <h2 style="color:#fff;max-width:52ch;margin-inline:auto;margin-bottom:var(--sp-3);">Get notified when new engines &amp; parts arrive</h2>
+        <p style="color:rgba(255,255,255,0.38);margin-bottom:clamp(20px,4vw,32px);max-width:48ch;margin-inline:auto;">Join 300+ subscribers who get early access to flash deals, new arrivals, and exclusive promo codes.</p>
+        <form data-newsletter-form style="max-width:480px;margin-inline:auto;">
+            <label class="sr-only" for="newsletterEmail">Email address</label>
+            <input id="newsletterEmail" name="email" type="email" class="newsletter-input" placeholder="Your email address" required>
+            <button class="btn btn-primary btn-block btn-large" type="submit">Subscribe — It's Free</button>
+        </form>
+        <div style="display:flex;gap:clamp(12px,3vw,24px);justify-content:center;margin-top:clamp(24px,4vw,36px);flex-wrap:wrap;">
+            <a href="https://wa.me/2207000000" target="_blank" rel="noopener" class="btn btn-whatsapp">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                WhatsApp Us
+            </a>
+            <a href="https://facebook.com" target="_blank" rel="noopener" class="btn btn-facebook">
+                📘 Facebook Page
+            </a>
+        </div>
+    </div>
+</section>
 
 <!-- ── FOOTER ─────────────────────────────────────────────── -->
 <footer class="footer">
     <div class="container footer-content">
         <div class="footer-section">
-            <h4>Mat Auto</h4>
-            <p>Quality engines and car parts for workshops, drivers, and fleets across Gambia.</p>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <img src="image.jpg" alt="Mat Auto" style="width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.1);">
+                <h4 style="margin-bottom:0;">Mat Auto</h4>
+            </div>
+            <p>Gambia's trusted marketplace for quality engines and car parts. Serving workshops, fleets &amp; drivers since 2020.</p>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+                <a href="https://wa.me/2207000000" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:var(--transition);" aria-label="WhatsApp">📱</a>
+                <a href="https://facebook.com" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:var(--transition);" aria-label="Facebook">📘</a>
+            </div>
         </div>
         <div class="footer-section">
             <h4>Explore</h4>
             <ul>
                 <li><a href="about.html">About Us</a></li>
-                <li><a href="features.html">Features</a></li>
+                <li><a href="features.html">Platform Features</a></li>
                 <li><a href="promos.html">Promotions</a></li>
-                <li><a href="reviews.html">Reviews</a></li>
+                <li><a href="reviews.html">Customer Reviews</a></li>
+                <li><a href="#products">Full Catalog</a></li>
             </ul>
         </div>
         <div class="footer-section">
             <h4>Support</h4>
             <ul>
-                <li><a href="contact.html">Contact</a></li>
-                <li><a href="orders.html">Track Orders</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="orders.html">Track My Order</a></li>
                 <li><a href="#quote">Get a Quote</a></li>
+                <li><a href="#part-finder">Find My Part</a></li>
+                <li><a href="admin.html">Admin Panel</a></li>
             </ul>
         </div>
         <div class="footer-section">
-            <h4>Newsletter</h4>
+            <h4>Stay in the Loop</h4>
+            <p style="margin-bottom:12px;">New arrivals &amp; flash deals to your inbox.</p>
             <form data-newsletter-form>
-                <label class="sr-only" for="newsletterEmail">Email address</label>
-                <input id="newsletterEmail" name="email" type="email" class="newsletter-input" placeholder="Your email address" required>
+                <label class="sr-only" for="footerNewsletterEmail">Email address</label>
+                <input id="footerNewsletterEmail" name="email" type="email" class="newsletter-input" placeholder="Your email address" required style="margin-bottom:8px;">
                 <button class="btn btn-primary btn-block" type="submit">Subscribe</button>
             </form>
         </div>
     </div>
     <div class="footer-bottom">
-        <p>&copy; 2026 Mat Auto. All rights reserved. Quality engines &amp; parts — Gambia.</p>
+        <p>&copy; 2026 Mat Auto. All rights reserved. Quality engines &amp; parts — Gambia. &nbsp;·&nbsp; <a href="contact.html" style="color:rgba(255,255,255,0.25);text-decoration:none;">Privacy</a></p>
     </div>
 </footer>
 
-<!-- ── PRODUCT MODAL ──────────────────────────────────────── -->
+<!-- ── FLOATING WHATSAPP ──────────────────────────────────── -->
+<a class="float-wa" href="https://wa.me/2206785316?text=Hi Mat Auto, I need help finding a part" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    <span class="wa-text">Chat with us</span>
+</a>
+
+<!-- ── BACK TO TOP ─────────────────────────────────────────── -->
+<button id="backToTop" type="button" aria-label="Back to top">↑</button>
+
+<!-- ── MODALS (same as original) ─────────────────────────── -->
 <div id="productModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
     <div class="modal-content modal-large">
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
@@ -379,7 +1923,6 @@
     </div>
 </div>
 
-<!-- ── CART MODAL ─────────────────────────────────────────── -->
 <div id="cartModal" class="modal" aria-hidden="true" role="dialog" aria-label="Shopping Cart">
     <div class="modal-content modal-medium">
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
@@ -398,7 +1941,6 @@
     </div>
 </div>
 
-<!-- ── WISHLIST MODAL ─────────────────────────────────────── -->
 <div id="wishlistModal" class="modal" aria-hidden="true" role="dialog" aria-label="Wishlist">
     <div class="modal-content modal-medium">
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
@@ -412,7 +1954,6 @@
     </div>
 </div>
 
-<!-- ── COMPARE MODAL (NEW) ───────────────────────────────── -->
 <div id="compareModal" class="modal" aria-hidden="true" role="dialog" aria-label="Product Comparison">
     <div class="modal-content modal-xl">
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
@@ -426,54 +1967,216 @@
     </div>
 </div>
 
-<!-- ── COMPARE BAR (NEW) ─────────────────────────────────── -->
 <div id="compareBar" role="region" aria-label="Compare products"></div>
-
-<!-- ── TOAST STACK ───────────────────────────────────────── -->
 <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 <script src="app.js"></script>
+
 <script>
-// Register Service Worker for PWA support
+/* ── PWA ── */
+let installPrompt;
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    installPrompt = e;
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'block';
+});
+function installApp() {
+    if (installPrompt) {
+        installPrompt.prompt();
+        installPrompt.userChoice.then(function(r) {
+            if (r.outcome === 'accepted') {
+                const banner = document.getElementById('installBanner');
+                if (banner) banner.style.display = 'none';
+            }
+            installPrompt = null;
+        });
+    }
+}
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(function(registration) {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch(function(error) {
-        console.log('Service Worker registration failed:', error);
-      });
-  });
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
 }
 
-// Prompt user to install app
-let installPrompt;
-window.addEventListener('beforeinstallprompt', function(event) {
-  event.preventDefault();
-  installPrompt = event;
-  // Show install button when app is ready to be installed
-  const installBtn = document.getElementById('installAppBtn');
-  if (installBtn) {
-    installBtn.style.display = 'block';
-  }
+/* ── COUNTDOWN TIMER (end of day) ── */
+function startCountdown() {
+    const update = () => {
+        const now = new Date();
+        const end = new Date(now);
+        end.setHours(20, 0, 0, 0);
+        if (now > end) end.setDate(end.getDate() + 1);
+        const diff = end - now;
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        const pad = n => String(n).padStart(2, '0');
+        ['Hours','Mins','Secs'].forEach((u, i) => {
+            const val = [h, m, s][i];
+            ['cdH','cdM','cdS'].map((p,j) => j===i ? p : null)
+                .filter(Boolean);
+        });
+        const ids = [['cdHours','fcdHours'],[' cdMins','fcdMins'],['cdSecs','fcdSecs']];
+        document.getElementById('cdHours').textContent  = pad(h);
+        document.getElementById('cdMins').textContent   = pad(m);
+        document.getElementById('cdSecs').textContent   = pad(s);
+        document.getElementById('fcdHours').textContent = pad(h);
+        document.getElementById('fcdMins').textContent  = pad(m);
+        document.getElementById('fcdSecs').textContent  = pad(s);
+    };
+    update();
+    setInterval(update, 1000);
+}
+startCountdown();
+
+/* ── BACK TO TOP ── */
+const btt = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+    btt.classList.toggle('visible', window.scrollY > 500);
+}, { passive: true });
+btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+/* ── VEHICLE MODEL DROPDOWN ── */
+const vehicleModels = {
+    'Toyota': ['Camry','Corolla','Hilux','Land Cruiser','RAV4','Yaris','Vios','Prado'],
+    'Honda':  ['Civic','Accord','CR-V','Pilot','HR-V','City','Jazz'],
+    'Nissan': ['Almera','Navara','Patrol','Qashqai','X-Trail','Sunny','Note'],
+    'Hyundai':['Elantra','i10','i20','Tucson','Santa Fe','Accent','Sonata'],
+    'Mercedes-Benz':['C-Class','E-Class','GLC','S-Class','A-Class','CLA'],
+    'BMW':    ['3 Series','5 Series','7 Series','X3','X5','1 Series'],
+    'Ford':   ['Focus','Fiesta','Ranger','Explorer','Fusion','Kuga'],
+    'Mitsubishi':['Outlander','ASX','Pajero','L200','Eclipse Cross','Galant'],
+    'Kia':    ['Sportage','Rio','Ceed','Sorento','Picanto','Stinger'],
+    'Volkswagen':['Golf','Polo','Tiguan','Passat','T-Roc','Touareg'],
+    'Land Rover':['Discovery','Defender','Range Rover','Freelander','Evoque'],
+    'Suzuki': ['Swift','Vitara','Jimny','Grand Vitara','SX4','Ignis'],
+};
+function updateVehicleModels() {
+    const make = document.getElementById('vsMake').value;
+    const sel = document.getElementById('vsModel');
+    sel.innerHTML = '<option value="">All Models</option>';
+    (vehicleModels[make] || []).forEach(m => {
+        const o = document.createElement('option');
+        o.value = o.textContent = m;
+        sel.appendChild(o);
+    });
+}
+// Populate years
+(function() {
+    const yearSel = document.getElementById('vsYear');
+    for (let y = 2026; y >= 1990; y--) {
+        const o = document.createElement('option');
+        o.value = o.textContent = y;
+        yearSel.appendChild(o);
+    }
+})();
+
+/* ── VEHICLE SEARCH FORM ── */
+document.getElementById('vehicleSearchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const make = document.getElementById('vsMake').value;
+    const model = document.getElementById('vsModel').value;
+    const year = document.getElementById('vsYear').value;
+    const part = document.getElementById('vsPartType').value;
+    const query = [make, model, year, part].filter(Boolean).join(' ');
+    if (query) {
+        const si = document.getElementById('searchInput');
+        si.value = query;
+        document.getElementById('secondarySearchInput').value = query;
+        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
+        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }
 });
 
-// Handle install button click
-function installApp() {
-  if (installPrompt) {
-    installPrompt.prompt();
-    installPrompt.userChoice.then(function(choiceResult) {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted install prompt');
-      }
-      installPrompt = null;
+/* ── PART FINDER FORM ── */
+document.getElementById('partFinderForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const vehicle = document.getElementById('pfVehicle').value;
+    const part = document.getElementById('pfPart').value;
+    const query = [vehicle, part].filter(Boolean).join(' ');
+    if (query) {
+        document.getElementById('searchInput').value = query;
+        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
+        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }
+});
+
+/* ── SEARCH CHIPS ── */
+document.querySelectorAll('.search-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+        const q = this.dataset.search;
+        document.getElementById('searchInput').value = q;
+        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
+        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
     });
-  }
+});
+
+/* ── CATEGORY PILL FILTER ── */
+document.querySelectorAll('[data-filter-part]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const type = this.dataset.filterPart;
+        document.getElementById('searchInput').value = type;
+        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
+        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    });
+});
+
+/* ── CATEGORY SHORTCUT ── */
+document.querySelectorAll('[data-category-shortcut]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const val = this.dataset.categoryShortcut;
+        const filterBtn = document.querySelector(`.filter-btn[data-filter="${val}"]`);
+        if (filterBtn) filterBtn.click();
+        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    });
+});
+
+/* ── LIVE PART COUNT (mirrors catalogCount from app.js) ── */
+const lpcObs = new MutationObserver(() => {
+    const cc = document.getElementById('catalogCount');
+    const lpc = document.getElementById('livePartCount');
+    if (cc && lpc) lpc.textContent = cc.textContent;
+});
+const ccEl = document.getElementById('catalogCount');
+if (ccEl) lpcObs.observe(ccEl, { childList: true, characterData: true, subtree: true });
+
+/* ── TRUST COUNTER ANIMATION ── */
+function animateCounters() {
+    document.querySelectorAll('.trust-num[data-target]').forEach(el => {
+        const target = parseInt(el.dataset.target);
+        const dur = 1200;
+        const step = target / (dur / 16);
+        let cur = 0;
+        const timer = setInterval(() => {
+            cur = Math.min(cur + step, target);
+            el.textContent = Math.floor(cur) + (el.dataset.suffix || '');
+            if (cur >= target) clearInterval(timer);
+        }, 16);
+    });
 }
+const counterSection = document.querySelector('.trust-bar');
+if (counterSection) {
+    const obs = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) { animateCounters(); obs.disconnect(); }
+    }, { threshold: 0.3 });
+    obs.observe(counterSection);
+}
+
+/* ── REVEAL ANIMATIONS ── */
+const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.feature-card, .testimonial-card, .tip-card, .cat-pill, .why-item, .deal-card')
+    .forEach((el, i) => {
+        el.classList.add('reveal');
+        el.style.transitionDelay = `${(i % 6) * 60}ms`;
+        revealObs.observe(el);
+    });
 </script>
 </body>
 </html>
