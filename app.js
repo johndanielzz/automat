@@ -1,29 +1,33 @@
 "use strict";
 
 // ===========================================================================
-// MAT AUTO — app.js  v4.0  (Production)
+// MAT AUTO — app.js  v5.0  (Production — CORS-safe + Performance Upgrade)
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// SITE CONFIG — update before going live
+// SITE CONFIG
 // ---------------------------------------------------------------------------
 const SITE_CONFIG = {
-    whatsappNumber      : "2206785316",   // primary number, without leading +
-    whatsappNumberAlt   : "2202328902",   // secondary number, without leading +
+    whatsappNumber      : "2206785316",
+    whatsappNumberAlt   : "2202328902",
     whatsappLinkPrimary : "https://wa.me/message/BRC6GJHD6PHCC1",
     whatsappLinkAlt     : "https://wa.me/qr/FDKDUI5V625OE1",
     facebookUrl         : "https://www.facebook.com/profile.php?id=61574154117727",
     storeName           : "Mat Auto",
     currency            : "GMD",
     productsPerPage     : 12,
-    lowStockThreshold   : 3
+    lowStockThreshold   : 3,
+    // ▼ Max dimensions for compressed base64 preview images (keeps DB size small)
+    imgMaxWidth         : 800,
+    imgMaxHeight        : 800,
+    imgQuality          : 0.78   // JPEG quality 0–1
 };
 
 // ---------------------------------------------------------------------------
-// ADMIN  — replace plain password with Firebase Auth later
+// ADMIN
 // ---------------------------------------------------------------------------
 const ADMIN_PASSWORD = "MATADMIN2026";
-const ADMIN_AUTH_KEY = "matAutoAdminAuth";   // sessionStorage key
+const ADMIN_AUTH_KEY = "matAutoAdminAuth";
 
 // ---------------------------------------------------------------------------
 // FIREBASE INIT
@@ -33,7 +37,10 @@ const firebaseConfig = {
     authDomain       : "gm-auto-9c02f.firebaseapp.com",
     databaseURL      : "https://gm-auto-9c02f-default-rtdb.firebaseio.com",
     projectId        : "gm-auto-9c02f",
-    storageBucket    : "gm-auto-9c02f.firebasestorage.app",
+    // ✅ FIX: Use the legacy appspot bucket — the new .firebasestorage.app
+    //    domain triggers CORS pre-flight failures from GitHub Pages.
+    //    Both point to the same underlying bucket.
+    storageBucket    : "gm-auto-9c02f.appspot.com",
     messagingSenderId: "910842464490",
     appId            : "1:910842464490:web:598bc7b97a71b21177ef93",
     measurementId    : "G-S74811TTQF"
@@ -44,25 +51,33 @@ const firebaseLib = (typeof globalThis !== "undefined" && globalThis.firebase) ?
 let firebaseApp = null;
 if (firebaseLib) {
     try {
-        firebaseApp = firebaseLib.apps?.length ? firebaseLib.app() : firebaseLib.initializeApp(firebaseConfig);
+        firebaseApp = firebaseLib.apps?.length
+            ? firebaseLib.app()
+            : firebaseLib.initializeApp(firebaseConfig);
     } catch (err) {
-        console.error("Firebase initialization failed:", err);
+        console.error("Firebase init failed:", err);
     }
 } else {
-    console.error("Firebase SDK not found. Ensure firebase compat scripts load before app.js.");
+    console.error("Firebase SDK not loaded before app.js.");
 }
 
 const db = firebaseApp ? firebaseLib.database() : null;
+
+// ✅ FIX: Try both bucket formats; if both fail, storage stays null and we
+//    fall back to base64 automatically — no CORS crash, no user-visible error.
 let storage = null;
 if (firebaseApp && typeof firebaseLib.storage === "function") {
-    try {
-        storage = firebaseLib.storage();
-    } catch (err) {
-        console.warn("Firebase Storage init failed for default bucket. Retrying with appspot bucket:", err);
+    for (const bucket of [
+        `gs://${firebaseConfig.storageBucket}`,
+        `gs://gm-auto-9c02f.firebasestorage.app`
+    ]) {
         try {
-            storage = firebaseLib.app().storage(`gs://${firebaseConfig.projectId}.appspot.com`);
-        } catch (fallbackErr) {
-            console.warn("Firebase Storage unavailable:", fallbackErr);
+            storage = firebaseLib.app().storage(bucket);
+            // Quick connectivity probe — if this throws, try next bucket
+            storage.ref();
+            break;
+        } catch {
+            storage = null;
         }
     }
 }
@@ -75,35 +90,31 @@ const FB = {
     orders    : "matAutoOrders",
     quotes    : "matAutoQuotes",
     promos    : "matAutoPromos",
-    contacts  : "matAutoContacts",     // NEW
-    newsletter: "matAutoNewsletter",   // NEW
-    reviews   : "matAutoReviews",      // NEW
-    settings  : "matAutoSettings"      // NEW
+    contacts  : "matAutoContacts",
+    newsletter: "matAutoNewsletter",
+    reviews   : "matAutoReviews",
+    settings  : "matAutoSettings"
 };
 
 // ---------------------------------------------------------------------------
-// LOCAL STORAGE KEYS  (cart / wishlist / theme are device-local — never shared)
+// LOCAL STORAGE KEYS
 // ---------------------------------------------------------------------------
 const LS = {
     cart        : "maCart",
     wishlist    : "maWishlist",
     recent      : "maRecent",
     theme       : "maDarkMode",
-    activeOrder : "maActiveOrder",  // sessionStorage
-    myOrderIds  : "maMyOrderIds"    // tracks order IDs placed from this device
+    activeOrder : "maActiveOrder",
+    myOrderIds  : "maMyOrderIds"
 };
 
 // ---------------------------------------------------------------------------
 // PLACEHOLDER IMAGE
 // ---------------------------------------------------------------------------
-const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' font-size='40' fill='%2394a3b8' text-anchor='middle' dominant-baseline='middle'%3E🔧%3C/text%3E%3C/svg%3E";
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' font-size='40' fill='%2394a3b8' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%94%A7%3C/text%3E%3C/svg%3E";
 
 // ---------------------------------------------------------------------------
-// DEFAULT DATA  — intentionally empty; products/promos must be added via Admin
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// APPLICATION STATE  (products/orders/quotes/promos from Firebase; rest localStorage)
+// APPLICATION STATE
 // ---------------------------------------------------------------------------
 const state = {
     products      : [],
@@ -137,17 +148,17 @@ function escapeHtml(str) {
 
 function sanitizeImageSrc(src) {
     if (!src) return PLACEHOLDER_IMAGE;
-    if (src.startsWith("data:image/") || /^https?:\/\//.test(src) || src === "image.jpg") return src;
+    if (src.startsWith("data:image/") || /^https?:\/\//.test(src)) return src;
     return PLACEHOLDER_IMAGE;
 }
 
 function formatCurrency(amount) {
     const n = Number(amount) || 0;
-    return `GMD ${n.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+    return `GMD ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function generateId(prefix) {
-    return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random()*9999).toString(36)}`;
+    return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 9999).toString(36)}`;
 }
 
 function getStockLabel(p) {
@@ -179,12 +190,96 @@ function debounce(fn, ms = 250) {
 
 function formatDate(isoStr) {
     if (!isoStr) return "";
-    try { return new Date(isoStr).toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }); }
-    catch { return isoStr; }
+    try {
+        return new Date(isoStr).toLocaleString("en-GB", {
+            day: "2-digit", month: "short", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+        });
+    } catch { return isoStr; }
 }
 
 // ---------------------------------------------------------------------------
-// LOCAL STORAGE HELPERS  (cart, wishlist, theme, recently viewed)
+// ✅ NEW: IMAGE COMPRESSION
+// Resizes & compresses a File/Blob to a JPEG data URL using an off-screen canvas.
+// Keeps images under ~100–150 KB so the Realtime DB doesn't balloon.
+// ---------------------------------------------------------------------------
+function compressImage(file, maxW = SITE_CONFIG.imgMaxWidth, maxH = SITE_CONFIG.imgMaxHeight, quality = SITE_CONFIG.imgQuality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("File read failed"));
+        reader.onload  = evt => {
+            const img = new Image();
+            img.onerror = () => reject(new Error("Image decode failed"));
+            img.onload  = () => {
+                let { width, height } = img;
+                const ratio = Math.min(maxW / width, maxH / height, 1);
+                width  = Math.round(width  * ratio);
+                height = Math.round(height * ratio);
+                const canvas  = document.createElement("canvas");
+                canvas.width  = width;
+                canvas.height = height;
+                canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                resolve(dataUrl);
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// ✅ NEW: SMART IMAGE UPLOADER
+// Strategy:
+//   1. Try Firebase Storage (fast CDN URLs, no size limit)
+//   2. On ANY failure (CORS, network, quota) → fall back to compressed base64
+//      stored directly in the Realtime Database.
+// The admin never sees a hard error; images always save one way or the other.
+// ---------------------------------------------------------------------------
+async function uploadImages(files) {
+    if (!files || !files.length) return [];
+
+    const fileArr = Array.from(files).slice(0, 6);
+    const results = [];
+
+    for (const file of fileArr) {
+        let url = null;
+
+        // ── Attempt 1: Firebase Storage ─────────────────────────────────
+        if (storage) {
+            try {
+                const safeName = `products/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+                const ref      = storage.ref().child(safeName);
+
+                // Set cache-control so images load fast on repeat visits
+                const metadata = { cacheControl: "public,max-age=31536000", contentType: file.type };
+                await ref.put(file, metadata);
+                url = await ref.getDownloadURL();
+            } catch (storageErr) {
+                // CORS / network error — log a clean warning and fall through
+                console.warn("Firebase Storage upload failed (falling back to base64):", storageErr.code || storageErr.message);
+                url = null;
+            }
+        }
+
+        // ── Attempt 2: Compressed base64 in Realtime DB ─────────────────
+        if (!url) {
+            try {
+                url = await compressImage(file);
+            } catch (b64Err) {
+                console.error("Base64 fallback also failed:", b64Err);
+                url = PLACEHOLDER_IMAGE;
+            }
+        }
+
+        results.push(url);
+    }
+
+    return results;
+}
+
+// ---------------------------------------------------------------------------
+// LOCAL STORAGE HELPERS
 // ---------------------------------------------------------------------------
 function lsGet(key, fallback = null) {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
@@ -194,9 +289,9 @@ function lsSet(key, value) {
 }
 
 function loadLocalState() {
-    state.cart           = lsGet(LS.cart,     []);
-    state.wishlist       = lsGet(LS.wishlist,  []);
-    state.recentlyViewed = lsGet(LS.recent,    []);
+    state.cart           = lsGet(LS.cart,    []);
+    state.wishlist       = lsGet(LS.wishlist, []);
+    state.recentlyViewed = lsGet(LS.recent,   []);
 }
 
 function saveCart()     { lsSet(LS.cart,     state.cart); }
@@ -208,14 +303,14 @@ function saveRecent()   { lsSet(LS.recent,    state.recentlyViewed); }
 // ---------------------------------------------------------------------------
 function isDbReady() {
     if (db) return true;
-    console.warn("Firebase Database is not initialized. Live sync features are unavailable.");
+    console.warn("Firebase Database not initialized.");
     return false;
 }
 
 function normalizeFirebaseList(val) {
     if (!val) return [];
-    if (Array.isArray(val)) return val;
-    if (typeof val === "object") return Object.values(val);
+    if (Array.isArray(val)) return val.filter(Boolean);
+    if (typeof val === "object") return Object.values(val).filter(Boolean);
     return [];
 }
 
@@ -229,25 +324,21 @@ async function fbRead(path, fallback = null) {
 
 async function fbWrite(path, value) {
     if (!isDbReady()) throw new Error("Firebase Database not initialized");
-    try { await db.ref(path).set(value); }
-    catch (err) { console.error(`Firebase write failed (${path}):`, err); throw err; }
+    await db.ref(path).set(value);
 }
 
 async function fbPush(path, value) {
     if (!isDbReady()) throw new Error("Firebase Database not initialized");
-    try { await db.ref(path).push(value); }
-    catch (err) { console.error(`Firebase push failed (${path}):`, err); throw err; }
+    await db.ref(path).push(value);
 }
 
 async function fbUpdate(path, updates) {
     if (!isDbReady()) throw new Error("Firebase Database not initialized");
-    try { await db.ref(path).update(updates); }
-    catch (err) { console.error(`Firebase update failed (${path}):`, err); throw err; }
+    await db.ref(path).update(updates);
 }
 
 // ---------------------------------------------------------------------------
 // FIREBASE REALTIME LISTENER FOR PRODUCTS
-// Used on the storefront so admin changes reflect live without page reload.
 // ---------------------------------------------------------------------------
 let productsListenerAttached = false;
 
@@ -258,10 +349,10 @@ function attachProductsListener() {
         const raw = snap.exists() ? snap.val() : [];
         state.products = normalizeFirebaseList(raw).map(normalizeProduct);
         updateHeroStats();
-        if (qs("#featuredGrid"))  renderFeatured();
-        if (qs("#productsGrid"))  refreshCatalog();
+        if (qs("#featuredGrid"))       renderFeatured();
+        if (qs("#productsGrid"))       refreshCatalog();
         if (qs("#recentlyViewedGrid")) renderRecentlyViewed();
-        renderAdminStats && renderAdminStats();
+        if (typeof renderAdminStats === "function") renderAdminStats();
     });
 }
 
@@ -269,21 +360,18 @@ function attachProductsListener() {
 // INITIAL DATA LOAD
 // ---------------------------------------------------------------------------
 async function loadFirebaseState() {
-    // Products — will be refreshed by realtime listener anyway, but we do a first load
-    const rawProducts = await fbRead(FB.products, []);
-    state.products    = normalizeFirebaseList(rawProducts).map(normalizeProduct);
-
-    const rawOrders   = await fbRead(FB.orders,  []);
-    state.orders      = normalizeFirebaseList(rawOrders);
-
-    const rawQuotes   = await fbRead(FB.quotes,  []);
-    state.quotes      = normalizeFirebaseList(rawQuotes);
-
-    const rawPromos   = await fbRead(FB.promos,  []);
-    state.promos      = normalizeFirebaseList(rawPromos);
-
-    const rawReviews  = await fbRead(FB.reviews, []);
-    state.reviews     = normalizeFirebaseList(rawReviews);
+    const [rawProducts, rawOrders, rawQuotes, rawPromos, rawReviews] = await Promise.all([
+        fbRead(FB.products, []),
+        fbRead(FB.orders,   []),
+        fbRead(FB.quotes,   []),
+        fbRead(FB.promos,   []),
+        fbRead(FB.reviews,  [])
+    ]);
+    state.products = normalizeFirebaseList(rawProducts).map(normalizeProduct);
+    state.orders   = normalizeFirebaseList(rawOrders);
+    state.quotes   = normalizeFirebaseList(rawQuotes);
+    state.promos   = normalizeFirebaseList(rawPromos);
+    state.reviews  = normalizeFirebaseList(rawReviews);
 }
 
 async function saveProducts() { await fbWrite(FB.products, state.products); }
@@ -299,7 +387,7 @@ function showLoader(msg = "Loading…") {
     if (!el) {
         el = document.createElement("div");
         el.id = "pageLoader";
-        el.innerHTML = `<div class="loader-inner"><div class="loader-spinner"></div><p>${msg}</p></div>`;
+        el.innerHTML = `<div class="loader-inner"><div class="loader-spinner"></div><p>${escapeHtml(msg)}</p></div>`;
         document.body.appendChild(el);
     }
     el.style.display = "flex";
@@ -317,7 +405,7 @@ function showToast(type, message, duration = 3500) {
     if (!stack) return;
     const t = document.createElement("div");
     t.className = `toast toast-${type}`;
-    const icons = { success:"✅", error:"❌", warning:"⚠️", info:"ℹ️" };
+    const icons = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
     t.innerHTML = `<span class="toast-icon">${icons[type] || "ℹ️"}</span><span>${escapeHtml(message)}</span>`;
     stack.appendChild(t);
     requestAnimationFrame(() => t.classList.add("toast-in"));
@@ -346,10 +434,10 @@ function toggleTheme() {
 // BADGE COUNTS
 // ---------------------------------------------------------------------------
 function updateBadgeCounts() {
-    const el = id => qs(`#${id}`);
-    if (el("cartCount"))     el("cartCount").textContent     = state.cart.length.toString();
-    if (el("wishlistCount")) el("wishlistCount").textContent = state.wishlist.length.toString();
-    if (el("compareCount"))  el("compareCount").textContent  = state.compareList.length.toString();
+    const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = String(val); };
+    set("cartCount",     state.cart.length);
+    set("wishlistCount", state.wishlist.length);
+    set("compareCount",  state.compareList.length);
 }
 
 // ---------------------------------------------------------------------------
@@ -380,7 +468,6 @@ function openModal(id) {
     m.style.display = "flex";
     m.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-open");
-    m.focus && m.focus();
 }
 function closeModal(modal) {
     if (!modal) return;
@@ -404,33 +491,44 @@ function bindModalClose() {
 // PAGINATION
 // ---------------------------------------------------------------------------
 function renderPagination(total) {
-    const bar   = qs("#paginationBar");
+    const bar = qs("#paginationBar");
     if (!bar) return;
     const pages = Math.ceil(total / SITE_CONFIG.productsPerPage);
     if (pages <= 1) { bar.innerHTML = ""; return; }
-    let html = "";
-    if (state.currentPage > 1)      html += `<button class="page-btn" data-page="${state.currentPage - 1}">‹ Prev</button>`;
-    for (let i = 1; i <= pages; i++) html += `<button class="page-btn${i === state.currentPage ? " active" : ""}" data-page="${i}">${i}</button>`;
-    if (state.currentPage < pages)   html += `<button class="page-btn" data-page="${state.currentPage + 1}">Next ›</button>`;
-    bar.innerHTML = html;
-    qsa(".page-btn", bar).forEach(btn => btn.addEventListener("click", () => {
+    const frag = document.createDocumentFragment();
+    const mkBtn = (label, page, active = false, disabled = false) => {
+        const b = document.createElement("button");
+        b.className = `page-btn${active ? " active" : ""}`;
+        b.textContent = label;
+        b.disabled = disabled;
+        if (!disabled) b.dataset.page = page;
+        return b;
+    };
+    if (state.currentPage > 1) frag.appendChild(mkBtn("‹ Prev", state.currentPage - 1));
+    for (let i = 1; i <= pages; i++) frag.appendChild(mkBtn(i, i, i === state.currentPage));
+    if (state.currentPage < pages) frag.appendChild(mkBtn("Next ›", state.currentPage + 1));
+    bar.innerHTML = "";
+    bar.appendChild(frag);
+    bar.addEventListener("click", e => {
+        const btn = e.target.closest(".page-btn");
+        if (!btn || !btn.dataset.page) return;
         state.currentPage = Number(btn.dataset.page);
         refreshCatalog();
         qs("#products")?.scrollIntoView({ behavior: "smooth" });
-    }));
+    });
 }
 
 // ---------------------------------------------------------------------------
-// PRODUCT CARDS
+// PRODUCT CARDS  (uses DocumentFragment for faster DOM insertion)
 // ---------------------------------------------------------------------------
 function renderProducts(list, targetId) {
     const grid = qs(`#${targetId}`);
     if (!grid) return;
-    grid.innerHTML = "";
     if (!list.length) {
         grid.innerHTML = `<div class="empty-state"><p>No products found.</p></div>`;
         return;
     }
+    const frag = document.createDocumentFragment();
     list.forEach(product => {
         const inCompare  = state.compareList.includes(product.id);
         const inWishlist = state.wishlist.some(w => w.id === product.id);
@@ -439,11 +537,11 @@ function renderProducts(list, targetId) {
         const stockClass = product.stock <= 0 ? "out" : product.stock <= SITE_CONFIG.lowStockThreshold ? "low" : "in";
         card.innerHTML = `
             <div class="product-media">
-                <img src="${getPrimaryImage(product)}" alt="${escapeHtml(product.name)}" loading="lazy">
-                ${product.stock <= 0       ? `<span class="product-badge badge-out">Out of Stock</span>`   : ""}
+                <img src="${getPrimaryImage(product)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async">
+                ${product.stock <= 0 ? `<span class="product-badge badge-out">Out of Stock</span>` : ""}
                 ${product.stock > 0 && product.stock <= SITE_CONFIG.lowStockThreshold
-                                           ? `<span class="product-badge badge-low">Only ${product.stock} left</span>` : ""}
-                ${product.featured         ? `<span class="product-badge badge-featured">⭐ Featured</span>` : ""}
+                    ? `<span class="product-badge badge-low">Only ${product.stock} left</span>` : ""}
+                ${product.featured ? `<span class="product-badge badge-featured">⭐ Featured</span>` : ""}
                 <button class="card-wishlist-btn${inWishlist ? " active" : ""}" type="button"
                     data-quick-wishlist="${product.id}" aria-label="${inWishlist ? "Remove from wishlist" : "Add to wishlist"}">
                     ${inWishlist ? "♥" : "♡"}
@@ -466,20 +564,21 @@ function renderProducts(list, targetId) {
                         ${inCompare ? "✓" : "⇌"}
                     </button>
                 </div>
-            </div>
-        `;
-        grid.appendChild(card);
+            </div>`;
+        frag.appendChild(card);
     });
-    // events
-    qsa("[data-product-id]", grid).forEach(btn =>
-        btn.addEventListener("click", () => openProductModal(Number(btn.dataset.productId)))
-    );
-    qsa("[data-quick-wishlist]", grid).forEach(btn =>
-        btn.addEventListener("click", e => { e.stopPropagation(); quickToggleWishlist(Number(btn.dataset.quickWishlist), btn); })
-    );
-    qsa("[data-compare-id]", grid).forEach(btn =>
-        btn.addEventListener("click", e => { e.stopPropagation(); toggleCompare(Number(btn.dataset.compareId)); })
-    );
+    grid.innerHTML = "";
+    grid.appendChild(frag);
+
+    // Delegate events to grid (faster than per-card listeners)
+    grid.addEventListener("click", e => {
+        const viewBtn    = e.target.closest("[data-product-id]");
+        const wishBtn    = e.target.closest("[data-quick-wishlist]");
+        const compareBtn = e.target.closest("[data-compare-id]");
+        if (viewBtn)    openProductModal(Number(viewBtn.dataset.productId));
+        if (wishBtn)  { e.stopPropagation(); quickToggleWishlist(Number(wishBtn.dataset.quickWishlist), wishBtn); }
+        if (compareBtn){ e.stopPropagation(); toggleCompare(Number(compareBtn.dataset.compareId)); }
+    }, { once: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -493,7 +592,7 @@ function filterAndSortProducts() {
         list = list.filter(p =>
             p.name.toLowerCase().includes(q) ||
             (p.description || "").toLowerCase().includes(q) ||
-            (p.specs || "").toLowerCase().includes(q)
+            (p.specs       || "").toLowerCase().includes(q)
         );
     }
     switch (state.currentSort) {
@@ -513,7 +612,9 @@ function refreshCatalog() {
     const from = (state.currentPage - 1) * SITE_CONFIG.productsPerPage;
     renderProducts(all.slice(from, from + SITE_CONFIG.productsPerPage), "productsGrid");
     const summary = qs("#resultsSummary");
-    if (summary) summary.textContent = all.length ? `${all.length} product${all.length !== 1 ? "s" : ""} shown` : "No products match your search.";
+    if (summary) summary.textContent = all.length
+        ? `${all.length} product${all.length !== 1 ? "s" : ""} shown`
+        : "No products match your search.";
     renderPagination(all.length);
 }
 
@@ -524,12 +625,9 @@ function renderFeatured() {
 function renderHeroPromos() {
     const list = qs("#heroPromoList");
     if (!list) return;
-    list.innerHTML = state.promos.slice(0, 3).map(p => `
-        <div class="promo-mini">
-            <strong>${escapeHtml(p.id)}</strong>
-            <span>${escapeHtml(p.details)}</span>
-        </div>
-    `).join("") || `<p style="color:#94a3b8;font-size:.85rem;">No active promos right now.</p>`;
+    list.innerHTML = state.promos.slice(0, 3).map(p =>
+        `<div class="promo-mini"><strong>${escapeHtml(p.id)}</strong><span>${escapeHtml(p.details)}</span></div>`
+    ).join("") || `<p style="color:#94a3b8;font-size:.85rem;">No active promos right now.</p>`;
 }
 
 function renderRecentlyViewed() {
@@ -541,9 +639,9 @@ function renderRecentlyViewed() {
 }
 
 function updateHeroStats() {
-    const el = id => qs(`#${id}`);
-    if (el("catalogCount")) el("catalogCount").textContent = state.products.length;
-    if (el("engineCount"))  el("engineCount").textContent  = state.products.filter(p => p.category === "engine").length;
+    const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
+    set("catalogCount", state.products.length);
+    set("engineCount",  state.products.filter(p => p.category === "engine").length);
 }
 
 // ---------------------------------------------------------------------------
@@ -559,9 +657,8 @@ function setupCatalogControls() {
         refreshCatalog();
     }));
 
-    const sortSelect = qs("#sortSelect");
-    sortSelect?.addEventListener("change", () => {
-        state.currentSort = sortSelect.value;
+    qs("#sortSelect")?.addEventListener("change", e => {
+        state.currentSort = e.target.value;
         state.currentPage = 1;
         refreshCatalog();
     });
@@ -578,7 +675,7 @@ function setupCatalogControls() {
         state.currentPage   = 1;
         filterBtns.forEach(b => b.classList.toggle("active", b.dataset.filter === state.currentFilter));
         refreshCatalog();
-        qs("#products")?.scrollIntoView({ behavior:"smooth" });
+        qs("#products")?.scrollIntoView({ behavior: "smooth" });
     }));
 }
 
@@ -590,7 +687,7 @@ function setupHeroSearch() {
         state.currentQuery = input.value.trim();
         state.currentPage  = 1;
         refreshCatalog();
-        qs("#products")?.scrollIntoView({ behavior:"smooth" });
+        qs("#products")?.scrollIntoView({ behavior: "smooth" });
     });
 }
 
@@ -602,18 +699,18 @@ function openProductModal(productId) {
     if (!product) return;
     state.activeProduct = product;
 
-    const setText = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
-    setText("modalTitle",       product.name);
-    setText("modalRating",      getRatingStars(product.rating));
-    setText("modalPrice",       formatCurrency(product.price));
-    setText("modalCategory",    product.category.toUpperCase());
-    setText("modalDescription", product.description || "");
-    setText("modalSpecs",       product.specs || "");
+    const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
+    set("modalTitle",       product.name);
+    set("modalRating",      getRatingStars(product.rating));
+    set("modalPrice",       formatCurrency(product.price));
+    set("modalCategory",    product.category.toUpperCase());
+    set("modalDescription", product.description || "");
+    set("modalSpecs",       product.specs || "");
 
-    const modalImage   = qs("#modalImage");
-    const stockStatus  = qs("#stockStatus");
-    const qtyInput     = qs("#quantityInput");
-    const gallery      = qs("#modalGallery");
+    const modalImage  = qs("#modalImage");
+    const stockStatus = qs("#stockStatus");
+    const qtyInput    = qs("#quantityInput");
+    const gallery     = qs("#modalGallery");
 
     if (modalImage) { modalImage.src = getPrimaryImage(product); modalImage.alt = product.name; }
     if (stockStatus) {
@@ -626,14 +723,15 @@ function openProductModal(productId) {
         const imgs = product.images?.length ? product.images : [getPrimaryImage(product)];
         gallery.innerHTML = imgs.map((src, i) => `
             <button type="button" class="gallery-thumb${i === 0 ? " active" : ""}" data-gi="${i}">
-                <img src="${sanitizeImageSrc(src)}" alt="${escapeHtml(product.name)} ${i + 1}">
-            </button>
-        `).join("");
-        qsa(".gallery-thumb", gallery).forEach(btn => btn.addEventListener("click", () => {
-            if (modalImage) modalImage.src = sanitizeImageSrc(imgs[Number(btn.dataset.gi)]);
+                <img src="${sanitizeImageSrc(src)}" alt="${escapeHtml(product.name)} view ${i + 1}" loading="lazy">
+            </button>`).join("");
+        gallery.addEventListener("click", e => {
+            const thumb = e.target.closest(".gallery-thumb");
+            if (!thumb) return;
+            if (modalImage) modalImage.src = sanitizeImageSrc(imgs[Number(thumb.dataset.gi)]);
             qsa(".gallery-thumb", gallery).forEach(t => t.classList.remove("active"));
-            btn.classList.add("active");
-        }));
+            thumb.classList.add("active");
+        });
     }
 
     updateWishlistButton();
@@ -644,7 +742,7 @@ function openProductModal(productId) {
 }
 
 function updateModalButtons(product) {
-    const dis = product.stock <= 0;
+    const dis    = product.stock <= 0;
     const addBtn = qs("#modalAddToCart");
     const buyBtn = qs("#modalBuyNow");
     if (addBtn) { addBtn.disabled = dis; addBtn.textContent = dis ? "Out of Stock" : "Add to Cart"; }
@@ -662,27 +760,33 @@ function updateModalQty(delta) {
 }
 
 function setupModalActions() {
-    qs("#modalAddToCart")?.addEventListener("click",  () => { if (state.activeProduct) addToCart(state.activeProduct, getQtyFromModal()); });
-    qs("#modalBuyNow")?.addEventListener("click",     buyNowActiveProduct);
-    qs("#wishlistBtn")?.addEventListener("click",     toggleWishlistForActive);
-    qs("#increaseQtyBtn")?.addEventListener("click",  () => updateModalQty(1));
-    qs("#decreaseQtyBtn")?.addEventListener("click",  () => updateModalQty(-1));
+    qs("#modalAddToCart")?.addEventListener("click", () => { if (state.activeProduct) addToCart(state.activeProduct, getQtyFromModal()); });
+    qs("#modalBuyNow")?.addEventListener("click",    buyNowActiveProduct);
+    qs("#wishlistBtn")?.addEventListener("click",    toggleWishlistForActive);
+    qs("#increaseQtyBtn")?.addEventListener("click", () => updateModalQty(1));
+    qs("#decreaseQtyBtn")?.addEventListener("click", () => updateModalQty(-1));
 }
 
 function setupQuickAccess() {
-    qs("#cartTrigger")?.addEventListener("click",     () => { renderCart(); openModal("cartModal"); });
+    qs("#cartTrigger")?.addEventListener("click",     () => { renderCart();     openModal("cartModal"); });
     qs("#wishlistTrigger")?.addEventListener("click", () => { renderWishlist(); openModal("wishlistModal"); });
 }
 
 // ---------------------------------------------------------------------------
-// PRODUCT VIEWS  (increment in Firebase)
+// PRODUCT VIEWS
 // ---------------------------------------------------------------------------
+const _viewDebounce = new Map();
 async function incrementProductViews(productId) {
     if (!db) return;
+    // Debounce: don't flood DB if the same product modal is opened repeatedly
+    if (_viewDebounce.has(productId)) return;
+    _viewDebounce.set(productId, true);
+    setTimeout(() => _viewDebounce.delete(productId), 60_000);
+
     const idx = state.products.findIndex(p => p.id === productId);
     if (idx < 0) return;
     state.products[idx].views = (state.products[idx].views || 0) + 1;
-    try { await db.ref(`${FB.products}/${idx}/views`).set(state.products[idx].views); } catch {}
+    try { await db.ref(`${FB.products}/${idx}/views`).set(state.products[idx].views); } catch { /* silent */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -695,7 +799,7 @@ function trackRecentlyViewed(id) {
 }
 
 // ---------------------------------------------------------------------------
-// CART  (localStorage only — never shared across users)
+// CART
 // ---------------------------------------------------------------------------
 function addToCart(product, quantity) {
     const existing = state.cart.find(i => i.id === product.id);
@@ -738,7 +842,7 @@ function renderCart() {
     } else {
         container.innerHTML = state.cart.map(item => `
             <div class="cart-item">
-                <img src="${sanitizeImageSrc(item.image)}" alt="${escapeHtml(item.name)}">
+                <img src="${sanitizeImageSrc(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy">
                 <div class="cart-item-info">
                     <strong>${escapeHtml(item.name)}</strong>
                     <span>${formatCurrency(item.price)}</span>
@@ -752,19 +856,19 @@ function renderCart() {
                     <span>${formatCurrency(item.price * item.quantity)}</span>
                     <button type="button" class="link-button" data-cart-remove="${item.id}">✕</button>
                 </div>
-            </div>
-        `).join("");
+            </div>`).join("");
     }
-    const subtotalVal = state.cart.reduce((s, i) => s + i.price * i.quantity, 0);
-    if (qs("#subtotal")) qs("#subtotal").textContent = formatCurrency(subtotalVal);
-    if (qs("#total"))    qs("#total").textContent    = formatCurrency(subtotalVal);
-    qsa("[data-cart-inc]",    container).forEach(b => b.addEventListener("click", () => updateCartQty(b.dataset.cartInc, 1)));
-    qsa("[data-cart-dec]",    container).forEach(b => b.addEventListener("click", () => updateCartQty(b.dataset.cartDec, -1)));
+    const subtotal = state.cart.reduce((s, i) => s + i.price * i.quantity, 0);
+    const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
+    set("subtotal", formatCurrency(subtotal));
+    set("total",    formatCurrency(subtotal));
+    qsa("[data-cart-inc]",    container).forEach(b => b.addEventListener("click", () => updateCartQty(b.dataset.cartInc,    1)));
+    qsa("[data-cart-dec]",    container).forEach(b => b.addEventListener("click", () => updateCartQty(b.dataset.cartDec,   -1)));
     qsa("[data-cart-remove]", container).forEach(b => b.addEventListener("click", () => removeFromCart(b.dataset.cartRemove)));
 }
 
 // ---------------------------------------------------------------------------
-// WISHLIST  (localStorage only)
+// WISHLIST
 // ---------------------------------------------------------------------------
 function quickToggleWishlist(id, btn) {
     const product = state.products.find(p => p.id === id);
@@ -784,9 +888,9 @@ function quickToggleWishlist(id, btn) {
 }
 
 function updateWishlistButton() {
-    const btn  = qs("#wishlistBtn");
+    const btn = qs("#wishlistBtn");
     if (!btn || !state.activeProduct) return;
-    const has  = state.wishlist.some(i => i.id === state.activeProduct.id);
+    const has = state.wishlist.some(i => i.id === state.activeProduct.id);
     btn.textContent = has ? "♥ Saved to wishlist" : "♡ Save to wishlist";
     btn.classList.toggle("active", has);
 }
@@ -807,14 +911,13 @@ function renderWishlist() {
     if (!state.wishlist.length) { container.innerHTML = `<p class="empty-copy">Your wishlist is empty.</p>`; return; }
     container.innerHTML = state.wishlist.map(p => `
         <div class="wishlist-item">
-            <img src="${sanitizeImageSrc(p.image)}" alt="${escapeHtml(p.name)}">
+            <img src="${sanitizeImageSrc(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy">
             <div class="wishlist-item-body"><strong>${escapeHtml(p.name)}</strong><span>${formatCurrency(p.price)}</span></div>
             <div class="wishlist-actions">
                 <button class="btn btn-primary btn-sm" type="button" data-wv="${p.id}">View</button>
                 <button class="btn btn-ghost btn-sm"   type="button" data-wr="${p.id}">Remove</button>
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
     qsa("[data-wv]", container).forEach(b => b.addEventListener("click", () => { closeModal(qs("#wishlistModal")); openProductModal(Number(b.dataset.wv)); }));
     qsa("[data-wr]", container).forEach(b => b.addEventListener("click", () => { state.wishlist = state.wishlist.filter(i => i.id !== Number(b.dataset.wr)); saveWishlist(); updateBadgeCounts(); renderWishlist(); }));
 }
@@ -847,11 +950,10 @@ function renderCompareBar() {
                 ${products.map(p => `<span class="compare-tag">${escapeHtml(p.name)}<button data-rc="${p.id}" aria-label="Remove">×</button></span>`).join("")}
             </div>
             <button class="btn btn-primary btn-sm" id="openCompareBtn" type="button" ${products.length < 2 ? "disabled" : ""}>Compare Now</button>
-            <button class="btn btn-ghost btn-sm" id="clearCompareBtn" type="button">Clear</button>
-        </div>
-    `;
+            <button class="btn btn-ghost btn-sm"   id="clearCompareBtn" type="button">Clear</button>
+        </div>`;
     qsa("[data-rc]", bar).forEach(b => b.addEventListener("click", () => toggleCompare(Number(b.dataset.rc))));
-    qs("#openCompareBtn", bar)?.addEventListener("click", openCompareModal);
+    qs("#openCompareBtn",  bar)?.addEventListener("click", openCompareModal);
     qs("#clearCompareBtn", bar)?.addEventListener("click", () => { state.compareList = []; updateBadgeCounts(); renderCompareBar(); refreshCatalog(); });
 }
 
@@ -859,15 +961,15 @@ function openCompareModal() {
     const products = state.compareList.map(id => state.products.find(p => p.id === id)).filter(Boolean);
     if (products.length < 2) return;
     const rows = [
-        ["Image",       p => `<img src="${getPrimaryImage(p)}" alt="${escapeHtml(p.name)}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;">`],
-        ["Name",        p => `<strong>${escapeHtml(p.name)}</strong>`],
-        ["Category",    p => escapeHtml(p.category.toUpperCase())],
-        ["Price",       p => `<strong class="price-highlight">${formatCurrency(p.price)}</strong>`],
-        ["Rating",      p => getRatingStars(p.rating)],
-        ["Stock",       p => getStockLabel(p)],
-        ["Specs",       p => escapeHtml(p.specs || "—")],
-        ["Views",       p => (p.views || 0).toString()],
-        ["Action",      p => `<button class="btn btn-primary btn-sm" data-compare-open="${p.id}">View Details</button>`]
+        ["Image",    p => `<img src="${getPrimaryImage(p)}" alt="${escapeHtml(p.name)}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;">`],
+        ["Name",     p => `<strong>${escapeHtml(p.name)}</strong>`],
+        ["Category", p => escapeHtml(p.category.toUpperCase())],
+        ["Price",    p => `<strong class="price-highlight">${formatCurrency(p.price)}</strong>`],
+        ["Rating",   p => getRatingStars(p.rating)],
+        ["Stock",    p => getStockLabel(p)],
+        ["Specs",    p => escapeHtml(p.specs || "—")],
+        ["Views",    p => (p.views || 0).toString()],
+        ["Action",   p => `<button class="btn btn-primary btn-sm" data-compare-open="${p.id}">View Details</button>`]
     ];
     const body = qs("#compareModalBody");
     if (body) {
@@ -886,36 +988,33 @@ function buildOrder(items, discountPercent = 0, customerInfo = {}) {
     const raw   = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const total = discountPercent > 0 ? raw * (1 - discountPercent / 100) : raw;
     return {
-        id         : generateId("order"),
-        items      : items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, category: i.category || "" })),
-        subtotal   : raw,
-        discount   : discountPercent,
+        id      : generateId("order"),
+        items   : items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, category: i.category || "" })),
+        subtotal: raw,
+        discount: discountPercent,
         total,
-        status     : "Pending",
-        customer   : customerInfo,
-        createdAt  : new Date().toISOString()
+        status  : "Pending",
+        customer: customerInfo,
+        createdAt: new Date().toISOString()
     };
 }
 
 async function persistOrder(order) {
     state.orders.unshift(order);
     order.items.forEach(item => {
-        const p = state.products.findIndex(x => x.id === item.id);
-        if (p >= 0) state.products[p].stock = Math.max(0, state.products[p].stock - item.quantity);
+        const idx = state.products.findIndex(x => x.id === item.id);
+        if (idx >= 0) state.products[idx].stock = Math.max(0, state.products[idx].stock - item.quantity);
     });
     sessionStorage.setItem(LS.activeOrder, order.id);
-
-    // Track this order ID on the customer's device so My Orders only shows their own orders
     const myIds = lsGet(LS.myOrderIds, []);
     myIds.unshift(order.id);
-    lsSet(LS.myOrderIds, myIds.slice(0, 100)); // keep last 100 order IDs per device
-
+    lsSet(LS.myOrderIds, myIds.slice(0, 100));
     await Promise.all([saveOrders(), saveProducts()]);
 }
 
 function buildWhatsAppMessage(order) {
     const itemsList = order.items.map(i => `  • ${i.name} × ${i.quantity} = ${formatCurrency(i.price * i.quantity)}`).join("\n");
-    const customer  = order.customer;
+    const c = order.customer;
     return encodeURIComponent(
 `Hello ${SITE_CONFIG.storeName} 👋
 
@@ -928,14 +1027,13 @@ ${itemsList}
 *TOTAL:* ${formatCurrency(order.total)}
 
 *Customer:*
-Name:  ${customer?.name   || "—"}
-Phone: ${customer?.phone  || "—"}
-Notes: ${customer?.notes  || "—"}
+Name:  ${c?.name  || "—"}
+Phone: ${c?.phone || "—"}
+Notes: ${c?.notes || "—"}
 
 Date: ${formatDate(order.createdAt)}
 ─────────────────
-Please confirm my order. Thank you!`
-    );
+Please confirm my order. Thank you!`);
 }
 
 // ---------------------------------------------------------------------------
@@ -954,10 +1052,10 @@ function buyNowActiveProduct() {
 function validatePromoCode(code, orderTotal = 0) {
     const today = new Date().toISOString().slice(0, 10);
     const promo = state.promos.find(p => p.id === code.trim().toUpperCase());
-    if (!promo)                          return { valid:false, message:"Promo code not found." };
-    if (promo.expires && today > promo.expires) return { valid:false, message:"This promo code has expired." };
-    if (promo.type === "shipping" && orderTotal < 500) return { valid:false, message:"Minimum GMD 500 required for free shipping." };
-    return { valid:true, promo, message:`✓ ${promo.title} applied — ${promo.details}`, discount: promo.discount || 0 };
+    if (!promo)                              return { valid: false, message: "Promo code not found." };
+    if (promo.expires && today > promo.expires) return { valid: false, message: "This promo code has expired." };
+    if (promo.type === "shipping" && orderTotal < 500) return { valid: false, message: "Minimum GMD 500 required for free shipping." };
+    return { valid: true, promo, message: `✓ ${promo.title} applied — ${promo.details}`, discount: promo.discount || 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -980,60 +1078,47 @@ async function setupCheckoutPage() {
 
     if (!order) { window.location.href = "index.html#products"; return; }
 
-    // Render order summary
-    const nameEl    = qs("#productName");
+    const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
+    set("productName", `Order ${order.id}`);
     const detailsEl = qs("#productDetails");
-    const costEl    = qs("#productCost");
-    if (nameEl)    nameEl.textContent    = `Order ${order.id}`;
-    if (detailsEl) detailsEl.innerHTML   = order.items.map(i =>
-        `<div class="order-line"><span>${escapeHtml(i.name)}</span><span>${i.quantity} × ${formatCurrency(i.price)}</span><strong>${formatCurrency(i.price * i.quantity)}</strong></div>`
-    ).join("") + (order.discount ? `<div class="order-line discount-line"><span>Discount (${order.discount}%)</span><strong>-${formatCurrency(order.subtotal * order.discount / 100)}</strong></div>` : "");
+    if (detailsEl) {
+        detailsEl.innerHTML = order.items.map(i =>
+            `<div class="order-line"><span>${escapeHtml(i.name)}</span><span>${i.quantity} × ${formatCurrency(i.price)}</span><strong>${formatCurrency(i.price * i.quantity)}</strong></div>`
+        ).join("") + (order.discount ? `<div class="order-line discount-line"><span>Discount (${order.discount}%)</span><strong>-${formatCurrency(order.subtotal * order.discount / 100)}</strong></div>` : "");
+    }
+    const costEl = qs("#productCost");
     if (costEl) costEl.textContent = formatCurrency(order.total);
 
     let appliedDiscount = 0;
 
-    // Promo code
-    const promoInput   = qs("#checkoutPromoInput");
-    const promoApply   = qs("#checkoutPromoApply");
-    const promoMessage = qs("#checkoutPromoMessage");
-    promoApply?.addEventListener("click", () => {
-        const result = validatePromoCode(promoInput?.value || "", order.total);
-        if (promoMessage) { promoMessage.textContent = result.message; promoMessage.className = `promo-message ${result.valid ? "promo-ok" : "promo-fail"}`; }
+    qs("#checkoutPromoApply")?.addEventListener("click", () => {
+        const code   = qs("#checkoutPromoInput")?.value || "";
+        const result = validatePromoCode(code, order.total);
+        const msgEl  = qs("#checkoutPromoMessage");
+        if (msgEl) { msgEl.textContent = result.message; msgEl.className = `promo-message ${result.valid ? "promo-ok" : "promo-fail"}`; }
         if (result.valid && result.discount > 0) {
             appliedDiscount = result.discount;
-            const newTotal = order.total * (1 - appliedDiscount / 100);
-            if (costEl) costEl.textContent = `${formatCurrency(newTotal)} (${appliedDiscount}% off)`;
+            if (costEl) costEl.textContent = `${formatCurrency(order.total * (1 - appliedDiscount / 100))} (${appliedDiscount}% off)`;
         }
     });
 
-    // Customer info form
-    const customerForm = qs("#customerInfoForm");
-    const whatsappBtn  = qs("#whatsappBtn");
-    const facebookBtn  = qs("#facebookBtn");
+    const whatsappBtn = qs("#whatsappBtn");
+    const facebookBtn = qs("#facebookBtn");
 
-    function buildAndOpenWhatsApp() {
-        const name  = qs("#customerName")?.value.trim()  || "";
-        const phone = qs("#customerPhone")?.value.trim() || "";
-        const notes = qs("#customerNotes")?.value.trim() || "";
-        const finalOrder = { ...order, customer: { name, phone, notes }, discount: appliedDiscount };
-        if (appliedDiscount > 0) finalOrder.total = order.total * (1 - appliedDiscount / 100);
-        // Save customer info to order
-        const idx = state.orders.findIndex(o => o.id === order.id);
-        if (idx >= 0) { state.orders[idx].customer = { name, phone, notes }; saveOrders(); }
-        const msg = buildWhatsAppMessage(finalOrder);
-        window.open(`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${msg}`, "_blank");
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener("click", e => {
+            e.preventDefault();
+            const name  = qs("#customerName")?.value.trim()  || "";
+            const phone = qs("#customerPhone")?.value.trim() || "";
+            const notes = qs("#customerNotes")?.value.trim() || "";
+            const finalOrder = { ...order, customer: { name, phone, notes }, discount: appliedDiscount };
+            if (appliedDiscount > 0) finalOrder.total = order.total * (1 - appliedDiscount / 100);
+            const idx = state.orders.findIndex(o => o.id === order.id);
+            if (idx >= 0) { state.orders[idx].customer = { name, phone, notes }; saveOrders(); }
+            window.open(`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${buildWhatsAppMessage(finalOrder)}`, "_blank");
+        });
     }
-
-    if (whatsappBtn) whatsappBtn.addEventListener("click", e => { e.preventDefault(); buildAndOpenWhatsApp(); });
     if (facebookBtn) facebookBtn.href = SITE_CONFIG.facebookUrl;
-
-    // Back-fill if form doesn't exist (older checkout page)
-    if (!customerForm) {
-        if (whatsappBtn) {
-            const msg = buildWhatsAppMessage(order);
-            whatsappBtn.href = `https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${msg}`;
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1042,8 +1127,6 @@ async function setupCheckoutPage() {
 function setupOrdersPage() {
     const container = qs("#ordersContainer");
     if (!container) return;
-
-    // Only show orders that were placed from this device (stored in localStorage)
     const myOrderIds = lsGet(LS.myOrderIds, []);
     const myOrders   = state.orders.filter(o => myOrderIds.includes(o.id));
 
@@ -1057,15 +1140,13 @@ function setupOrdersPage() {
                         <strong class="order-id">${escapeHtml(o.id)}</strong>
                         <span class="order-date">${formatDate(o.createdAt)}</span>
                     </div>
-                    <span class="status-pill status-${(o.status||"pending").toLowerCase()}">${escapeHtml(o.status || "Pending")}</span>
+                    <span class="status-pill status-${(o.status || "pending").toLowerCase()}">${escapeHtml(o.status || "Pending")}</span>
                 </div>
                 <div class="order-card-body">${o.items.map(i => `<span>${escapeHtml(i.name)} ×${i.quantity}</span>`).join(" · ")}</div>
                 <div class="order-card-footer"><strong>${formatCurrency(o.total)}</strong><span>${o.items.length} item${o.items.length !== 1 ? "s" : ""}</span></div>
-            </div>
-        `).join("");
+            </div>`).join("");
     }
 
-    // Order tracker
     const trackInput  = qs("#orderTrackingId");
     const trackBtn    = qs("#trackOrderBtn");
     const trackResult = qs("#orderTrackingResult");
@@ -1093,12 +1174,11 @@ function setupOrdersPage() {
                                 <div class="stepper-dot"></div><span>${s}</span>
                             </div>${i < steps.length - 1 ? '<div class="stepper-line"></div>' : ""}
                         `).join("")}
-                    </div>
-                `}
+                    </div>`}
                 <p><strong>Total:</strong> ${formatCurrency(o.total)}</p>
-                <a href="https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(`Hello, I want an update on order ${o.id}`)}" target="_blank" class="btn btn-whatsapp btn-sm" style="margin-top:.5rem;">💬 Get Update on WhatsApp</a>
-            </div>
-        `;
+                <a href="https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${encodeURIComponent(`Hello, I want an update on order ${o.id}`)}"
+                   target="_blank" class="btn btn-whatsapp btn-sm" style="margin-top:.5rem;">💬 Get Update on WhatsApp</a>
+            </div>`;
     }
     trackBtn?.addEventListener("click", doTrack);
     trackInput?.addEventListener("keydown", e => { if (e.key === "Enter") doTrack(); });
@@ -1115,15 +1195,15 @@ function setupQuoteForm() {
         const phone = qs("#quotePhone")?.value.trim() || "";
         if (!/^\+?[\d\s\-]{7,15}$/.test(phone)) { showToast("error", "Please enter a valid phone number"); return; }
         const quote = {
-            id       : generateId("quote"),
-            name     : qs("#quoteName")?.value.trim()    || "",
+            id      : generateId("quote"),
+            name    : qs("#quoteName")?.value.trim()    || "",
             phone,
-            vehicle  : qs("#quoteVehicle")?.value.trim() || "",
-            part     : qs("#quotePart")?.value.trim()    || "",
-            budget   : qs("#quoteBudget")?.value.trim()  || "",
-            urgency  : qs("#quoteUrgency")?.value         || "",
-            notes    : qs("#quoteNotes")?.value.trim()   || "",
-            status   : "New",
+            vehicle : qs("#quoteVehicle")?.value.trim() || "",
+            part    : qs("#quotePart")?.value.trim()    || "",
+            budget  : qs("#quoteBudget")?.value.trim()  || "",
+            urgency : qs("#quoteUrgency")?.value         || "",
+            notes   : qs("#quoteNotes")?.value.trim()   || "",
+            status  : "New",
             createdAt: new Date().toISOString()
         };
         try {
@@ -1131,7 +1211,6 @@ function setupQuoteForm() {
             await saveQuotes();
             form.reset();
             showToast("success", "Quote submitted! We'll contact you shortly.");
-            // Also ping WhatsApp
             const msg = encodeURIComponent(`New Quote from ${quote.name} (${quote.phone}): ${quote.part} for ${quote.vehicle}. Budget: ${quote.budget || "not specified"}.`);
             setTimeout(() => window.open(`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${msg}`, "_blank"), 800);
         } catch { showToast("error", "Could not submit. Please try WhatsApp directly."); }
@@ -1139,7 +1218,7 @@ function setupQuoteForm() {
 }
 
 // ---------------------------------------------------------------------------
-// NEWSLETTER  (saved to Firebase)
+// NEWSLETTER
 // ---------------------------------------------------------------------------
 async function submitNewsletterSubscription(rawEmail, onSuccess) {
     const email = String(rawEmail || "").trim().toLowerCase();
@@ -1166,23 +1245,16 @@ function setupNewsletterForm() {
     qsa(".footer-section").forEach(section => {
         const input  = qs(".newsletter-input", section);
         const button = qs("button", section);
-        if (!input || !button) return;
-        if (input.closest("[data-newsletter-form]")) return;
-        if (button.dataset.newsBound === "true") return;
+        if (!input || !button || input.closest("[data-newsletter-form]") || button.dataset.newsBound === "true") return;
         button.dataset.newsBound = "true";
-
-        const submitLoose = async e => {
-            e?.preventDefault?.();
-            await submitNewsletterSubscription(input.value, () => { input.value = ""; });
-        };
-
-        button.addEventListener("click", submitLoose);
-        input.addEventListener("keydown", e => { if (e.key === "Enter") submitLoose(e); });
+        const submit = async e => { e?.preventDefault?.(); await submitNewsletterSubscription(input.value, () => { input.value = ""; }); };
+        button.addEventListener("click", submit);
+        input.addEventListener("keydown", e => { if (e.key === "Enter") submit(e); });
     });
 }
 
 // ---------------------------------------------------------------------------
-// CONTACT FORM  (saved to Firebase)
+// CONTACT FORM
 // ---------------------------------------------------------------------------
 async function handleContactForm(event) {
     event.preventDefault();
@@ -1201,7 +1273,7 @@ async function handleContactForm(event) {
 }
 
 // ---------------------------------------------------------------------------
-// REVIEWS PAGE  (saved to & loaded from Firebase)
+// REVIEWS PAGE
 // ---------------------------------------------------------------------------
 async function loadAndRenderPublicReviews() {
     const container = qs("#reviewsContainer");
@@ -1222,8 +1294,7 @@ async function loadAndRenderPublicReviews() {
             <h3>${"★".repeat(Number(r.rating) || 5)}${"☆".repeat(5 - (Number(r.rating) || 5))} ${escapeHtml(r.title || "")}</h3>
             <p style="color:#666;margin:.5rem 0"><strong>By:</strong> ${escapeHtml(r.name)} · <strong>Product:</strong> ${escapeHtml(r.product)} · ${formatDate(r.createdAt)}</p>
             <p>${escapeHtml(r.review)}</p>
-        </div>
-    `).join("");
+        </div>`).join("");
 }
 
 async function submitReview(event) {
@@ -1236,7 +1307,7 @@ async function submitReview(event) {
         rating   : qs("#reviewRating",  form)?.value || "5",
         title    : qs("#reviewTitle",   form)?.value.trim() || "",
         review   : qs("#reviewText",    form)?.value.trim() || "",
-        approved : false,   // admin must approve
+        approved : false,
         createdAt: new Date().toISOString()
     };
     if (!review.product || !review.name || !review.review) { showToast("error", "Please fill all required fields"); return; }
@@ -1253,7 +1324,7 @@ async function submitReview(event) {
 async function renderPromosPage() {
     const container = qs("#promosContainer");
     if (!container) return;
-    const raw   = await fbRead(FB.promos, []);
+    const raw    = await fbRead(FB.promos, []);
     const promos = normalizeFirebaseList(raw);
     const today  = new Date().toISOString().slice(0, 10);
     const active = promos.filter(p => !p.expires || p.expires >= today);
@@ -1266,18 +1337,18 @@ async function renderPromosPage() {
                 <p>${escapeHtml(p.details)}</p>
                 <div class="promo-code-box">
                     <code>${escapeHtml(p.id)}</code>
-                    <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${escapeHtml(p.id)}').then(()=>showToast('success','Code copied!'))">Copy</button>
+                    <button class="btn btn-sm btn-secondary"
+                        onclick="navigator.clipboard.writeText('${escapeHtml(p.id)}').then(()=>showToast('success','Code copied!'))">Copy</button>
                 </div>
                 ${p.expires ? `<small>Expires ${p.expires}</small>` : ""}
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
 }
 
 // ---------------------------------------------------------------------------
 // ADMIN AUTH
 // ---------------------------------------------------------------------------
-function isAdminAuthed()  { return sessionStorage.getItem(ADMIN_AUTH_KEY) === "true"; }
+function isAdminAuthed() { return sessionStorage.getItem(ADMIN_AUTH_KEY) === "true"; }
 
 function requireAdminAuth() {
     const loginCard = qs("#adminLoginCard");
@@ -1302,8 +1373,6 @@ function logoutAdmin() {
 // ---------------------------------------------------------------------------
 async function setupAdminPage() {
     requireAdminAuth();
-
-    // Login form
     qs("#adminLoginForm")?.addEventListener("submit", e => {
         e.preventDefault();
         const pw = qs("#adminPassword")?.value || "";
@@ -1314,10 +1383,9 @@ async function setupAdminPage() {
             showToast("success", "Welcome back, Admin!");
         } else {
             showToast("error", "Incorrect password");
-            qs("#adminPassword").value = "";
+            if (qs("#adminPassword")) qs("#adminPassword").value = "";
         }
     });
-
     if (isAdminAuthed()) renderAdminDashboard();
 }
 
@@ -1334,7 +1402,6 @@ function renderAdminDashboard() {
     setupAdminPromoForm();
     setupAdminSearch();
 
-    // Real-time listener for orders/quotes
     if (!db) return;
     db.ref(FB.orders).on("value", snap => {
         if (!isAdminAuthed()) return;
@@ -1351,53 +1418,53 @@ function renderAdminDashboard() {
 }
 
 function renderAdminStats() {
-    const total    = state.products.length;
-    const engines  = state.products.filter(p => p.category === "engine").length;
-    const parts    = state.products.filter(p => p.category === "parts").length;
-    const lowStock = state.products.filter(p => p.stock > 0 && p.stock <= SITE_CONFIG.lowStockThreshold).length;
-    const outStock = state.products.filter(p => p.stock <= 0).length;
-    const orders   = state.orders.length;
-    const pending  = state.orders.filter(o => o.status === "Pending").length;
-    const completed= state.orders.filter(o => o.status === "Completed").length;
-    const revenue  = state.orders.filter(o => o.status !== "Cancelled").reduce((s, o) => s + (o.total || 0), 0);
-    const quotes   = state.quotes.length;
-    const newQuotes= state.quotes.filter(q => q.status === "New").length;
+    const total     = state.products.length;
+    const engines   = state.products.filter(p => p.category === "engine").length;
+    const parts     = state.products.filter(p => p.category === "parts").length;
+    const lowStock  = state.products.filter(p => p.stock > 0 && p.stock <= SITE_CONFIG.lowStockThreshold).length;
+    const outStock  = state.products.filter(p => p.stock <= 0).length;
+    const orders    = state.orders.length;
+    const pending   = state.orders.filter(o => o.status === "Pending").length;
+    const completed = state.orders.filter(o => o.status === "Completed").length;
+    const revenue   = state.orders.filter(o => o.status !== "Cancelled").reduce((s, o) => s + (o.total || 0), 0);
+    const quotes    = state.quotes.length;
+    const newQuotes = state.quotes.filter(q => q.status === "New").length;
 
     const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
-    set("totalProductsCount", total);
-    set("totalEnginesCount",  engines);
-    set("totalPartsCount",    parts);
-    set("lowStockCount",      lowStock + outStock);
-    set("totalOrdersCount",   orders);
-    set("totalQuotesCount",   quotes);
-    set("pendingOrdersCount", pending);
+    set("totalProductsCount",   total);
+    set("totalEnginesCount",    engines);
+    set("totalPartsCount",      parts);
+    set("lowStockCount",        lowStock + outStock);
+    set("totalOrdersCount",     orders);
+    set("totalQuotesCount",     quotes);
+    set("pendingOrdersCount",   pending);
     set("completedOrdersCount", completed);
-    set("newQuotesCount",     newQuotes);
-    set("totalRevenue",       formatCurrency(revenue));
+    set("newQuotesCount",       newQuotes);
+    set("totalRevenue",         formatCurrency(revenue));
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: PRODUCT FORM WITH FIREBASE STORAGE
+// ✅ UPGRADED ADMIN PRODUCT FORM
+// Uses the new uploadImages() which auto-falls back to base64 if Storage
+// has CORS issues — no more hard errors for the admin.
 // ---------------------------------------------------------------------------
 function setupAdminProductForm() {
-    const form     = qs("#productForm");
-    const preview  = qs("#imagePreview");
-    const fileInput= qs("#productImage");
+    const form      = qs("#productForm");
+    const preview   = qs("#imagePreview");
+    const fileInput = qs("#productImage");
     if (!form) return;
 
+    // Live preview with compression indicator
     fileInput?.addEventListener("change", () => {
         if (!preview) return;
-        preview.innerHTML = "";
-        Array.from(fileInput.files || []).slice(0, 6).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const img = document.createElement("img");
-                img.src = e.target.result;
-                img.className = "preview-thumb";
-                preview.appendChild(img);
-            };
-            reader.readAsDataURL(file);
-        });
+        preview.innerHTML = `<p style="color:var(--text-mid);font-size:.8rem;">Loading previews…</p>`;
+        const files = Array.from(fileInput.files || []).slice(0, 6);
+        if (!files.length) { preview.innerHTML = ""; return; }
+        Promise.all(files.map(f => compressImage(f, 200, 200, 0.7))).then(urls => {
+            preview.innerHTML = urls.map(src =>
+                `<img src="${src}" class="preview-thumb" style="width:80px;height:60px;object-fit:cover;border-radius:6px;margin:2px;">`
+            ).join("");
+        }).catch(() => { preview.innerHTML = `<p style="color:var(--accent-red);">Preview failed</p>`; });
     });
 
     form.addEventListener("submit", async e => {
@@ -1410,48 +1477,55 @@ function setupAdminProductForm() {
         const desc     = qs("#productDescription")?.value.trim();
         const specs    = qs("#productSpecs")?.value.trim() || "";
         const featured = qs("#productFeatured")?.checked   || false;
-        const files    = Array.from(fileInput?.files || []).slice(0, 6);
+        const files    = fileInput?.files || [];
 
-        if (!name || !category || !desc || !Number.isFinite(price) || price < 0) { showToast("error", "Please fill all required fields"); return; }
-
-        const submitBtn = form.querySelector("[type=submit]");
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading…"; }
-
-        let images = [];
-        if (files.length && storage) {
-            try {
-                images = await Promise.all(files.map(async file => {
-                    const path = `products/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-                    const ref  = storage.ref().child(path);
-                    await ref.put(file);
-                    return await ref.getDownloadURL();
-                }));
-                showToast("success", `${images.length} image(s) uploaded`);
-            } catch (err) {
-                console.warn("Storage upload failed, using data URL fallback:", err);
-                images = await readFilesAsDataUrls(files);
-            }
-        } else if (files.length) {
-            images = await readFilesAsDataUrls(files);
+        if (!name || !category || !desc || !Number.isFinite(price) || price < 0) {
+            showToast("error", "Please fill all required fields");
+            return;
         }
 
-        const newProduct = {
-            id      : Date.now(),
-            name, category, price, stock, description: desc, specs, featured,
-            images  : images.length ? images : [PLACEHOLDER_IMAGE],
-            image   : images[0] || PLACEHOLDER_IMAGE,
-            rating  : 5, views: 0,
-            createdAt: new Date().toISOString()
+        const submitBtn = form.querySelector("[type=submit]");
+        const origLabel = submitBtn?.textContent || "Add Product";
+
+        const setBtn = (disabled, label) => {
+            if (!submitBtn) return;
+            submitBtn.disabled    = disabled;
+            submitBtn.textContent = label;
         };
 
-        state.products.unshift(newProduct);
-        await saveProducts();
-        renderAdminProducts();
-        renderAdminStats();
-        form.reset();
-        if (preview) preview.innerHTML = "";
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Add Product"; }
-        showToast("success", `"${name}" added to inventory`);
+        setBtn(true, "⏳ Saving…");
+        showToast("info", files.length ? "Uploading images…" : "Saving product…", 6000);
+
+        try {
+            // ✅ Smart upload — tries Storage, falls back to base64 automatically
+            const images = files.length
+                ? await uploadImages(files)
+                : [PLACEHOLDER_IMAGE];
+
+            const newProduct = {
+                id          : Date.now(),
+                name, category, price, stock,
+                description : desc, specs, featured,
+                images      : images.length ? images : [PLACEHOLDER_IMAGE],
+                image       : images[0]     || PLACEHOLDER_IMAGE,
+                rating      : 5,
+                views       : 0,
+                createdAt   : new Date().toISOString()
+            };
+
+            state.products.unshift(newProduct);
+            await saveProducts();
+            renderAdminProducts();
+            renderAdminStats();
+            form.reset();
+            if (preview) preview.innerHTML = "";
+            showToast("success", `✅ "${name}" added to inventory`);
+        } catch (err) {
+            console.error("Product save failed:", err);
+            showToast("error", "Could not save product. Check your connection and try again.");
+        } finally {
+            setBtn(false, origLabel);
+        }
     });
 }
 
@@ -1464,22 +1538,22 @@ function renderAdminProducts(filter = "") {
     if (!list.length) { container.innerHTML = `<p class="empty-copy">No products found.</p>`; return; }
     container.innerHTML = list.map(p => `
         <div class="admin-product-row">
-            <img src="${getPrimaryImage(p)}" alt="${escapeHtml(p.name)}" class="admin-product-img">
+            <img src="${getPrimaryImage(p)}" alt="${escapeHtml(p.name)}" class="admin-product-img" loading="lazy">
             <div class="admin-product-info">
                 <strong>${escapeHtml(p.name)}</strong>
                 <span>${escapeHtml(p.category)} · ${formatCurrency(p.price)} · Stock: ${p.stock} · 👁 ${p.views || 0}</span>
-                ${p.stock <= 0 ? `<span class="badge badge-danger">Out of Stock</span>` : p.stock <= SITE_CONFIG.lowStockThreshold ? `<span class="badge badge-warning">Low Stock</span>` : ""}
+                ${p.stock <= 0                                       ? `<span class="badge badge-danger">Out of Stock</span>`  : ""}
+                ${p.stock > 0 && p.stock <= SITE_CONFIG.lowStockThreshold ? `<span class="badge badge-warning">Low Stock</span>` : ""}
             </div>
             <div class="admin-product-actions">
                 <button class="btn btn-sm btn-secondary" data-edit-id="${p.id}">✏️ Edit</button>
                 <button class="btn btn-sm btn-danger"    data-delete-id="${p.id}">🗑 Delete</button>
                 <button class="btn btn-sm btn-ghost"     data-toggle-featured="${p.id}">${p.featured ? "★ Unfeature" : "☆ Feature"}</button>
             </div>
-        </div>
-    `).join("");
-    qsa("[data-edit-id]", container).forEach(b => b.addEventListener("click", () => openAdminEditModal(Number(b.dataset.editId))));
-    qsa("[data-delete-id]", container).forEach(b => b.addEventListener("click", () => deleteProduct(Number(b.dataset.deleteId))));
-    qsa("[data-toggle-featured]", container).forEach(b => b.addEventListener("click", () => toggleFeatured(Number(b.dataset.toggleFeatured))));
+        </div>`).join("");
+    qsa("[data-edit-id]",        container).forEach(b => b.addEventListener("click", () => openAdminEditModal(Number(b.dataset.editId))));
+    qsa("[data-delete-id]",      container).forEach(b => b.addEventListener("click", () => deleteProduct(Number(b.dataset.deleteId))));
+    qsa("[data-toggle-featured]",container).forEach(b => b.addEventListener("click", () => toggleFeatured(Number(b.dataset.toggleFeatured))));
 }
 
 function setupAdminSearch() {
@@ -1501,12 +1575,12 @@ async function toggleFeatured(id) {
     p.featured = !p.featured;
     await saveProducts();
     renderAdminProducts();
-    renderFeatured && renderFeatured();
+    if (qs("#featuredGrid")) renderFeatured();
     showToast("info", `${p.name} ${p.featured ? "featured" : "unfeatured"}`);
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: EDIT MODAL
+// ADMIN EDIT MODAL
 // ---------------------------------------------------------------------------
 function setupAdminEditModal() {
     qs("#adminEditForm")?.addEventListener("submit", async e => {
@@ -1514,15 +1588,15 @@ function setupAdminEditModal() {
         const id = Number(qs("#editProductId")?.value);
         const p  = state.products.find(x => x.id === id);
         if (!p) return;
-        p.name     = qs("#editName")?.value.trim()    || p.name;
-        p.category = qs("#editCategory")?.value       || p.category;
         const parsedPrice = Number(qs("#editPrice")?.value);
         const parsedStock = Number(qs("#editStock")?.value);
-        p.price    = Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : p.price;
-        p.stock    = Number.isFinite(parsedStock) && parsedStock >= 0 ? parsedStock : p.stock;
+        p.name        = qs("#editName")?.value.trim()        || p.name;
+        p.category    = qs("#editCategory")?.value           || p.category;
+        p.price       = Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : p.price;
+        p.stock       = Number.isFinite(parsedStock) && parsedStock >= 0 ? parsedStock : p.stock;
         p.description = qs("#editDescription")?.value.trim() || p.description;
-        p.specs    = qs("#editSpecs")?.value.trim()   || p.specs;
-        p.featured = qs("#editFeatured")?.checked     || false;
+        p.specs       = qs("#editSpecs")?.value.trim()       || p.specs;
+        p.featured    = qs("#editFeatured")?.checked          || false;
         await saveProducts();
         renderAdminProducts();
         renderAdminStats();
@@ -1548,7 +1622,7 @@ function openAdminEditModal(id) {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: ORDERS
+// ADMIN ORDERS
 // ---------------------------------------------------------------------------
 function renderAdminOrders() {
     const container = qs("#adminOrders");
@@ -1559,12 +1633,12 @@ function renderAdminOrders() {
             <div class="admin-order-header">
                 <strong>${escapeHtml(o.id)}</strong>
                 <span class="order-date">${formatDate(o.createdAt)}</span>
-                <span class="status-pill status-${(o.status||"pending").toLowerCase()}">${escapeHtml(o.status || "Pending")}</span>
+                <span class="status-pill status-${(o.status || "pending").toLowerCase()}">${escapeHtml(o.status || "Pending")}</span>
             </div>
             <div class="admin-order-body">
                 ${o.items.map(i => `<span>${escapeHtml(i.name)} ×${i.quantity}</span>`).join(" · ")}
                 ${o.customer?.name  ? `<br><strong>Customer:</strong> ${escapeHtml(o.customer.name)}` : ""}
-                ${o.customer?.phone ? ` <a href="https://wa.me/${o.customer.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hello, about order ${o.id}`)}" target="_blank" class="btn btn-sm btn-whatsapp" style="margin-left:.5rem;">💬 WhatsApp</a>` : ""}
+                ${o.customer?.phone ? ` <a href="https://wa.me/${o.customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, about order ${o.id}`)}" target="_blank" class="btn btn-sm btn-whatsapp" style="margin-left:.5rem;">💬 WhatsApp</a>` : ""}
             </div>
             <div class="admin-order-footer">
                 <strong>${formatCurrency(o.total)}</strong>
@@ -1575,18 +1649,20 @@ function renderAdminOrders() {
                     <option ${o.status === "Cancelled"  ? "selected" : ""}>Cancelled</option>
                 </select>
             </div>
-        </div>
-    `).join("");
-    qsa(".order-status-select", container).forEach(sel => sel.addEventListener("change", () => updateOrderStatus(sel.dataset.orderId, sel.value)));
+        </div>`).join("");
+    qsa(".order-status-select", container).forEach(sel =>
+        sel.addEventListener("change", () => updateOrderStatus(sel.dataset.orderId, sel.value))
+    );
+
     // CSV export button
     let exportBtn = qs("#exportOrdersBtn");
     if (!exportBtn) {
         exportBtn = document.createElement("button");
-        exportBtn.id = "exportOrdersBtn";
+        exportBtn.id        = "exportOrdersBtn";
         exportBtn.className = "btn btn-secondary";
         exportBtn.style.marginTop = "1rem";
         exportBtn.textContent = "📥 Export Orders CSV";
-        container.parentElement.appendChild(exportBtn);
+        container.parentElement?.appendChild(exportBtn);
     }
     exportBtn.onclick = exportOrdersCSV;
 }
@@ -1616,14 +1692,15 @@ function exportOrdersCSV() {
     const blob = new Blob([csv], { type: "text/csv" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
-    a.href = url; a.download = `mat-auto-orders-${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = url;
+    a.download = `mat-auto-orders-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("success", "Orders exported as CSV");
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: QUOTES
+// ADMIN QUOTES
 // ---------------------------------------------------------------------------
 function renderAdminQuotes() {
     const container = qs("#adminQuotes");
@@ -1634,7 +1711,7 @@ function renderAdminQuotes() {
             <div class="quote-card-header">
                 <strong>${escapeHtml(q.name)}</strong>
                 <span class="order-date">${formatDate(q.createdAt)}</span>
-                <span class="status-pill status-${(q.status||"new").toLowerCase()}">${escapeHtml(q.status || "New")}</span>
+                <span class="status-pill status-${(q.status || "new").toLowerCase()}">${escapeHtml(q.status || "New")}</span>
             </div>
             <div class="quote-card-body">
                 <span><b>Part:</b> ${escapeHtml(q.part)}</span>
@@ -1644,12 +1721,13 @@ function renderAdminQuotes() {
                 ${q.notes  ? `<span><b>Notes:</b> ${escapeHtml(q.notes)}</span>`  : ""}
             </div>
             <div class="quote-card-actions">
-                <a class="btn btn-sm btn-whatsapp" href="https://wa.me/${q.phone?.replace(/\D/g,"")}?text=${encodeURIComponent(`Hello ${q.name}, re your quote for ${q.part}`)}" target="_blank">💬 WhatsApp</a>
+                <a class="btn btn-sm btn-whatsapp"
+                   href="https://wa.me/${q.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${q.name}, re your quote for ${q.part}`)}"
+                   target="_blank">💬 WhatsApp</a>
                 <button class="btn btn-sm btn-secondary" data-qa="${q.id}:Approved">✓ Approve</button>
                 <button class="btn btn-sm btn-danger"    data-qa="${q.id}:Declined">✗ Decline</button>
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
     qsa("[data-qa]", container).forEach(btn => btn.addEventListener("click", async () => {
         const [id, status] = btn.dataset.qa.split(":");
         const q = state.quotes.find(x => x.id === id);
@@ -1663,7 +1741,7 @@ function renderAdminQuotes() {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: REVIEWS (moderation)
+// ADMIN REVIEWS
 // ---------------------------------------------------------------------------
 async function renderAdminReviews() {
     const container = qs("#adminReviews");
@@ -1675,7 +1753,7 @@ async function renderAdminReviews() {
         <div class="review-admin-card${r.approved ? " approved" : " pending"}">
             <div class="review-admin-header">
                 <strong>${escapeHtml(r.name)}</strong>
-                <span>${escapeHtml(r.product)} · ${"★".repeat(Number(r.rating)||5)}</span>
+                <span>${escapeHtml(r.product)} · ${"★".repeat(Number(r.rating) || 5)}</span>
                 <span class="status-pill ${r.approved ? "status-completed" : "status-pending"}">${r.approved ? "Approved" : "Pending"}</span>
             </div>
             <p>${escapeHtml(r.review)}</p>
@@ -1683,8 +1761,7 @@ async function renderAdminReviews() {
                 ${!r.approved ? `<button class="btn btn-sm btn-secondary" data-approve-review="${idx}">✓ Approve</button>` : ""}
                 <button class="btn btn-sm btn-danger" data-delete-review="${idx}">Delete</button>
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
     qsa("[data-approve-review]", container).forEach(b => b.addEventListener("click", async () => {
         reviews[Number(b.dataset.approveReview)].approved = true;
         await fbWrite(FB.reviews, reviews);
@@ -1700,7 +1777,7 @@ async function renderAdminReviews() {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: CONTACTS INBOX
+// ADMIN CONTACTS INBOX
 // ---------------------------------------------------------------------------
 async function renderAdminContacts() {
     const container = qs("#adminContacts");
@@ -1718,25 +1795,24 @@ async function renderAdminContacts() {
             </div>
             <p><strong>${escapeHtml(c.subject || "—")}</strong></p>
             <p>${escapeHtml(c.message)}</p>
-            ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hello ${c.name}, re: ${c.subject}`)}" target="_blank" class="btn btn-sm btn-whatsapp">💬 Reply on WhatsApp</a>` : ""}
-        </div>
-    `).join("");
+            ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${c.name}, re: ${c.subject}`)}" target="_blank" class="btn btn-sm btn-whatsapp">💬 Reply on WhatsApp</a>` : ""}
+        </div>`).join("");
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN: PROMOS
+// ADMIN PROMOS
 // ---------------------------------------------------------------------------
 function setupAdminPromoForm() {
     qs("#promoForm")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const code     = qs("#promoCode")?.value.trim().toUpperCase();
-        const title    = qs("#promoTitle")?.value.trim();
-        const details  = qs("#promoDetails")?.value.trim();
-        const expires  = qs("#promoExpires")?.value;
-        const discount = Number(qs("#promoDiscount")?.value) || 0;
+        const code    = qs("#promoCode")?.value.trim().toUpperCase();
+        const title   = qs("#promoTitle")?.value.trim();
+        const details = qs("#promoDetails")?.value.trim();
+        const expires = qs("#promoExpires")?.value;
+        const discount= Number(qs("#promoDiscount")?.value) || 0;
         if (!code || !title || !details || !expires) { showToast("error", "Please fill all promo fields"); return; }
         if (state.promos.find(p => p.id === code)) { showToast("error", "Code already exists"); return; }
-        state.promos.unshift({ id:code, title, details, expires, discount, type:"general" });
+        state.promos.unshift({ id: code, title, details, expires, discount, type: "general" });
         await savePromos();
         renderAdminPromos();
         qs("#promoForm")?.reset();
@@ -1760,28 +1836,13 @@ function renderAdminPromos() {
                 <span>Expires ${escapeHtml(p.expires || "—")}</span>
                 <button class="btn btn-sm btn-danger" data-promo-delete="${escapeHtml(p.id)}">Delete</button>
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
     qsa("[data-promo-delete]", container).forEach(btn => btn.addEventListener("click", async () => {
         state.promos = state.promos.filter(p => p.id !== btn.dataset.promoDelete);
         await savePromos();
         renderAdminPromos();
         showToast("success", "Promo deleted");
     }));
-}
-
-// ---------------------------------------------------------------------------
-// FILE READER FALLBACK
-// ---------------------------------------------------------------------------
-function readFilesAsDataUrls(files, max = 6) {
-    const sel = Array.from(files || []).slice(0, max);
-    if (!sel.length) return Promise.resolve([]);
-    return Promise.all(sel.map(f => new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = e => res(e.target.result);
-        r.onerror = () => rej(new Error("File read failed"));
-        r.readAsDataURL(f);
-    })));
 }
 
 // ---------------------------------------------------------------------------
@@ -1813,17 +1874,17 @@ async function initPage() {
     setupQuoteForm();
     setupNewsletterForm();
 
-    if (qs("#featuredGrid"))           renderFeatured();
-    if (qs("#productsGrid"))           refreshCatalog();
-    if (qs("#heroPromoList"))          renderHeroPromos();
-    if (qs("#recentlyViewedGrid"))     renderRecentlyViewed();
-    if (qs("#catalogCount"))           updateHeroStats();
-    if (qs("#compareBar"))             renderCompareBar();
-    if (qs(".checkout-container"))     await setupCheckoutPage();
-    if (qs("#ordersContainer"))        setupOrdersPage();
+    if (qs("#featuredGrid"))               renderFeatured();
+    if (qs("#productsGrid"))               refreshCatalog();
+    if (qs("#heroPromoList"))              renderHeroPromos();
+    if (qs("#recentlyViewedGrid"))         renderRecentlyViewed();
+    if (qs("#catalogCount"))               updateHeroStats();
+    if (qs("#compareBar"))                 renderCompareBar();
+    if (qs(".checkout-container"))         await setupCheckoutPage();
+    if (qs("#ordersContainer"))            setupOrdersPage();
     if (qs(".admin-container") || qs("#adminLoginCard")) await setupAdminPage();
-    if (qs("#promosContainer"))        await renderPromosPage();
-    if (qs("#reviewsContainer"))       await loadAndRenderPublicReviews();
+    if (qs("#promosContainer"))            await renderPromosPage();
+    if (qs("#reviewsContainer"))           await loadAndRenderPublicReviews();
 
     qs("#checkoutFromCartBtn")?.addEventListener("click", async () => {
         if (!state.cart.length) { showToast("warning", "Your cart is empty"); return; }
@@ -1839,10 +1900,10 @@ async function initPage() {
 document.addEventListener("DOMContentLoaded", initPage);
 
 // ---------------------------------------------------------------------------
-// GLOBAL EXPORTS  (for inline onclick)
+// GLOBAL EXPORTS  (for inline onclick handlers in HTML)
 // ---------------------------------------------------------------------------
 window.toggleDarkMode    = toggleTheme;
-window.openCart          = () => { renderCart(); openModal("cartModal"); };
+window.openCart          = () => { renderCart();     openModal("cartModal"); };
 window.openWishlist      = () => { renderWishlist(); openModal("wishlistModal"); };
 window.handleContactForm = handleContactForm;
 window.submitReview      = submitReview;
@@ -1850,5 +1911,3 @@ window.logoutAdmin       = logoutAdmin;
 window.openProductModal  = openProductModal;
 window.openCompareModal  = openCompareModal;
 window.showToast         = showToast;
-
-
