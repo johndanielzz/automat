@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — Mat Auto</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; background: var(--bg); padding: 2rem; }
+        .offline-box { max-width: 480px; }
+        .offline-icon { font-size: 4rem; margin-bottom: 1.5rem; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 900; color: var(--text-dark); margin-bottom: .75rem; }
+        p { color: var(--text-mid); font-size: clamp(.88rem, 2vw, 1rem); line-height: 1.7; margin-bottom: 2rem; }
+        .offline-links { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem; }
+        .retry-btn { animation: glowPulse 2.5s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+    <div class="offline-box">
+        <div class="offline-icon">📡</div>
+        <h1>You're Offline</h1>
+        <p>It looks like your internet connection is unavailable. Some cached pages may still be accessible below.</p>
+        <div class="offline-links">
+            <a href="index.html" class="btn btn-primary retry-btn">🏠 Home</a>
+            <a href="orders.html" class="btn btn-outline">📦 My Orders</a>
+            <a href="faq.html" class="btn btn-outline">❓ FAQ</a>
+        </div>
+        <button onclick="location.reload()" class="btn btn-ghost" style="width:100%;">🔄 Try Again</button>
+        <p style="font-size:.8rem;margin-top:1.5rem;color:var(--text-muted);">
+            Previously visited pages are available offline. Product catalog requires a connection.
+        </p>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FAQ — Mat Auto | Engines & Car Parts Gambia</title>
+    <meta name="description" content="Frequently asked questions about Mat Auto — ordering, delivery, payment, returns, and warranty for engines and car parts in Gambia.">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <style>
+        .faq-hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            color: #fff;
+            padding: clamp(3rem, 8vw, 6rem) 0 clamp(2rem, 5vw, 3.5rem);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .faq-hero::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 80% at 50% 60%, rgba(244,130,31,.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .faq-hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 900;
+            margin-bottom: .75rem;
+        }
+        .faq-hero p { color: rgba(255,255,255,.6); font-size: clamp(.9rem, 2vw, 1.1rem); }
+
+        .faq-search-wrap {
+            max-width: 560px;
+            margin: 1.5rem auto 0;
+            position: relative;
+        }
+        .faq-search-wrap input {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border-radius: var(--r-full);
+            border: 2px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            font-size: 1rem;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            outline: none;
+            backdrop-filter: blur(8px);
+            transition: var(--transition);
+        }
+        .faq-search-wrap input::placeholder { color: rgba(255,255,255,.5); }
+        .faq-search-wrap input:focus { border-color: var(--primary); background: rgba(255,255,255,.18); }
+        .faq-search-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            font-size: 1.1rem; pointer-events: none;
+        }
+
+        .faq-body { padding: clamp(2rem, 5vw, 4rem) 0; }
+
+        .faq-categories {
+            display: flex; gap: .5rem; flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+        .faq-cat-btn {
+            padding: 8px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--r-full);
+            background: var(--surface);
+            color: var(--text-mid);
+            font-size: .83rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Syne', sans-serif;
+            letter-spacing: .04em;
+        }
+        .faq-cat-btn:hover, .faq-cat-btn.active {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+            box-shadow: var(--shadow-glow-soft);
+        }
+
+        .faq-section { margin-bottom: 2.5rem; }
+        .faq-section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            display: flex; align-items: center; gap: .5rem;
+            padding-bottom: .75rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .faq-item {
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-lg);
+            background: var(--surface);
+            margin-bottom: .75rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .faq-item:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }
+        .faq-item.open { border-color: var(--primary); box-shadow: var(--shadow-glow-soft); }
+
+        .faq-question {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem;
+            padding: 1.1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: clamp(.88rem, 1.8vw, 1rem);
+            color: var(--text-dark);
+            list-style: none;
+            user-select: none;
+        }
+        .faq-question::marker, .faq-question::-webkit-details-marker { display: none; }
+        .faq-chevron {
+            flex-shrink: 0;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: var(--bg);
+            display: flex; align-items: center; justify-content: center;
+            font-size: .8rem;
+            transition: transform .25s ease, background .2s;
+            color: var(--primary);
+        }
+        .faq-item.open .faq-chevron { transform: rotate(180deg); background: var(--primary); color: #fff; }
+
+        .faq-answer {
+            max-height: 0; overflow: hidden;
+            transition: max-height .35s ease, padding .25s ease;
+            padding: 0 1.25rem;
+            color: var(--text-mid);
+            font-size: clamp(.85rem, 1.8vw, .96rem);
+            line-height: 1.75;
+        }
+        .faq-item.open .faq-answer { max-height: 600px; padding: 0 1.25rem 1.25rem; }
+        .faq-answer a { color: var(--primary); font-weight: 600; }
+        .faq-answer ul { padding-left: 1.5rem; margin: .5rem 0; }
+        .faq-answer li { margin-bottom: .35rem; }
+
+        .faq-cta {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            border-radius: var(--r-2xl);
+            padding: clamp(2rem, 5vw, 3rem);
+            text-align: center;
+            color: #fff;
+            margin-top: 3rem;
+            position: relative; overflow: hidden;
+        }
+        .faq-cta::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(244,130,31,.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .faq-cta h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 900; margin-bottom: .75rem; }
+        .faq-cta p { color: rgba(255,255,255,.6); margin-bottom: 1.5rem; }
+        .faq-cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+        .no-results {
+            text-align: center; padding: 3rem 1rem;
+            color: var(--text-muted); display: none;
+        }
+        .no-results.visible { display: block; }
+
+        body.dark-mode .faq-item { background: var(--surface); }
+        body.dark-mode .faq-question { color: var(--text-dark); }
+        body.dark-mode .faq-search-wrap input { background: rgba(255,255,255,.08); color: #fff; }
+        body.dark-mode .faq-cat-btn { background: var(--surface); border-color: var(--border); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>FAQ</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#products">Products</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="faq-hero">
+    <div class="container">
+        <h1>❓ Frequently Asked Questions</h1>
+        <p>Everything you need to know about Mat Auto — answered.</p>
+        <div class="faq-search-wrap">
+            <span class="faq-search-icon">🔍</span>
+            <input type="text" id="faqSearch" placeholder="Search questions…" autocomplete="off">
+        </div>
+    </div>
+</div>
+
+<div class="faq-body">
+    <div class="container">
+
+        <div class="faq-categories">
+            <button class="faq-cat-btn active" data-cat="all">All Topics</button>
+            <button class="faq-cat-btn" data-cat="ordering">Ordering</button>
+            <button class="faq-cat-btn" data-cat="payment">Payment</button>
+            <button class="faq-cat-btn" data-cat="delivery">Delivery</button>
+            <button class="faq-cat-btn" data-cat="products">Products</button>
+            <button class="faq-cat-btn" data-cat="returns">Returns & Warranty</button>
+            <button class="faq-cat-btn" data-cat="account">Account & Orders</button>
+        </div>
+
+        <div id="faqContainer">
+
+            <!-- ORDERING -->
+            <div class="faq-section" data-cat="ordering">
+                <div class="faq-section-title">🛒 Ordering</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I place an order at Mat Auto? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Browse our product catalog on the homepage, click <strong>View Details</strong> on any item, then click <strong>Buy Now</strong>. You'll be taken to checkout where you can enter your details and confirm your order via WhatsApp or Facebook Messenger. Our team responds within 30 minutes to confirm payment and delivery.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I order multiple items at once? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Yes! Add items to your cart by clicking the cart icon on each product. When you're ready, go to checkout and your entire cart will be included in one order. Bulk orders of 5+ items may also qualify for a discount — use promo code <strong>BULK20</strong>.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do I need to create an account to buy? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">No account is required. Simply browse, select your product, and complete checkout. We only need your name, WhatsApp number, and delivery details. Your order history is saved locally on your device via the <a href="orders.html">My Orders</a> page.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I request a product that isn't listed? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Absolutely. Contact us on <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank">WhatsApp</a> or <a href="contact.html">send us a message</a> with the part number, vehicle make/model/year, and any specifications. We source many parts on request and can provide a custom quote within 24 hours.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do promo codes work? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Enter your promo code in the checkout page's <strong>Promo Code</strong> field, then mention the same code when you confirm your order via WhatsApp. Our team will apply the discount before you pay. Check active codes on the <a href="promos.html">Promotions page</a>.</div>
+                </div>
+            </div>
+
+            <!-- PAYMENT -->
+            <div class="faq-section" data-cat="payment">
+                <div class="faq-section-title">💳 Payment</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What payment methods do you accept? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We currently accept:
+                        <ul>
+                            <li><strong>Mobile Money</strong> (Afrimoney, Qmoney)</li>
+                            <li><strong>Bank Transfer</strong></li>
+                            <li><strong>Cash on Delivery</strong> (Banjul/Serekunda area)</li>
+                            <li><strong>Cash in Store</strong></li>
+                        </ul>
+                        Our team will confirm the best option for your order via WhatsApp.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Is it safe to share my payment details? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We never ask for sensitive card information online. Payment is always done directly person-to-person via mobile money or bank transfer after our team confirms your order. We never request card PINs, CVV, or OTP codes — if anyone claiming to be Mat Auto asks for these, do not share them.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do I pay before or after delivery? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">For in-stock items within Banjul/Serekunda, we offer Cash on Delivery. For orders requiring sourcing, a 30–50% deposit may be required. Your sales agent will explain the payment terms clearly before you commit to anything.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I get a receipt or invoice? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Yes. Ask our team for a formal invoice when confirming your order on WhatsApp. We'll send a PDF receipt once payment is confirmed. Keep your <strong>Order ID</strong> (shown at checkout) for reference — you can track your order anytime on the <a href="orders.html">My Orders</a> page.</div>
+                </div>
+            </div>
+
+            <!-- DELIVERY -->
+            <div class="faq-section" data-cat="delivery">
+                <div class="faq-section-title">🚚 Delivery</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Where do you deliver? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We deliver across The Gambia, including Banjul, Serekunda, Brikama, Bakau, Kanifing, Farafenni, and other major towns. Delivery availability and timelines vary by location — contact us to confirm for your area.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How long does delivery take? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">
+                        <ul>
+                            <li><strong>Banjul / Serekunda:</strong> Same day or next business day</li>
+                            <li><strong>Other GBA areas:</strong> 1–2 business days</li>
+                            <li><strong>Upcountry:</strong> 2–5 business days</li>
+                        </ul>
+                        Express delivery is available for an additional fee. Store pickup is free and same-day.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Is there a delivery fee? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Delivery within Greater Banjul Area is free on orders over GMD 500. Orders below that threshold carry a small delivery fee which our team will confirm. Use promo code <strong>FREESHIP2026</strong> for free shipping on eligible orders.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I pick up my order in store? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Yes! Store pickup is free and available same day once your order is confirmed. Visit us at our location (details on the <a href="contact.html">Contact page</a>). Bring your Order ID and a valid ID for verification.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How will I know when my order is on the way? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Our team will send you an update via WhatsApp when your order is dispatched. You can also track your order status at any time on the <a href="orders.html">My Orders</a> page using your Order ID.</div>
+                </div>
+            </div>
+
+            <!-- PRODUCTS -->
+            <div class="faq-section" data-cat="products">
+                <div class="faq-section-title">🔧 Products</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Are your products genuine / OEM? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We stock a mix of OEM (Original Equipment Manufacturer) parts and high-quality aftermarket alternatives. Every listing clearly states the type. OEM parts are sourced from authorized distributors. All aftermarket parts meet or exceed OEM specifications and come with a warranty.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I know if a part fits my vehicle? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Use our <strong>Vehicle Search</strong> on the homepage — select your Make, Model, Year, and Part Type. If you're unsure, message us on WhatsApp with your vehicle's registration number or chassis/VIN number and we'll confirm compatibility before purchase.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do you sell second-hand / used parts? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Some listings include quality-tested used parts clearly labeled as such. These are inspected and tested before sale. New and used parts are clearly distinguished in each product listing. Contact us if you need a used part not listed.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What brands do you carry? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We carry parts compatible with Toyota, Honda, Nissan, Hyundai, Mercedes-Benz, BMW, Ford, Mitsubishi, Kia, Volkswagen, Land Rover, Suzuki, and more. Browse by vehicle make using our search tool or filter on the products page.</div>
+                </div>
+            </div>
+
+            <!-- RETURNS & WARRANTY -->
+            <div class="faq-section" data-cat="returns">
+                <div class="faq-section-title">🛡️ Returns & Warranty</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What is your return policy? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We accept returns within <strong>30 days</strong> of purchase for unused parts in original packaging. Items must be in the same condition as received. To initiate a return, contact our team on WhatsApp with your Order ID and reason for return. Refunds are processed within 3–5 business days.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What if I received the wrong part? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">We sincerely apologize if this happens. Contact us immediately via WhatsApp with your Order ID and photos of the received item. We'll arrange a free exchange or full refund. Wrong-item cases are resolved as a priority — usually within 24 hours.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What warranty do products come with? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Most parts come with a <strong>3–12 month warranty</strong> depending on the product type. Engines typically carry a 6-month warranty. The specific warranty period is listed on each product page. Warranty covers manufacturing defects but not damage from improper installation or misuse.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Does the warranty cover installation? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Warranty covers the part itself, not installation labor. We strongly recommend having parts installed by a certified mechanic. If a part fails due to a proven manufacturing defect during the warranty period, we'll replace it free of charge.</div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT & ORDERS -->
+            <div class="faq-section" data-cat="account">
+                <div class="faq-section-title">📦 Account & Orders</div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I check my order status? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Visit the <a href="orders.html">My Orders</a> page and enter your Order ID in the tracking field. Your order status will show as Pending, Processing, Completed, or Cancelled. You can also contact our team on WhatsApp for real-time updates.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I cancel my order? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Yes, you can cancel your order before it is dispatched. Contact us on WhatsApp with your Order ID as soon as possible. Once an order is shipped, cancellation may not be possible, but you can initiate a return after receipt.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">My order shows "Pending" for a long time — what should I do? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">If your order has been Pending for more than 2 hours during business hours, please contact us on <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank">WhatsApp</a>. Our response time is typically under 30 minutes. We're available Monday–Saturday 9am–6pm.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Is my personal data secure? <span class="faq-chevron">▼</span></div>
+                    <div class="faq-answer">Yes. Your cart, wishlist, and order history are stored locally on your device — not on external servers. The only data we collect is what you voluntarily provide at checkout (name, phone, notes) to fulfill your order. We never sell or share your data with third parties.</div>
+                </div>
+            </div>
+
+        </div><!-- /faqContainer -->
+
+        <div class="no-results" id="noResults">
+            <p style="font-size:2rem;">🔍</p>
+            <h3 style="font-family:'Syne',sans-serif;margin-bottom:.5rem;">No results found</h3>
+            <p>Try a different search term or <a href="contact.html" style="color:var(--primary);font-weight:700;">ask us directly</a>.</p>
+        </div>
+
+        <div class="faq-cta">
+            <h2>Still have questions?</h2>
+            <p>Our team is available 7 days a week to help you find the right part.</p>
+            <div class="faq-cta-btns">
+                <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" class="btn btn-whatsapp">💬 Chat on WhatsApp</a>
+                <a href="contact.html" class="btn btn-primary">📧 Send a Message</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-content container">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Quality engines and car parts — Gambia.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+                <li><a href="reviews.html">Reviews</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Support</h4>
+            <ul>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="promos.html">Promotions</a></li>
+                <li><a href="features.html">Features</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Contact Us</h4>
+            <ul>
+                <li><a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank">💬 WhatsApp</a></li>
+                <li><a href="https://www.facebook.com/profile.php?id=61574154117727" target="_blank">👤 Facebook</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved. | Quality Engines & Car Parts</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+<script>
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+    const q = item.querySelector('.faq-question');
+    q.addEventListener('click', () => {
+        const wasOpen = item.classList.contains('open');
+        // close all
+        document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+        if (!wasOpen) item.classList.add('open');
+    });
+});
+
+// Category filter
+document.querySelectorAll('.faq-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.faq-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.dataset.cat;
+        document.querySelectorAll('.faq-section').forEach(sec => {
+            sec.style.display = (cat === 'all' || sec.dataset.cat === cat) ? '' : 'none';
+        });
+        document.getElementById('faqSearch').value = '';
+        document.getElementById('noResults').classList.remove('visible');
+        document.querySelectorAll('.faq-item').forEach(i => i.style.display = '');
+    });
+});
+
+// Search
+document.getElementById('faqSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    let count = 0;
+    document.querySelectorAll('.faq-cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-cat="all"]').classList.add('active');
+    document.querySelectorAll('.faq-section').forEach(sec => sec.style.display = '');
+    document.querySelectorAll('.faq-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const match = !q || text.includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) count++;
+    });
+    document.getElementById('noResults').classList.toggle('visible', count === 0 && q.length > 0);
+});
+</script>
+</body>
+</html>

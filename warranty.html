@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Warranty & Returns — Mat Auto</title>
+    <meta name="description" content="Mat Auto warranty policy, returns process, and customer protection guarantees for engines and car parts in Gambia.">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <style>
+        .warranty-hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(2rem, 5vw, 4rem);
+            color: #fff; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .warranty-hero::before {
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 80% at 50% 60%, rgba(244,130,31,.12) 0%, transparent 70%);
+        }
+        .warranty-hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; margin-bottom: .5rem; }
+        .warranty-hero p { color: rgba(255,255,255,.6); font-size: clamp(.9rem, 2vw, 1.1rem); }
+
+        .trust-shield {
+            width: 80px; height: 80px;
+            background: var(--grad-primary, linear-gradient(135deg, var(--primary), var(--primary-dark)));
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 32px rgba(244,130,31,.4);
+            animation: glowPulse 2.5s ease-in-out infinite;
+        }
+
+        .warranty-body { padding: clamp(2rem, 5vw, 4rem) 0; }
+
+        .warranty-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+
+        .warranty-card {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: var(--r-xl); padding: 1.75rem;
+            transition: var(--transition); position: relative; overflow: hidden;
+        }
+        .warranty-card::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: var(--grad-primary, linear-gradient(90deg, var(--primary), var(--primary-dark)));
+        }
+        .warranty-card:hover { border-color: var(--primary); box-shadow: var(--shadow-glow-soft); transform: translateY(-3px); }
+        .warranty-card-icon { font-size: 2.2rem; margin-bottom: 1rem; }
+        .warranty-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; margin-bottom: .5rem; color: var(--text-dark); }
+        .warranty-card p { font-size: .88rem; color: var(--text-mid); line-height: 1.6; }
+        .warranty-badge {
+            display: inline-block; margin-top: 1rem;
+            padding: 4px 14px; border-radius: var(--r-full);
+            font-size: .75rem; font-weight: 800; font-family: 'Syne', sans-serif;
+            background: var(--primary-light); color: var(--primary-dark);
+        }
+
+        .warranty-table { width: 100%; border-collapse: collapse; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-md); margin-bottom: 3rem; }
+        .warranty-table th { background: var(--navy); color: #fff; padding: 1rem 1.25rem; font-family: 'Syne', sans-serif; font-size: .85rem; text-align: left; }
+        .warranty-table td { padding: .9rem 1.25rem; border-bottom: 1px solid var(--border); font-size: .88rem; color: var(--text-mid); background: var(--surface); }
+        .warranty-table tr:last-child td { border-bottom: none; }
+        .warranty-table tr:nth-child(even) td { background: var(--surface-2); }
+        .warranty-table td:first-child { font-weight: 700; color: var(--text-dark); }
+
+        .steps-list { counter-reset: step; display: grid; gap: 1rem; }
+        .step-item {
+            display: flex; gap: 1.25rem; align-items: flex-start;
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: var(--r-lg); padding: 1.25rem;
+            transition: var(--transition);
+        }
+        .step-item:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }
+        .step-num {
+            width: 40px; height: 40px; flex-shrink: 0;
+            border-radius: 50%; background: var(--primary);
+            color: #fff; font-family: 'Syne', sans-serif; font-weight: 900;
+            font-size: 1rem; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(244,130,31,.3);
+        }
+        .step-content h4 { font-weight: 700; color: var(--text-dark); margin-bottom: .3rem; font-size: .95rem; }
+        .step-content p { font-size: .85rem; color: var(--text-mid); line-height: 1.6; }
+
+        .policy-section { margin-bottom: 2.5rem; }
+        .policy-section h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.2rem, 2.5vw, 1.5rem); font-weight: 800; color: var(--text-dark); margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: .5rem; }
+        .policy-section p, .policy-section li { font-size: clamp(.86rem, 1.8vw, .96rem); color: var(--text-mid); line-height: 1.8; }
+        .policy-section ul { padding-left: 1.5rem; margin: .75rem 0; }
+        .policy-section li { margin-bottom: .4rem; }
+
+        body.dark-mode .warranty-card, body.dark-mode .step-item { background: var(--surface); }
+        body.dark-mode .warranty-table td { background: var(--surface); }
+        body.dark-mode .warranty-table tr:nth-child(even) td { background: var(--surface-2); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>Warranty</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#products">Products</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="warranty-hero">
+    <div class="container">
+        <div class="trust-shield">🛡️</div>
+        <h1>Warranty & Returns</h1>
+        <p>We stand behind every product we sell. Your peace of mind is guaranteed.</p>
+    </div>
+</div>
+
+<div class="warranty-body">
+    <div class="container">
+
+        <!-- Warranty cards -->
+        <div class="warranty-grid">
+            <div class="warranty-card">
+                <div class="warranty-card-icon">⚙️</div>
+                <h3>Engine Warranty</h3>
+                <p>All engines come with a comprehensive warranty covering manufacturing defects, internal component failure, and premature wear under normal use conditions.</p>
+                <span class="warranty-badge">6 Months Coverage</span>
+            </div>
+            <div class="warranty-card">
+                <div class="warranty-card-icon">🔩</div>
+                <h3>Car Parts Warranty</h3>
+                <p>Mechanical and electrical parts (alternators, starters, pumps, sensors) are covered against defects in materials and workmanship from the date of purchase.</p>
+                <span class="warranty-badge">3–6 Months Coverage</span>
+            </div>
+            <div class="warranty-card">
+                <div class="warranty-card-icon">💡</div>
+                <h3>Consumable Parts</h3>
+                <p>Filters, belts, brake pads, and other wear items are covered for defects at the time of sale. Normal wear and usage is excluded from warranty.</p>
+                <span class="warranty-badge">30 Day Coverage</span>
+            </div>
+            <div class="warranty-card">
+                <div class="warranty-card-icon">🔄</div>
+                <h3>Hassle-Free Returns</h3>
+                <p>Unused items in original condition and packaging can be returned within 30 days. No questions asked for manufacturer defects.</p>
+                <span class="warranty-badge">30 Day Returns</span>
+            </div>
+        </div>
+
+        <!-- Warranty table -->
+        <div class="policy-section">
+            <h2>📋 Warranty Coverage by Product Type</h2>
+            <table class="warranty-table">
+                <thead>
+                    <tr>
+                        <th>Product Category</th>
+                        <th>Warranty Period</th>
+                        <th>Coverage</th>
+                        <th>Exclusions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Complete Engines (New)</td>
+                        <td>6 Months</td>
+                        <td>Manufacturing defects, internal failure</td>
+                        <td>Improper installation, overheating</td>
+                    </tr>
+                    <tr>
+                        <td>Complete Engines (Used)</td>
+                        <td>3 Months</td>
+                        <td>Verified defects, core component failure</td>
+                        <td>Normal wear, oil-related issues</td>
+                    </tr>
+                    <tr>
+                        <td>Alternators & Starters</td>
+                        <td>6 Months</td>
+                        <td>Electrical & mechanical defects</td>
+                        <td>Water damage, physical damage</td>
+                    </tr>
+                    <tr>
+                        <td>Pumps & Cooling</td>
+                        <td>3 Months</td>
+                        <td>Leaks, seal failures, bearing defects</td>
+                        <td>Incorrect fitment, coolant contamination</td>
+                    </tr>
+                    <tr>
+                        <td>Brake Components</td>
+                        <td>3 Months</td>
+                        <td>Material defects, abnormal wear</td>
+                        <td>Normal brake wear, overheating</td>
+                    </tr>
+                    <tr>
+                        <td>Filters & Belts</td>
+                        <td>30 Days</td>
+                        <td>Defects at time of purchase</td>
+                        <td>Normal wear, improper installation</td>
+                    </tr>
+                    <tr>
+                        <td>Sensors & Electronics</td>
+                        <td>3 Months</td>
+                        <td>Manufacturing defects, DOA</td>
+                        <td>Electrical surges, physical damage</td>
+                    </tr>
+                    <tr>
+                        <td>Body Parts & Trims</td>
+                        <td>14 Days</td>
+                        <td>Defects in fit and finish</td>
+                        <td>Installation damage, discoloration</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Returns process -->
+        <div class="policy-section">
+            <h2>🔄 How to Return or Claim Warranty</h2>
+            <div class="steps-list">
+                <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <h4>Contact Our Team</h4>
+                        <p>Message us on <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" style="color:var(--primary);font-weight:700;">WhatsApp</a> or via the <a href="contact.html" style="color:var(--primary);font-weight:700;">Contact page</a> within the warranty period. Include your Order ID and a brief description of the issue.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <h4>Send Photos or Video</h4>
+                        <p>Send clear photos or a short video of the defective part via WhatsApp. This helps us assess the issue quickly and determine the fastest resolution.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div class="step-content">
+                        <h4>Assessment (24–48 hours)</h4>
+                        <p>Our technical team will review your claim. For straightforward defects, we approve immediately. For complex cases, an in-person inspection may be arranged at no cost to you.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">4</div>
+                    <div class="step-content">
+                        <h4>Return the Item</h4>
+                        <p>Once approved, return the item to our location or arrange a pickup (we may cover pickup costs for approved warranty claims). Pack the item securely in its original packaging if possible.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">5</div>
+                    <div class="step-content">
+                        <h4>Replacement or Refund</h4>
+                        <p>We'll send a replacement part immediately (subject to stock availability) or process a full refund within 3–5 business days via your original payment method.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's NOT covered -->
+        <div class="policy-section">
+            <h2>⚠️ What Is NOT Covered</h2>
+            <div class="feature-card" style="border-left: 4px solid var(--warning);">
+                <p style="margin-bottom:.75rem;">The following are excluded from all Mat Auto warranty coverage:</p>
+                <ul>
+                    <li>Damage caused by improper installation or modification</li>
+                    <li>Normal wear and tear (brake pad thinning, filter clogging, etc.)</li>
+                    <li>Damage from accidents, misuse, or neglect</li>
+                    <li>Parts installed in vehicles with pre-existing engine damage</li>
+                    <li>Damage from incorrect fluids, overheating, or flooding</li>
+                    <li>Products with tampered or removed serial numbers</li>
+                    <li>Claims made after the warranty period has expired</li>
+                    <li>Labor costs for installation or removal</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="policy-section">
+            <h2>💡 Tips to Protect Your Warranty</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+                <div class="feature-card">
+                    <h3>📸 Document Installation</h3>
+                    <p>Take photos before and during installation. This protects you if a warranty claim is ever questioned.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔧 Use a Certified Mechanic</h3>
+                    <p>Have parts installed by a qualified mechanic. Improper installation voids the warranty.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🧾 Keep Your Receipt</h3>
+                    <p>Save your Order ID and WhatsApp confirmation. You'll need these to make a warranty claim.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📦 Keep Packaging</h3>
+                    <p>Retain the original packaging for at least 30 days in case a return is needed.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--r-2xl);padding:clamp(2rem,5vw,3rem);text-align:center;color:#fff;margin-top:1rem;position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(244,130,31,.12) 0%,transparent 70%);pointer-events:none;"></div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:clamp(1.3rem,3vw,1.8rem);font-weight:900;margin-bottom:.75rem;">Need Warranty Support?</h2>
+            <p style="color:rgba(255,255,255,.6);margin-bottom:1.5rem;">Our team is ready to help with any warranty or return inquiry.</p>
+            <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+                <a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" class="btn btn-whatsapp">💬 Contact on WhatsApp</a>
+                <a href="contact.html" class="btn btn-primary">📧 Send a Message</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-content container">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Quality engines and car parts — Gambia.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Policies</h4>
+            <ul>
+                <li><a href="warranty.html">Warranty & Returns</a></li>
+                <li><a href="promos.html">Promotions</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

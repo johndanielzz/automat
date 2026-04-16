@@ -1,0 +1,28 @@
+{
+  "name": "mat-auto-server",
+  "version": "2.0.0",
+  "description": "Mat Auto — High-Performance Node.js Server",
+  "main": "server.js",
+  "scripts": {
+    "start":    "node server.js",
+    "dev":      "NODE_ENV=development node server.js",
+    "prod":     "NODE_ENV=production node server.js",
+    "cluster":  "NODE_ENV=production CLUSTER=true node server.js",
+    "install-deps": "npm install express compression sharp express-rate-limit helmet cors"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "optionalDependencies": {
+    "compression"        : "^1.7.4",
+    "sharp"              : "^0.33.0",
+    "express-rate-limit" : "^7.0.0",
+    "helmet"             : "^7.0.0",
+    "cors"               : "^2.8.5"
+  },
+  "keywords": ["mat-auto","express","server","gambia"],
+  "license": "MIT"
+}

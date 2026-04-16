@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Track Your Order — Mat Auto</title>
+    <meta name="description" content="Track your Mat Auto order in real-time. Enter your Order ID to see live status updates.">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <style>
+        .track-hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            padding: clamp(3rem, 8vw, 5rem) 0 clamp(2rem, 5vw, 3.5rem);
+            text-align: center;
+            color: #fff;
+            position: relative; overflow: hidden;
+        }
+        .track-hero::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 80% at 50% 60%, rgba(244,130,31,.12) 0%, transparent 70%);
+        }
+        .track-hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; margin-bottom: .5rem; }
+        .track-hero p { color: rgba(255,255,255,.6); }
+
+        .track-body { padding: clamp(2rem, 5vw, 4rem) 0; }
+
+        .track-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-2xl);
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            max-width: 640px;
+            margin: 0 auto 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .track-input-row {
+            display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+        }
+        .track-input-row input {
+            flex: 1; min-width: 200px;
+            padding: 13px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--r-md);
+            font-size: .95rem;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text-dark);
+            outline: none;
+            transition: var(--transition);
+        }
+        .track-input-row input:focus { border-color: var(--primary); box-shadow: var(--shadow-glow-soft); background: var(--surface); }
+
+        /* Timeline */
+        .timeline { margin-top: 1.5rem; position: relative; }
+        .timeline::before {
+            content: "";
+            position: absolute; left: 21px; top: 8px; bottom: 8px;
+            width: 2px; background: var(--border);
+            z-index: 0;
+        }
+        .tl-step {
+            display: flex; gap: 1rem; align-items: flex-start;
+            margin-bottom: 1.25rem; position: relative; z-index: 1;
+        }
+        .tl-dot {
+            width: 44px; height: 44px; flex-shrink: 0;
+            border-radius: 50%;
+            border: 3px solid var(--border);
+            background: var(--surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            transition: all .3s ease;
+        }
+        .tl-step.done .tl-dot { border-color: var(--success); background: var(--success); }
+        .tl-step.active .tl-dot { border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 4px rgba(244,130,31,.2); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 4px rgba(244,130,31,.2); } 50% { box-shadow: 0 0 0 8px rgba(244,130,31,.08); } }
+        .tl-content { flex: 1; padding-top: .6rem; }
+        .tl-title { font-weight: 700; font-size: .95rem; color: var(--text-dark); margin-bottom: .2rem; }
+        .tl-step.done .tl-title, .tl-step.active .tl-title { color: var(--primary); }
+        .tl-desc { font-size: .82rem; color: var(--text-muted); line-height: 1.5; }
+        .tl-time { font-size: .78rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: .25rem; }
+
+        .track-order-info {
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 1.1rem 1.25rem;
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem .5rem;
+        }
+        .toi-item label { display: block; font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-family: 'Syne', sans-serif; margin-bottom: 3px; }
+        .toi-item span { font-size: .9rem; font-weight: 600; color: var(--text-dark); }
+
+        .no-order { text-align: center; padding: 2rem; color: var(--text-muted); display: none; }
+        .order-found { display: none; }
+
+        .recent-orders { max-width: 640px; margin: 0 auto; }
+        .recent-order-row {
+            display: flex; align-items: center; gap: 1rem;
+            padding: .85rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-lg);
+            background: var(--surface);
+            margin-bottom: .5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .recent-order-row:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+        .ror-id { font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--primary); font-weight: 700; flex: 1; }
+        .ror-name { font-size: .88rem; color: var(--text-dark); font-weight: 600; flex: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ror-date { font-size: .78rem; color: var(--text-muted); flex-shrink: 0; }
+
+        body.dark-mode .track-card { background: var(--surface); }
+        body.dark-mode .track-input-row input { background: var(--bg); color: var(--text-dark); }
+        body.dark-mode .track-order-info { background: var(--bg); }
+        body.dark-mode .recent-order-row { background: var(--surface); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>Track Order</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#products">Products</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="track-hero">
+    <div class="container">
+        <h1>📦 Track Your Order</h1>
+        <p>Enter your Order ID to see real-time status</p>
+    </div>
+</div>
+
+<div class="track-body">
+    <div class="container">
+
+        <div class="track-card">
+            <h2 style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.5rem;color:var(--text-dark);">Enter Your Order ID</h2>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">Your Order ID was sent to you via WhatsApp and shown at checkout.</p>
+            <div class="track-input-row">
+                <input type="text" id="trackId" placeholder="e.g. order-lp4k2x-1a2b" autocomplete="off" spellcheck="false">
+                <button class="btn btn-primary" id="trackBtn" type="button">Track</button>
+            </div>
+
+            <div class="no-order" id="noOrder">
+                <p style="font-size:2rem;margin-bottom:.5rem;">🔍</p>
+                <p style="font-weight:700;color:var(--text-dark);margin-bottom:.25rem;">Order not found</p>
+                <p style="font-size:.85rem;">Check your Order ID and try again, or <a href="contact.html" style="color:var(--primary);font-weight:700;">contact us</a> for help.</p>
+            </div>
+
+            <div class="order-found" id="orderFound">
+                <div class="track-order-info" id="orderInfo"></div>
+
+                <div class="timeline" id="orderTimeline"></div>
+
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem;">
+                    <a id="trackWA" href="#" target="_blank" class="btn btn-whatsapp" style="flex:1;text-align:center;">💬 Update via WhatsApp</a>
+                    <a href="contact.html" class="btn btn-outline" style="flex:1;text-align:center;">📞 Contact Support</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="recent-orders" id="recentOrdersSection" style="display:none;">
+            <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:1rem;color:var(--text-dark);">📋 Your Recent Orders</h3>
+            <div id="recentOrdersList"></div>
+        </div>
+
+        <!-- Info cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;max-width:640px;margin:2rem auto 0;">
+            <div class="feature-card">
+                <h3>📋 Pending</h3>
+                <p>Order received and being reviewed by our team.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔄 Processing</h3>
+                <p>Confirmed and being prepared for dispatch.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🚚 Shipped</h3>
+                <p>On the way to your delivery address.</p>
+            </div>
+            <div class="feature-card">
+                <h3>✅ Completed</h3>
+                <p>Order fulfilled and delivered successfully.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-content container">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Quality engines and car parts — Gambia.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="app.js"></script>
+<script>
+const STATUS_STEPS = {
+    pending:    { index: 0, label: 'Pending',    emoji: '📋' },
+    processing: { index: 1, label: 'Processing', emoji: '🔄' },
+    shipped:    { index: 2, label: 'Shipped',    emoji: '🚚' },
+    completed:  { index: 3, label: 'Completed',  emoji: '✅' },
+    cancelled:  { index: -1, label: 'Cancelled', emoji: '❌' }
+};
+
+const TIMELINE_DEFS = [
+    { key: 'pending',    title: 'Order Received',       desc: 'Your order has been received and is under review.' },
+    { key: 'processing', title: 'Order Confirmed',      desc: 'Payment confirmed. Your items are being prepared for dispatch.' },
+    { key: 'shipped',    title: 'Out for Delivery',     desc: 'Your order is on its way to your delivery address.' },
+    { key: 'completed',  title: 'Delivered',            desc: 'Your order has been successfully delivered. Enjoy!' },
+];
+
+function formatDate(ts) {
+    if (!ts) return '—';
+    try { return new Date(ts).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+    catch { return '—'; }
+}
+
+function renderTimeline(status) {
+    const cur = STATUS_STEPS[status] || STATUS_STEPS.pending;
+    if (status === 'cancelled') {
+        return `<div class="tl-step active"><div class="tl-dot" style="border-color:var(--danger);background:var(--danger);">❌</div><div class="tl-content"><div class="tl-title" style="color:var(--danger);">Order Cancelled</div><div class="tl-desc">This order has been cancelled. Contact us for assistance.</div></div></div>`;
+    }
+    return TIMELINE_DEFS.map((def, i) => {
+        const done   = i < cur.index;
+        const active = i === cur.index;
+        const cls    = done ? 'done' : active ? 'active' : '';
+        const emoji  = done ? '✓' : STATUS_STEPS[def.key].emoji;
+        return `<div class="tl-step ${cls}"><div class="tl-dot">${emoji}</div><div class="tl-content"><div class="tl-title">${def.title}</div><div class="tl-desc">${def.desc}</div></div></div>`;
+    }).join('');
+}
+
+function renderOrderInfo(order) {
+    const productName = (Array.isArray(order.items) && order.items[0]?.name) || order.product?.name || order.productName || 'Order';
+    const total = order.total ? `GMD ${Number(order.total).toLocaleString()}` : '—';
+    const statusInfo = STATUS_STEPS[order.status] || STATUS_STEPS.pending;
+    return `
+        <div class="toi-item"><label>Order ID</label><span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--primary);">${order.id}</span></div>
+        <div class="toi-item"><label>Status</label><span>${statusInfo.emoji} ${statusInfo.label}</span></div>
+        <div class="toi-item"><label>Product</label><span>${productName}</span></div>
+        <div class="toi-item"><label>Total</label><span>${total}</span></div>
+        <div class="toi-item"><label>Customer</label><span>${order.customerName || order.name || '—'}</span></div>
+        <div class="toi-item"><label>Date</label><span>${formatDate(order.createdAt)}</span></div>
+    `;
+}
+
+async function trackOrder(id) {
+    id = id.trim();
+    if (!id) { showToast('warning', 'Please enter an Order ID'); return; }
+
+    document.getElementById('noOrder').style.display = 'none';
+    document.getElementById('orderFound').style.display = 'none';
+    document.getElementById('trackBtn').textContent = 'Searching…';
+    document.getElementById('trackBtn').disabled = true;
+
+    try {
+        // Try local orders first
+        const localIds = JSON.parse(localStorage.getItem('maMyOrderIds') || '[]');
+        const localAll = JSON.parse(localStorage.getItem('maAllOrders') || '[]');
+        let order = localAll.find(o => o.id === id);
+
+        // Try Firebase
+        if (!order && window.db) {
+            const snap = await db.ref('matAutoOrders').orderByChild('id').equalTo(id).once('value');
+            const val = snap.val();
+            if (val) {
+                const entries = Object.values(val);
+                if (entries.length) order = entries[0];
+            }
+        }
+
+        if (!order) {
+            document.getElementById('noOrder').style.display = 'block';
+        } else {
+            document.getElementById('orderInfo').innerHTML = renderOrderInfo(order);
+            document.getElementById('orderTimeline').innerHTML = renderTimeline(order.status || 'pending');
+            const msg = encodeURIComponent(`Hi Mat Auto, I'd like to track my order: ${order.id}`);
+            document.getElementById('trackWA').href = `https://wa.me/2206785316?text=${msg}`;
+            document.getElementById('orderFound').style.display = 'block';
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('error', 'Could not fetch order. Check your connection.');
+    } finally {
+        document.getElementById('trackBtn').textContent = 'Track';
+        document.getElementById('trackBtn').disabled = false;
+    }
+}
+
+document.getElementById('trackBtn').addEventListener('click', () => {
+    trackOrder(document.getElementById('trackId').value);
+});
+document.getElementById('trackId').addEventListener('keydown', e => {
+    if (e.key === 'Enter') trackOrder(document.getElementById('trackId').value);
+});
+
+// Load recent orders from localStorage
+function loadRecentOrders() {
+    try {
+        const ids = JSON.parse(localStorage.getItem('maMyOrderIds') || '[]');
+        const all = JSON.parse(localStorage.getItem('maAllOrders') || '[]');
+        const mine = all.filter(o => ids.includes(o.id)).slice(-5).reverse();
+        if (!mine.length) return;
+        const sec = document.getElementById('recentOrdersSection');
+        const list = document.getElementById('recentOrdersList');
+        sec.style.display = 'block';
+        list.innerHTML = mine.map(o => {
+            const name = (Array.isArray(o.items) && o.items[0]?.name) || o.product?.name || 'Order';
+            const st = STATUS_STEPS[o.status] || STATUS_STEPS.pending;
+            return `<div class="recent-order-row" onclick="document.getElementById('trackId').value='${o.id}';trackOrder('${o.id}')">
+                <span class="ror-id">${o.id}</span>
+                <span class="ror-name">${name}</span>
+                <span style="flex-shrink:0;font-size:.8rem;">${st.emoji} ${st.label}</span>
+                <span class="ror-date">${formatDate(o.createdAt)}</span>
+            </div>`;
+        }).join('');
+    } catch(e) {}
+}
+
+// Pre-fill from URL param
+const urlId = new URLSearchParams(location.search).get('id');
+if (urlId) {
+    document.getElementById('trackId').value = urlId;
+    document.addEventListener('appReady', () => trackOrder(urlId), { once: true });
+    // Fallback if event doesn't fire
+    setTimeout(() => {
+        if (document.getElementById('orderFound').style.display === 'none' &&
+            document.getElementById('noOrder').style.display === 'none') {
+            trackOrder(urlId);
+        }
+    }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', loadRecentOrders);
+</script>
+</body>
+</html>

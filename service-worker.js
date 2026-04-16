@@ -1,92 +1,167 @@
-// Mat Auto Service Worker
-// Enables offline support and fast loading
+// ============================================================
+// MAT AUTO — Service Worker v3.0  (Production)
+// Strategy: Stale-While-Revalidate for HTML,
+//           Cache-First for assets,
+//           Network-Only for Firebase/API
+// ============================================================
 
-const CACHE_NAME = 'mat-auto-v1';
-const urlsToCache = [
-  '/index.html',
-  '/about.html',
-  '/admin.html',
-  '/checkout.html',
-  '/contact.html',
-  '/features.html',
-  '/gm_auto_firebase_app.html',
-  '/orders.html',
-  '/promos.html',
-  '/reviews.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/image.jpg'
+const CACHE_VERSION    = 'mat-auto-v3';
+const STATIC_CACHE     = `${CACHE_VERSION}-static`;
+const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
+const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
+const FONT_CACHE       = `${CACHE_VERSION}-fonts`;
+const MAX_DYNAMIC_ITEMS = 60;
+const MAX_IMAGE_ITEMS   = 40;
+
+const STATIC_ASSETS = [
+    '/index.html', '/about.html', '/admin.html', '/checkout.html',
+    '/contact.html', '/features.html', '/orders.html',
+    '/promos.html', '/reviews.html', '/faq.html', '/track.html', '/warranty.html',
+    '/styles.css', '/app.js', '/manifest.json'
 ];
 
-// Install event - cache resources
-self.addEventListener('install', function(event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        return cache.addAll(urlsToCache).catch(err => {
-          console.warn('Cache addAll failed (some resources may not exist):', err);
-        });
-      })
-      .then(() => self.skipWaiting())
-  );
+const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(STATIC_CACHE)
+            .then(cache => Promise.allSettled(
+                STATIC_ASSETS.map(url =>
+                    fetch(url, { cache: 'reload' })
+                        .then(res => { if (res.ok) cache.put(url, res); })
+                        .catch(() => {})
+                )
+            ))
+            .then(() => self.skipWaiting())
+    );
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', function(event) {
-  event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', event => {
+    const CURRENT = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE, FONT_CACHE];
+    event.waitUntil(
+        caches.keys()
+            .then(names => Promise.all(
+                names.filter(n => n.startsWith('mat-auto-') && !CURRENT.includes(n))
+                     .map(n => caches.delete(n))
+            ))
+            .then(() => self.clients.claim())
+    );
 });
 
-// Fetch event - serve from cache, fall back to network
-self.addEventListener('fetch', function(event) {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+async function trimCache(cacheName, maxItems) {
+    const cache = await caches.open(cacheName);
+    const keys  = await cache.keys();
+    if (keys.length > maxItems) await cache.delete(keys[0]);
+}
 
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+function isExternal(url) {
+    return ['firebasedatabase.app','firebaseio.com','googleapis.com','gstatic.com',
+            'firebasestorage','google-analytics','anthropic.com']
+        .some(h => url.hostname.includes(h)) || url.pathname.includes('/v1/messages');
+}
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Return cached version if available
-        if (response) {
-          return response;
-        }
+function isFont(url)   { return FONT_ORIGINS.some(h => url.hostname.includes(h)); }
+function isImage(url)  { return /\.(jpg|jpeg|png|webp|svg|gif|ico|avif)$/.test(url.pathname); }
+function isStatic(url) { return /\.(css|js|json|webmanifest)$/.test(url.pathname); }
+function isHTML(url, req) {
+    return req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/';
+}
 
-        return fetch(event.request).then(function(response) {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
+self.addEventListener('fetch', event => {
+    const { request } = event;
+    if (request.method !== 'GET') return;
+    let url; try { url = new URL(request.url); } catch { return; }
 
-          // Clone the response
-          const responseToCache = response.clone();
+    if (isExternal(url)) {
+        event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+        return;
+    }
 
-          caches.open(CACHE_NAME)
-            .then(function(cache) {
-              cache.put(event.request, responseToCache);
+    if (isFont(url)) {
+        event.respondWith(caches.open(FONT_CACHE).then(async cache => {
+            const cached = await cache.match(request);
+            if (cached) return cached;
+            const fresh = await fetch(request);
+            if (fresh.ok) cache.put(request, fresh.clone());
+            return fresh;
+        }));
+        return;
+    }
+
+    if (isImage(url)) {
+        event.respondWith(caches.open(IMAGE_CACHE).then(async cache => {
+            const cached = await cache.match(request);
+            const networkFetch = fetch(request).then(res => {
+                if (res.ok) { cache.put(request, res.clone()); trimCache(IMAGE_CACHE, MAX_IMAGE_ITEMS); }
+                return res;
+            }).catch(() => null);
+            return cached || networkFetch || new Response('', { status: 404 });
+        }));
+        return;
+    }
+
+    if (isStatic(url)) {
+        event.respondWith(caches.match(request).then(async cached => {
+            if (cached) {
+                fetch(request).then(res => {
+                    if (res.ok) caches.open(STATIC_CACHE).then(c => c.put(request, res));
+                }).catch(() => {});
+                return cached;
+            }
+            const fresh = await fetch(request);
+            if (fresh.ok) caches.open(STATIC_CACHE).then(c => c.put(request, fresh.clone()));
+            return fresh;
+        }).catch(() => caches.match(request)));
+        return;
+    }
+
+    if (isHTML(url, request)) {
+        event.respondWith(caches.open(DYNAMIC_CACHE).then(async cache => {
+            const cached = await cache.match(request);
+            const networkFetch = fetch(request).then(res => {
+                if (res.ok) { cache.put(request, res.clone()); trimCache(DYNAMIC_CACHE, MAX_DYNAMIC_ITEMS); }
+                return res;
+            }).catch(() => null);
+            if (cached) { networkFetch.catch(() => {}); return cached; }
+            const fresh = await networkFetch;
+            if (fresh) return fresh;
+            const fallback = await caches.match('/index.html');
+            return fallback || new Response('<h1>Offline</h1><p>Check your connection.</p>', {
+                headers: { 'Content-Type': 'text/html' }
             });
+        }));
+        return;
+    }
 
-          return response;
-        });
-      })
-      .catch(function() {
-        // Optional: return a fallback page for offline
-        return caches.match('/index.html');
-      })
-  );
+    event.respondWith(
+        fetch(request).then(res => {
+            if (res.ok) caches.open(DYNAMIC_CACHE).then(c => c.put(request, res.clone()));
+            return res;
+        }).catch(() => caches.match(request))
+    );
+});
+
+self.addEventListener('message', event => {
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+    if (event.data?.type === 'CLEAR_CACHE') caches.keys().then(n => n.forEach(k => caches.delete(k)));
+});
+
+self.addEventListener('push', event => {
+    if (!event.data) return;
+    try {
+        const d = event.data.json();
+        event.waitUntil(self.registration.showNotification(d.title || 'Mat Auto', {
+            body: d.body || 'New notification', icon: '/image.jpg', badge: '/image.jpg',
+            data: { url: d.url || '/' }
+        }));
+    } catch(e) {}
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
+});
+
+self.addEventListener('sync', event => {
+    if (event.tag === 'sync-orders') console.log('[SW] Background sync: orders');
 });

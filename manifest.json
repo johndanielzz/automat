@@ -1,47 +1,22 @@
 {
   "name": "Mat Auto | Quality Engines & Car Parts",
   "short_name": "Mat Auto",
-  "description": "Shop quality engines and car parts. Search inventory, save favorites, request quotes, and place orders fast.",
+  "description": "Shop quality engines and car parts. Search inventory, save favorites, track orders, and get instant quotes. Serving Gambia.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#1a73e8",
+  "background_color": "#0b1526",
+  "theme_color": "#1B2A4A",
   "categories": ["shopping", "productivity"],
   "screenshots": [
-    {
-      "src": "image.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "image.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "form_factor": "wide"
-    }
+    { "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg", "form_factor": "narrow" },
+    { "src": "image.jpg", "sizes": "512x512", "type": "image/jpeg", "form_factor": "wide" }
   ],
   "icons": [
-    {
-      "src": "image.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "image.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "image.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "maskable"
-    }
+    { "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any" },
+    { "src": "image.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any" },
+    { "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "maskable" }
   ],
   "prefer_related_applications": false,
   "shortcuts": [
@@ -50,26 +25,28 @@
       "short_name": "Products",
       "description": "Browse Mat Auto inventory",
       "url": "index.html#products",
-      "icons": [
-        {
-          "src": "image.jpg",
-          "sizes": "192x192",
-          "type": "image/jpeg"
-        }
-      ]
+      "icons": [{ "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg" }]
+    },
+    {
+      "name": "Track Order",
+      "short_name": "Track",
+      "description": "Track your order in real-time",
+      "url": "track.html",
+      "icons": [{ "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg" }]
     },
     {
       "name": "My Orders",
       "short_name": "Orders",
-      "description": "View and track your orders",
+      "description": "View and manage your orders",
       "url": "orders.html",
-      "icons": [
-        {
-          "src": "image.jpg",
-          "sizes": "192x192",
-          "type": "image/jpeg"
-        }
-      ]
+      "icons": [{ "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg" }]
+    },
+    {
+      "name": "FAQ",
+      "short_name": "FAQ",
+      "description": "Frequently asked questions",
+      "url": "faq.html",
+      "icons": [{ "src": "image.jpg", "sizes": "192x192", "type": "image/jpeg" }]
     }
   ]
 }

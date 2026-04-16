@@ -4,20 +4,238 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Admin Panel — Mat Auto</title>
-    <meta name="theme-color" content="#1a73e8">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto Admin">
     <link rel="manifest" href="manifest.json">
+    <!-- Preload critical assets -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="app.js" as="script">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
     <link rel="apple-touch-icon" href="image.jpg">
     <style>
-        .admin-tab-bar { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.5rem; border-bottom:2px solid var(--border); padding-bottom:.75rem; }
-        .admin-tab     { padding:8px 18px; border:2px solid var(--border); border-radius:99px; cursor:pointer; font-size:.85rem; font-weight:700; background:var(--surface); color:var(--text-mid); transition:var(--transition); font-family:inherit; }
-        .admin-tab.active, .admin-tab:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
-        .admin-section { display:none; }
-        .admin-section.active { display:block; }
+        /* ── ADMIN PANEL BASE ── */
+        #adminPage { background: var(--bg); }
+
+        /* ── TABS ── */
+        .admin-tab-bar {
+            display: flex; gap: .4rem; flex-wrap: wrap;
+            margin-bottom: 1.5rem; padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+            position: sticky; top: 62px; z-index: 80;
+            background: var(--bg); padding-top: .5rem;
+        }
+        .admin-tab {
+            padding: 8px 18px; border: 2px solid var(--border);
+            border-radius: var(--r-full); cursor: pointer;
+            font-size: .82rem; font-weight: 700; background: var(--surface);
+            color: var(--text-mid); transition: var(--transition);
+            font-family: inherit; display: flex; align-items: center; gap: .4rem;
+        }
+        .tab-badge {
+            background: var(--danger); color: #fff;
+            font-size: .65rem; font-weight: 900;
+            border-radius: var(--r-full); padding: 1px 6px;
+            min-width: 18px; text-align: center;
+        }
+        .admin-tab.active, .admin-tab:hover {
+            background: var(--primary); color: #fff;
+            border-color: var(--primary); box-shadow: var(--shadow-glow-soft);
+        }
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+
+        /* ── HEADER ── */
+        .admin-header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            color: #fff; padding: clamp(1.5rem,4vw,2.5rem);
+            border-radius: var(--r-xl); margin-bottom: 1.5rem;
+            position: relative; overflow: hidden;
+        }
+        .admin-header::before {
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(244,130,31,.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .admin-header h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.4rem,3vw,2rem); font-weight: 900; margin-bottom: .25rem; }
+        .admin-header p  { color: rgba(255,255,255,.55); font-size: .88rem; }
+
+        /* ── STATS ── */
+        .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card {
+            border-radius: var(--r-lg); padding: 1.25rem 1rem;
+            text-align: center; color: #fff; position: relative; overflow: hidden;
+            cursor: default; transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .stat-card::after { content: ""; position: absolute; bottom: -10px; right: -10px; width: 60px; height: 60px; background: rgba(255,255,255,.08); border-radius: 50%; }
+        .stat-card h3 { font-family: 'JetBrains Mono', monospace; font-size: clamp(1.3rem,3vw,1.9rem); font-weight: 700; line-height: 1; margin-bottom: .35rem; }
+        .stat-card p  { font-size: .75rem; opacity: .8; font-weight: 600; }
+
+        /* ── FAST UPLOAD ZONE ── */
+        .upload-zone {
+            border: 2px dashed var(--border-dark); border-radius: var(--r-lg);
+            padding: 1.5rem; text-align: center; cursor: pointer;
+            transition: var(--transition); background: var(--surface-2);
+            position: relative;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--primary); background: var(--primary-pale);
+            box-shadow: var(--shadow-glow-soft);
+        }
+        .upload-zone input[type="file"] {
+            position: absolute; inset: 0; opacity: 0;
+            cursor: pointer; width: 100%; height: 100%;
+        }
+        .upload-zone-label { pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+        .upload-zone-icon  { font-size: 2rem; }
+        .upload-zone-title { font-weight: 700; font-size: .92rem; color: var(--text-dark); }
+        .upload-zone-sub   { font-size: .78rem; color: var(--text-muted); }
+
+        /* ── PROGRESS ── */
+        .upload-progress-wrap { margin-top: .75rem; display: none; }
+        .upload-progress-wrap.visible { display: block; }
+        .upload-progress-bar  { height: 8px; border-radius: var(--r-full); background: var(--border); overflow: hidden; }
+        .upload-progress-fill {
+            height: 100%; border-radius: var(--r-full); width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            transition: width .2s ease;
+        }
+        .upload-status-text   { font-size: .78rem; color: var(--text-mid); margin-top: .4rem; text-align: center; }
+        .upload-speed-text    { font-size: .72rem; color: var(--text-muted); text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+        /* ── IMAGE PREVIEW ── */
+        .image-preview { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+        .preview-thumb-wrap { position: relative; display: inline-flex; }
+        .preview-thumb {
+            width: 80px; height: 60px; object-fit: cover;
+            border-radius: var(--r-md); border: 2px solid var(--border);
+            transition: var(--transition);
+        }
+        .preview-thumb:first-child { border-color: var(--primary); box-shadow: var(--shadow-glow-soft); }
+        .preview-thumb-wrap:first-child .preview-thumb { border-color: var(--primary); }
+        .preview-thumb-remove {
+            position: absolute; top: -6px; right: -6px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--danger); color: #fff;
+            border: none; cursor: pointer; font-size: .65rem;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; line-height: 1;
+        }
+
+        /* ── QUICK TEMPLATES ── */
+        .template-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+        .template-chip {
+            padding: 6px 14px; border: 1.5px solid var(--border);
+            border-radius: var(--r-full); cursor: pointer;
+            font-size: .78rem; font-weight: 700; background: var(--surface);
+            color: var(--text-mid); transition: var(--transition);
+            font-family: inherit;
+        }
+        .template-chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-pale); }
+
+        /* ── BULK IMPORT ── */
+        .bulk-import-area {
+            border: 2px dashed var(--border); border-radius: var(--r-md);
+            padding: 1rem; background: var(--surface-2);
+            font-size: .82rem; position: relative; min-height: 80px;
+        }
+        .bulk-import-area textarea {
+            width: 100%; min-height: 80px; background: none;
+            border: none; outline: none; font-family: 'JetBrains Mono', monospace;
+            font-size: .78rem; color: var(--text-dark); resize: vertical;
+        }
+
+        /* ── PRODUCT ROWS ── */
+        .admin-product-row {
+            display: flex; align-items: center; gap: 1rem; padding: .85rem;
+            border: 1px solid var(--border); border-radius: var(--r-md);
+            background: var(--surface); margin-bottom: .6rem; transition: var(--transition);
+        }
+        .admin-product-row:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }
+        .admin-product-img { width: 64px; height: 50px; object-fit: cover; border-radius: var(--r-sm); flex-shrink: 0; }
+        .admin-product-info { flex: 1; min-width: 0; }
+        .admin-product-info strong { display: block; font-weight: 700; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .admin-product-info span   { display: block; font-size: .78rem; color: var(--text-mid); margin-top: 2px; }
+        .admin-product-actions     { display: flex; gap: .4rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+        /* ── INLINE QUICK-EDIT ── */
+        .quick-edit-row {
+            display: none; background: var(--surface-3); padding: 1rem;
+            border-radius: var(--r-md); margin-top: .5rem; margin-bottom: .5rem;
+            border: 1px solid var(--primary); animation: slideDown .18s ease;
+        }
+        .quick-edit-row.open { display: block; }
+        @keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .quick-edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+
+        /* ── ORDER CARDS ── */
+        .admin-order-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 1rem; margin-bottom: .75rem; transition: var(--transition); }
+        .admin-order-card:hover { box-shadow: var(--shadow-md); }
+        .admin-order-header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
+        .admin-order-header strong { font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--primary); }
+        .admin-order-body { font-size: .84rem; color: var(--text-mid); margin-bottom: .75rem; line-height: 1.6; }
+        .admin-order-footer { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+        .order-status-select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: .82rem; background: var(--surface); color: var(--text-dark); cursor: pointer; font-family: inherit; }
+
+        /* ── QUOTE/PROMO/REVIEW CARDS ── */
+        .quote-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 1rem; margin-bottom: .75rem; }
+        .quote-card-header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
+        .quote-card-body   { display: flex; flex-wrap: wrap; gap: .5rem .75rem; font-size: .84rem; color: var(--text-mid); margin-bottom: .75rem; }
+        .quote-card-actions{ display: flex; gap: .5rem; flex-wrap: wrap; }
+        .promo-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 1rem; margin-bottom: .75rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .promo-card-body   { flex: 1; }
+        .promo-card-body strong { display: block; font-weight: 700; }
+        .promo-card-body span   { font-size: .83rem; color: var(--text-mid); }
+        .promo-discount  { background: var(--primary-light); color: var(--primary-dark); padding: 2px 10px; border-radius: var(--r-full); font-weight: 800; font-size: .78rem; margin-left: .5rem; }
+        .promo-card-footer { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; font-size: .82rem; color: var(--text-mid); }
+        .promo-code  { background: var(--surface-3); border: 1px solid var(--border); padding: 3px 10px; border-radius: var(--r-sm); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .82rem; color: var(--text-dark); }
+        .review-admin-card, .contact-message-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 1rem; margin-bottom: .75rem; }
+        .review-admin-card.pending  { border-left: 4px solid var(--warning); }
+        .review-admin-card.approved { border-left: 4px solid var(--success); }
+        .contact-message-card.unread { border-left: 4px solid var(--primary); background: var(--primary-pale); }
+        .review-admin-header, .contact-msg-header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
+        .review-admin-actions { display: flex; gap: .5rem; margin-top: .75rem; }
+
+        /* ── KEYBOARD SHORTCUT HINT ── */
+        .kbd-hint { font-size: .72rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        kbd { background: var(--surface-3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: .7rem; }
+
+        /* ── BATCH UPLOAD PROGRESS ── */
+        .batch-progress-list { display: grid; gap: .4rem; margin-top: .75rem; }
+        .batch-item { display: flex; align-items: center; gap: .75rem; font-size: .78rem; color: var(--text-mid); }
+        .batch-item-bar { flex: 1; height: 4px; background: var(--border); border-radius: var(--r-full); overflow: hidden; }
+        .batch-item-fill { height: 100%; background: var(--primary); border-radius: var(--r-full); transition: width .15s ease; }
+        .batch-item-name { min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .batch-item-status { min-width: 60px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+        /* ── CSV IMPORT ── */
+        .csv-download-link { font-size: .78rem; color: var(--primary); cursor: pointer; font-weight: 700; }
+        .csv-download-link:hover { text-decoration: underline; }
+
+        /* ── PASTE IMAGE INPUT ── */
+        .paste-hint {
+            display: flex; align-items: center; gap: .5rem;
+            font-size: .78rem; color: var(--text-muted);
+            padding: .5rem .75rem; background: var(--surface-3);
+            border-radius: var(--r-sm); margin-top: .5rem;
+        }
+
+        /* ── DARK MODE OVERRIDES ── */
+        body.dark-mode .admin-product-row, body.dark-mode .admin-order-card,
+        body.dark-mode .quote-card, body.dark-mode .promo-card,
+        body.dark-mode .review-admin-card, body.dark-mode .contact-message-card { background: var(--surface); border-color: var(--border); }
+        body.dark-mode .upload-zone { background: var(--surface-2); }
+        body.dark-mode .quick-edit-row { background: var(--surface-2); }
+        body.dark-mode .order-status-select { background: var(--bg); border-color: var(--border); color: var(--text-dark); }
+        body.dark-mode .admin-tab-bar { background: var(--bg); }
+
+        /* ── SAVE FLASH ── */
+        @keyframes saveFlash { 0%,100%{background:var(--primary)} 50%{background:var(--success)} }
+        .saving-flash { animation: saveFlash .5s ease; }
     </style>
 </head>
 <body id="adminPage">
@@ -34,57 +252,67 @@
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">← Storefront</a></li>
             <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
-            <li><a href="#" onclick="logoutAdmin();return false;" class="nav-icon-btn" style="text-decoration:none;">Logout</a></li>
+            <li><a href="#" onclick="logoutAdmin();return false;" class="nav-icon-btn" style="text-decoration:none;">🔓 Logout</a></li>
         </ul>
     </div>
 </nav>
 
-<!-- ── LOGIN ─────────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════ LOGIN ══ -->
 <div id="adminLoginCard" class="form-card" style="max-width:460px;margin:3rem auto;">
-    <h2 style="margin-bottom:.5rem;">🔐 Admin Login</h2>
-    <p style="color:var(--text-mid);margin-bottom:1.5rem;font-size:.9rem;">Enter your admin password to manage the marketplace.</p>
+    <div style="text-align:center;margin-bottom:1.5rem;">
+        <img src="image.jpg" alt="Mat Auto" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);margin-bottom:.75rem;">
+        <h2 style="font-family:'Syne',sans-serif;font-weight:900;">🔐 Admin Login</h2>
+        <p style="color:var(--text-mid);font-size:.88rem;margin-top:.25rem;">Enter your password to manage the store.</p>
+    </div>
     <form id="adminLoginForm">
         <div class="form-group">
             <label for="adminPassword">Password</label>
-            <input type="password" id="adminPassword" required placeholder="Admin password" autocomplete="current-password">
+            <input type="password" id="adminPassword" required placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button type="submit" class="btn btn-primary btn-large btn-block">Login</button>
+        <button type="submit" class="btn btn-primary btn-large btn-block" style="margin-top:.5rem;">Login to Dashboard</button>
     </form>
 </div>
 
-<!-- ── DASHBOARD ─────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════ DASHBOARD ══ -->
 <div class="admin-container" style="display:none;">
 
     <div class="admin-header">
-        <h1>Admin Panel 🔧</h1>
-        <p>Real-time overview — products, orders, quotes, reviews &amp; more</p>
+        <h1>🔧 Admin Dashboard</h1>
+        <p>Real-time overview · Products, Orders, Quotes, Reviews &amp; Contacts</p>
+        <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap;">
+            <span id="syncStatusBadge" style="font-size:.72rem;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);padding:3px 10px;border-radius:var(--r-full);">⚡ Live Sync</span>
+            <span id="lastSavedBadge"  style="font-size:.72rem;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:3px 10px;border-radius:var(--r-full);font-family:'JetBrains Mono',monospace;"></span>
+        </div>
     </div>
 
     <!-- STATS -->
     <div class="admin-stats-grid">
-        <div class="feature-card" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;text-align:center;">
-            <h3 id="totalProductsCount" style="font-size:2rem;">0</h3><p>Total Products</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));">
+            <h3 id="totalProductsCount">0</h3><p>Products</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#F4821F,#e67e22);color:#fff;text-align:center;">
-            <h3 id="totalEnginesCount" style="font-size:2rem;">0</h3><p>Engines</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#F4821F,#c45d0a);">
+            <h3 id="totalEnginesCount">0</h3><p>Engines</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:#fff;text-align:center;">
-            <h3 id="totalPartsCount" style="font-size:2rem;">0</h3><p>Car Parts</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,var(--navy),var(--navy-mid));">
+            <h3 id="totalPartsCount">0</h3><p>Car Parts</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;text-align:center;">
-            <h3 id="lowStockCount" style="font-size:2rem;">0</h3><p>Low / Out of Stock</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#991b1b);">
+            <h3 id="lowStockCount">0</h3><p>Low/Out Stock</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#0f766e,#115e59);color:#fff;text-align:center;">
-            <h3 id="totalOrdersCount" style="font-size:2rem;">0</h3><p>Total Orders</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#0f766e,#115e59);">
+            <h3 id="totalOrdersCount">0</h3><p>Orders</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;text-align:center;">
-            <h3 id="totalQuotesCount" style="font-size:2rem;">0</h3><p>Quote Requests</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#be185d,#9d174d);">
+            <h3 id="pendingOrdersCount">0</h3><p>Pending</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#be185d,#9d174d);color:#fff;text-align:center;">
-            <h3 id="pendingOrdersCount" style="font-size:2rem;">0</h3><p>Pending Orders</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#047857);">
+            <h3 id="completedOrdersCount">0</h3><p>Completed</p>
         </div>
-        <div class="feature-card" style="background:linear-gradient(135deg,#059669,#047857);color:#fff;text-align:center;">
-            <h3 id="totalRevenue" style="font-size:1.4rem;">GMD 0</h3><p>Total Revenue</p>
+        <div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">
+            <h3 id="totalQuotesCount">0</h3><p>Quotes</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#1e40af);">
+            <h3 id="totalRevenue" style="font-size:1rem;">GMD 0</h3><p>Revenue</p>
         </div>
     </div>
 
@@ -92,21 +320,80 @@
     <div class="admin-tab-bar">
         <button class="admin-tab active" data-tab="products">📦 Products</button>
         <button class="admin-tab"        data-tab="orders">🛒 Orders</button>
-        <button class="admin-tab"        data-tab="quotes">💬 Quotes</button>
+        <button class="admin-tab"        data-tab="quotes">💬 Quotes <span class="tab-badge" id="tabBadgeQuotes" style="display:none"></span></button>
         <button class="admin-tab"        data-tab="promos">🎁 Promos</button>
         <button class="admin-tab"        data-tab="reviews">⭐ Reviews</button>
         <button class="admin-tab"        data-tab="contacts">📩 Contacts</button>
+        <button class="admin-tab"        data-tab="bulkimport">📥 Bulk Import</button>
     </div>
 
-    <!-- PRODUCTS TAB -->
+    <!-- ══════ PRODUCTS TAB ══════ -->
     <div class="admin-section active" id="tab-products">
+
+        <!-- QUICK PRODUCT TEMPLATES -->
+        <div class="form-card" style="margin-bottom:1rem;padding:1rem 1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+                <h3 style="margin:0;font-size:.92rem;font-weight:800;">⚡ Quick Fill Templates</h3>
+                <span class="kbd-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> to save · <kbd>Ctrl</kbd>+<kbd>V</kbd> to paste image</span>
+            </div>
+            <div class="template-chips" id="templateChips">
+                <button class="template-chip" data-tpl="v8engine">🔧 V8 Engine</button>
+                <button class="template-chip" data-tpl="v6engine">🔧 V6 Engine</button>
+                <button class="template-chip" data-tpl="diesel">⛽ Diesel Engine</button>
+                <button class="template-chip" data-tpl="brakes">🛑 Brake Parts</button>
+                <button class="template-chip" data-tpl="airfilter">🌀 Air Filter</button>
+                <button class="template-chip" data-tpl="battery">🔋 Car Battery</button>
+                <button class="template-chip" data-tpl="transmission">⚙️ Transmission</button>
+                <button class="template-chip" data-tpl="exhaust">💨 Exhaust</button>
+            </div>
+        </div>
+
+        <!-- ADD PRODUCT FORM -->
         <div class="form-card" style="margin-bottom:1.5rem;">
-            <h2>➕ Add New Product</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:.5rem;">
+                <h2 style="margin:0;">➕ Add New Product</h2>
+                <div style="display:flex;gap:.5rem;align-items:center;">
+                    <button id="clearFormBtn" type="button" class="btn btn-ghost btn-sm">🗑️ Clear</button>
+                    <span style="font-size:.78rem;color:var(--text-muted);">Images auto-compressed · Saves even if Storage blocked</span>
+                </div>
+            </div>
+
+            <!-- IMAGE UPLOAD FIRST (faster mental flow) -->
+            <div class="form-group">
+                <label>
+                    Product Images
+                    <span style="color:var(--text-muted);font-weight:400;"> — drag &amp; drop · paste · click · up to 8 photos</span>
+                </label>
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="productImage" accept="image/*" multiple>
+                    <div class="upload-zone-label">
+                        <span class="upload-zone-icon">📷</span>
+                        <span class="upload-zone-title">Drop images here or click to browse</span>
+                        <span class="upload-zone-sub">JPG · PNG · WebP · HEIC · Max 8 files · First = thumbnail</span>
+                    </div>
+                </div>
+                <!-- Paste hint -->
+                <div class="paste-hint">
+                    <span>⌨️</span>
+                    <span>Press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere on this page to paste a screenshot directly</span>
+                </div>
+                <!-- Progress bars per file -->
+                <div class="upload-progress-wrap" id="uploadProgressWrap">
+                    <div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div>
+                    <div style="display:flex;justify-content:space-between;">
+                        <p class="upload-status-text" id="uploadStatusText">Preparing…</p>
+                        <p class="upload-speed-text"  id="uploadSpeedText"></p>
+                    </div>
+                    <div class="batch-progress-list" id="batchProgressList"></div>
+                </div>
+                <div id="imagePreview" class="image-preview"></div>
+            </div>
+
             <form id="productForm">
                 <div class="form-split">
                     <div class="form-group">
                         <label for="productName">Product Name *</label>
-                        <input type="text" id="productName" required placeholder="e.g. V8 Turbo Engine">
+                        <input type="text" id="productName" required placeholder="e.g. VW Golf 2.0L Engine" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="productCategory">Category *</label>
@@ -114,6 +401,13 @@
                             <option value="">— Select —</option>
                             <option value="engine">Engine</option>
                             <option value="parts">Car Parts</option>
+                            <option value="electrical">Electrical</option>
+                            <option value="suspension">Suspension</option>
+                            <option value="cooling">Cooling System</option>
+                            <option value="exhaust">Exhaust</option>
+                            <option value="transmission">Transmission</option>
+                            <option value="brakes">Brakes</option>
+                            <option value="accessories">Accessories</option>
                         </select>
                     </div>
                 </div>
@@ -129,116 +423,212 @@
                 </div>
                 <div class="form-group">
                     <label for="productDescription">Description *</label>
-                    <textarea id="productDescription" required placeholder="Describe the product in detail…"></textarea>
+                    <textarea id="productDescription" required rows="3" placeholder="Condition, compatibility, warranty details…"></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="productSpecs">Specifications</label>
-                    <input type="text" id="productSpecs" placeholder="e.g. 5.0L, 500 HP, Aluminum Block">
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="productSpecs">Specifications</label>
+                        <input type="text" id="productSpecs" placeholder="e.g. 5.0L · 500HP · Aluminum Block" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" id="productFeatured" style="width:18px;height:18px;accent-color:var(--primary);">
+                            <span style="font-weight:700;font-size:.88rem;">⭐ Feature on homepage</span>
+                        </label>
+                    </div>
                 </div>
+
+                <!-- Image URL fallback -->
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="productFeatured" style="margin-right:.5rem;">
-                        Feature on homepage
+                    <label for="productImageUrl" style="display:flex;align-items:center;gap:.5rem;">
+                        🔗 Image URL <span style="font-weight:400;color:var(--text-muted);font-size:.78rem;">(optional — use instead of file upload)</span>
                     </label>
+                    <input type="url" id="productImageUrl" placeholder="https://example.com/image.jpg" autocomplete="off">
                 </div>
-                <div class="form-group">
-                    <label for="productImage">Product Images (up to 6) — uploaded to Firebase Storage</label>
-                    <input type="file" id="productImage" accept="image/*" multiple>
-                    <small style="color:var(--text-mid);display:block;margin-top:.4rem;">First image becomes the main thumbnail. Supports JPG, PNG, WebP.</small>
-                    <div id="imagePreview" class="image-preview"></div>
+
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary btn-large" id="addProductBtn" style="flex:1;min-width:200px;">
+                        ⚡ Add Product to Store
+                    </button>
+                    <button type="button" id="saveAndAddAnotherBtn" class="btn btn-outline btn-large" style="flex:1;min-width:200px;">
+                        ➕ Save &amp; Add Another
+                    </button>
                 </div>
-                <button type="submit" class="btn btn-primary btn-large btn-block">Add Product</button>
             </form>
         </div>
 
+        <!-- INVENTORY LIST -->
         <div class="form-card">
-            <h2>📦 Inventory</h2>
-            <div class="form-group">
-                <label for="adminSearch">Search</label>
-                <input type="search" id="adminSearch" placeholder="Search by name or category…">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;">
+                <h2 style="margin:0;">📦 Inventory</h2>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <input type="search" id="adminSearch"
+                        placeholder="Search by name or category…"
+                        style="flex:1;min-width:160px;max-width:260px;padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:.88rem;background:var(--surface);color:var(--text-dark);outline:none;">
+                    <select id="adminCategoryFilter" style="padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:.88rem;background:var(--surface);color:var(--text-dark);cursor:pointer;">
+                        <option value="">All categories</option>
+                        <option value="engine">Engines</option>
+                        <option value="parts">Car Parts</option>
+                    </select>
+                    <button id="exportProductsBtn" class="btn btn-ghost btn-sm" type="button">📤 Export CSV</button>
+                </div>
             </div>
             <div id="productsList"></div>
         </div>
     </div>
 
-    <!-- ORDERS TAB -->
+    <!-- ══════ ORDERS TAB ══════ -->
     <div class="admin-section" id="tab-orders">
         <div class="form-card">
-            <h2>🛒 Orders <span id="completedOrdersCount" style="font-size:.85rem;color:var(--text-mid);font-weight:400;">· 0 completed</span></h2>
-            <p style="color:var(--text-mid);font-size:.85rem;margin-bottom:1rem;">Update order status using the dropdown on each card. Changes save instantly.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;">
+                <h2 style="margin:0;">🛒 Orders</h2>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+                    <input type="search" id="orderSearch" placeholder="Search order…"
+                        style="min-width:160px;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-md);font-size:.85rem;background:var(--surface);color:var(--text-dark);">
+                    <select id="orderStatusFilter" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-md);font-size:.85rem;background:var(--surface);color:var(--text-dark);">
+                        <option value="">All statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <p style="color:var(--text-mid);font-size:.84rem;margin-bottom:1rem;">Update status via the dropdown — syncs to Firebase instantly.</p>
             <div id="adminOrders" class="admin-list"></div>
         </div>
     </div>
 
-    <!-- QUOTES TAB -->
+    <!-- ══════ QUOTES TAB ══════ -->
     <div class="admin-section" id="tab-quotes">
         <div class="form-card">
-            <h2>💬 Quote Requests <span id="newQuotesCount" style="font-size:.85rem;color:var(--text-mid);font-weight:400;">· 0 new</span></h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;">
+                <h2 style="margin:0;">💬 Quote Requests</h2>
+                <span style="font-size:.84rem;color:var(--text-mid);" id="newQuotesCount">0 new</span>
+            </div>
             <div id="adminQuotes" class="admin-list"></div>
         </div>
     </div>
 
-    <!-- PROMOS TAB -->
+    <!-- ══════ PROMOS TAB ══════ -->
     <div class="admin-section" id="tab-promos">
         <div class="form-card" style="margin-bottom:1.5rem;">
             <h2>➕ Create Promo Code</h2>
-            <form id="promoForm" class="promo-form">
-                <div class="form-group">
-                    <label for="promoCode">Code *</label>
-                    <input type="text" id="promoCode" required placeholder="e.g. SUMMER30" style="text-transform:uppercase;">
+            <form id="promoForm">
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="promoCode">Code *</label>
+                        <input type="text" id="promoCode" required placeholder="e.g. SUMMER30" style="text-transform:uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="promoDiscount">Discount % <span style="font-weight:400;color:var(--text-muted);">(0 = info only)</span></label>
+                        <input type="number" id="promoDiscount" min="0" max="100" value="0">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="promoTitle">Title *</label>
-                    <input type="text" id="promoTitle" required placeholder="Promo headline">
+                    <input type="text" id="promoTitle" required placeholder="e.g. Summer Sale — 30% off engines">
                 </div>
                 <div class="form-group">
                     <label for="promoDetails">Details *</label>
-                    <input type="text" id="promoDetails" required placeholder="e.g. 30% off all engines">
+                    <input type="text" id="promoDetails" required placeholder="e.g. 30% discount at checkout">
                 </div>
                 <div class="form-group">
-                    <label for="promoExpires">Expires *</label>
+                    <label for="promoExpires">Expiry Date *</label>
                     <input type="date" id="promoExpires" required>
                 </div>
-                <div class="form-group">
-                    <label for="promoDiscount">Discount % (0 = free shipping / info only)</label>
-                    <input type="number" id="promoDiscount" min="0" max="100" value="0">
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary btn-large btn-block">Save Promo</button>
-                </div>
+                <button type="submit" class="btn btn-primary btn-large btn-block">💾 Save Promo Code</button>
             </form>
         </div>
         <div class="form-card">
-            <h2>Active Promos</h2>
+            <h2>Active Promo Codes</h2>
             <div id="adminPromos"></div>
         </div>
     </div>
 
-    <!-- REVIEWS TAB -->
+    <!-- ══════ REVIEWS TAB ══════ -->
     <div class="admin-section" id="tab-reviews">
         <div class="form-card">
             <h2>⭐ Review Moderation</h2>
-            <p style="color:var(--text-mid);font-size:.85rem;margin-bottom:1rem;">Approve reviews before they appear publicly on the Reviews page.</p>
+            <p style="color:var(--text-mid);font-size:.84rem;margin-bottom:1rem;">Approve reviews before they appear on the Reviews page. Pending = amber border.</p>
             <div id="adminReviews"></div>
         </div>
     </div>
 
-    <!-- CONTACTS TAB -->
+    <!-- ══════ CONTACTS TAB ══════ -->
     <div class="admin-section" id="tab-contacts">
         <div class="form-card">
             <h2>📩 Contact Messages</h2>
-            <p style="color:var(--text-mid);font-size:.85rem;margin-bottom:1rem;">Messages submitted via the Contact page. Most recent first.</p>
+            <p style="color:var(--text-mid);font-size:.84rem;margin-bottom:1rem;">Messages from the Contact page. Unread = orange border.</p>
             <div id="adminContacts"></div>
         </div>
     </div>
-</div>
 
-<!-- EDIT MODAL -->
+    <!-- ══════ BULK IMPORT TAB ══════ -->
+    <div class="admin-section" id="tab-bulkimport">
+        <div class="form-card" style="margin-bottom:1.5rem;">
+            <h2>📥 Bulk Import Products</h2>
+            <p style="color:var(--text-mid);font-size:.88rem;margin-bottom:1.25rem;">
+                Upload a CSV file with multiple products at once, or paste JSON directly. Fastest way to add 10+ products.
+            </p>
+
+            <!-- CSV Upload -->
+            <div style="margin-bottom:1.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+                    <h3 style="margin:0;font-size:.95rem;">📄 CSV File Import</h3>
+                    <span class="csv-download-link" id="downloadCsvTemplate">⬇️ Download template CSV</span>
+                </div>
+                <div class="upload-zone" id="csvUploadZone" style="padding:1rem;">
+                    <input type="file" id="csvFileInput" accept=".csv,.txt">
+                    <div class="upload-zone-label">
+                        <span style="font-size:1.5rem;">📋</span>
+                        <span class="upload-zone-title">Drop CSV file here or click to browse</span>
+                        <span class="upload-zone-sub">Format: name, category, price, stock, description, specs, featured</span>
+                    </div>
+                </div>
+                <div id="csvPreview" style="margin-top:.75rem;display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
+                        <span id="csvPreviewCount" style="font-size:.84rem;font-weight:700;color:var(--text-dark);"></span>
+                        <button id="importCsvBtn" class="btn btn-primary btn-sm" type="button">⚡ Import All Products</button>
+                    </div>
+                    <div id="csvPreviewTable" style="overflow-x:auto;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-md);"></div>
+                </div>
+            </div>
+
+            <!-- JSON Paste -->
+            <div>
+                <h3 style="margin:0 0 .75rem;font-size:.95rem;">📝 JSON Paste</h3>
+                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.5rem;">Paste a JSON array of products. Each object needs: name, category, price, stock, description.</p>
+                <div class="bulk-import-area">
+                    <textarea id="bulkJsonInput" placeholder='[{"name":"V8 Engine","category":"engine","price":45000,"stock":3,"description":"Remanufactured..."}]'></textarea>
+                </div>
+                <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;">
+                    <button id="validateJsonBtn" class="btn btn-outline btn-sm" type="button">✅ Validate JSON</button>
+                    <button id="importJsonBtn"   class="btn btn-primary btn-sm"  type="button">⚡ Import from JSON</button>
+                </div>
+                <div id="jsonValidationMsg" style="margin-top:.5rem;font-size:.82rem;"></div>
+            </div>
+        </div>
+
+        <!-- Bulk import progress -->
+        <div class="form-card" id="bulkProgressCard" style="display:none;">
+            <h3 style="margin-bottom:1rem;">📊 Import Progress</h3>
+            <div class="upload-progress-bar" style="margin-bottom:.5rem;">
+                <div class="upload-progress-fill" id="bulkProgressFill"></div>
+            </div>
+            <p id="bulkProgressText" class="upload-status-text"></p>
+            <div id="bulkProgressLog" style="max-height:160px;overflow-y:auto;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-mid);margin-top:.75rem;"></div>
+        </div>
+    </div>
+
+</div><!-- /admin-container -->
+
+<!-- ══════ EDIT MODAL ══════ -->
 <div id="adminEditModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="adminEditTitle">
-    <div class="modal-content" style="max-width:560px;">
+    <div class="modal-content" style="max-width:620px;">
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
         <div class="modal-panel">
-            <div class="modal-panel-header"><h2 id="adminEditTitle">Edit Product</h2></div>
+            <div class="modal-panel-header"><h2 id="adminEditTitle">✏️ Edit Product</h2></div>
             <form id="adminEditForm">
                 <input type="hidden" id="editProductId">
                 <div class="form-split">
@@ -251,6 +641,13 @@
                         <select id="editCategory" required>
                             <option value="engine">Engine</option>
                             <option value="parts">Car Parts</option>
+                            <option value="electrical">Electrical</option>
+                            <option value="suspension">Suspension</option>
+                            <option value="cooling">Cooling</option>
+                            <option value="exhaust">Exhaust</option>
+                            <option value="transmission">Transmission</option>
+                            <option value="brakes">Brakes</option>
+                            <option value="accessories">Accessories</option>
                         </select>
                     </div>
                 </div>
@@ -269,25 +666,37 @@
                     <textarea id="editDescription" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="editSpecs">Specs</label>
+                    <label for="editSpecs">Specifications</label>
                     <input type="text" id="editSpecs">
                 </div>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="editFeatured" style="margin-right:.5rem;">
-                        Feature on homepage
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                        <input type="checkbox" id="editFeatured" style="width:18px;height:18px;accent-color:var(--primary);">
+                        <span>⭐ Feature on homepage</span>
                     </label>
                 </div>
-                <button type="submit" class="btn btn-primary btn-large btn-block">Save Changes</button>
+                <!-- Quick stock update -->
+                <div style="background:var(--surface-3);border-radius:var(--r-md);padding:.75rem;margin-bottom:1rem;">
+                    <p style="font-size:.78rem;color:var(--text-mid);margin-bottom:.5rem;font-weight:700;">⚡ Quick Stock Adjustment</p>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="-1">−1</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="-5">−5</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="+1">+1</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="+5">+5</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="+10">+10</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="set0" style="color:var(--danger)">Set 0</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-stock-adj="set99">Set 99</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-large btn-block">💾 Save Changes</button>
             </form>
         </div>
     </div>
 </div>
 
 <div id="toastStack" class="toast-stack" aria-live="polite"></div>
-
 <footer class="footer">
-    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. Admin Panel.</p></div>
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto · Admin Panel · <a href="index.html" style="color:var(--primary);">← Back to Store</a></p></div>
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -295,14 +704,436 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 <script src="app.js"></script>
 <script>
-// Tab navigation
-document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+/* ══════════════════════════════════════════════════════════
+   ADMIN PANEL ENHANCEMENTS v2.0
+   • Tab navigation
+   • Quick-fill templates
+   • Clipboard paste images
+   • CSV import/export
+   • JSON bulk import
+   • Keyboard shortcuts (Ctrl+S, Ctrl+V)
+   • Save & Add Another flow
+   • Inline stock adjustments
+   • Order / category filters
+   • Last-saved badge
+   ══════════════════════════════════════════════════════════ */
+
+// ── PRODUCT TEMPLATES ──────────────────────────────────────
+const PRODUCT_TEMPLATES = {
+    v8engine: {
+        name: "V8 Engine — Remanufactured", category: "engine",
+        price: 45000, stock: 2,
+        description: "Fully remanufactured V8 engine. New pistons, rings, bearings, gaskets. Tested and certified. Compatible with most full-size trucks and SUVs.",
+        specs: "5.0L · 8-Cylinder · Aluminium Block · 400HP",
+        featured: true,
+    },
+    v6engine: {
+        name: "V6 Engine — Rebuilt", category: "engine",
+        price: 28000, stock: 3,
+        description: "Rebuilt V6 engine. Excellent condition, clean running. Suitable for saloons and mid-size vehicles.",
+        specs: "3.5L · 6-Cylinder · DOHC · 280HP",
+        featured: false,
+    },
+    diesel: {
+        name: "2.2L Diesel Engine", category: "engine",
+        price: 32000, stock: 4,
+        description: "Reliable diesel engine, low mileage, compression tested. Ideal for commercial vehicles and 4x4s.",
+        specs: "2.2L · Diesel · Turbo · 150HP",
+        featured: true,
+    },
+    brakes: {
+        name: "Front Brake Pad Set", category: "parts",
+        price: 850, stock: 20,
+        description: "Premium ceramic front brake pads. Compatible with most Japanese and European vehicles. Smooth stopping with low dust.",
+        specs: "Ceramic · Front Axle · Low-Dust",
+        featured: false,
+    },
+    airfilter: {
+        name: "High-Flow Air Filter", category: "parts",
+        price: 650, stock: 30,
+        description: "Washable and reusable high-flow air filter. Increases airflow up to 15%. Fits standard airbox.",
+        specs: "Universal Fit · Reusable · Cotton Gauze",
+        featured: false,
+    },
+    battery: {
+        name: "12V Car Battery — 60Ah", category: "electrical",
+        price: 2800, stock: 8,
+        description: "Maintenance-free sealed lead-acid battery. High cold cranking amps. Fits most passenger vehicles.",
+        specs: "12V · 60Ah · 550CCA · Sealed",
+        featured: false,
+    },
+    transmission: {
+        name: "5-Speed Manual Gearbox", category: "transmission",
+        price: 15000, stock: 2,
+        description: "Reconditioned 5-speed manual gearbox. Fully tested. Fits various Toyota and Nissan models.",
+        specs: "5-Speed · Manual · Reconditioned",
+        featured: false,
+    },
+    exhaust: {
+        name: "Stainless Steel Exhaust System", category: "exhaust",
+        price: 4500, stock: 5,
+        description: "Full stainless steel cat-back exhaust system. Deep sound, improved flow, no rust.",
+        specs: "Stainless 304 · Cat-Back · Universal 2.5\"",
+        featured: false,
+    },
+};
+
+function applyTemplate(tplKey) {
+    const t = PRODUCT_TEMPLATES[tplKey];
+    if (!t) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+    set("productName",        t.name);
+    set("productCategory",    t.category);
+    set("productPrice",       t.price);
+    set("productStock",       t.stock);
+    set("productDescription", t.description);
+    set("productSpecs",       t.specs);
+    setCheck("productFeatured", t.featured);
+    document.getElementById("productName")?.focus();
+    showToast && showToast("info", `Template loaded: ${t.name}`);
+}
+
+document.querySelectorAll(".template-chip[data-tpl]").forEach(chip => {
+    chip.addEventListener("click", () => applyTemplate(chip.dataset.tpl));
+});
+
+// ── CLEAR FORM ──────────────────────────────────────────────
+document.getElementById("clearFormBtn")?.addEventListener("click", () => {
+    document.getElementById("productForm")?.reset();
+    document.getElementById("imagePreview").innerHTML = "";
+    document.getElementById("uploadProgressWrap")?.classList.remove("visible");
+    window._pendingImages = [];
+    showToast && showToast("info", "Form cleared");
+});
+
+// ── SAVE & ADD ANOTHER ──────────────────────────────────────
+document.getElementById("saveAndAddAnotherBtn")?.addEventListener("click", () => {
+    window._saveAndAddAnother = true;
+    document.getElementById("productForm")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+});
+
+// ── CTRL+S GLOBAL SAVE ─────────────────────────────────────
+document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        const adminVisible = document.querySelector(".admin-container")?.style.display !== "none";
+        if (!adminVisible) return;
+        const activeTab = document.querySelector(".admin-tab.active")?.dataset.tab;
+        if (activeTab === "products") {
+            const btn = document.getElementById("addProductBtn");
+            if (btn && document.getElementById("productName")?.value.trim()) {
+                document.getElementById("productForm")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+            }
+        }
+    }
+});
+
+// ── PASTE IMAGE (Ctrl+V anywhere on page) ──────────────────
+document.addEventListener("paste", e => {
+    const adminVisible = document.querySelector(".admin-container")?.style.display !== "none";
+    if (!adminVisible) return;
+    const activeTab = document.querySelector(".admin-tab.active")?.dataset.tab;
+    if (activeTab !== "products") return;
+
+    const items = [...(e.clipboardData?.items || [])];
+    const imageItems = items.filter(i => i.type.startsWith("image/"));
+    if (!imageItems.length) return;
+
+    e.preventDefault();
+    const files = imageItems.map(i => i.getAsFile()).filter(Boolean);
+    if (typeof window.handleImageFiles === "function") {
+        window.handleImageFiles(files);
+        showToast && showToast("success", `${files.length} image${files.length > 1 ? "s" : ""} pasted from clipboard`);
+    }
+});
+
+// ── TAB NAVIGATION ─────────────────────────────────────────
+document.querySelectorAll(".admin-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+        document.querySelectorAll(".admin-tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".admin-section").forEach(s => s.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("tab-" + tab.dataset.tab)?.classList.add("active");
     });
+});
+
+// ── DRAG & DROP FEEDBACK ────────────────────────────────────
+const zone = document.getElementById("uploadZone");
+if (zone) {
+    zone.addEventListener("dragover",  e => { e.preventDefault(); zone.classList.add("drag-over"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+    zone.addEventListener("drop",      e => {
+        e.preventDefault(); zone.classList.remove("drag-over");
+        const files = [...(e.dataTransfer?.files || [])];
+        if (files.length && typeof window.handleImageFiles === "function") {
+            window.handleImageFiles(files);
+        }
+    });
+}
+
+// ── QUOTE BADGE ──────────────────────────────────────────────
+const newQuotesEl = document.getElementById("newQuotesCount");
+if (newQuotesEl) {
+    new MutationObserver(() => {
+        const badge = document.getElementById("tabBadgeQuotes");
+        if (!badge) return;
+        const n = parseInt(newQuotesEl.textContent) || 0;
+        badge.textContent = n;
+        badge.style.display = n > 0 ? "inline-block" : "none";
+    }).observe(newQuotesEl, { childList:true, characterData:true, subtree:true });
+}
+
+// ── INLINE QUICK-EDIT STOCK ADJUSTMENTS ────────────────────
+document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-stock-adj]");
+    if (!btn) return;
+    const adj    = btn.dataset.stockAdj;
+    const input  = document.getElementById("editStock");
+    if (!input) return;
+    let val = parseInt(input.value) || 0;
+    if (adj.startsWith("+")) val += parseInt(adj);
+    else if (adj.startsWith("-")) val = Math.max(0, val + parseInt(adj));
+    else if (adj === "set0")  val = 0;
+    else if (adj === "set99") val = 99;
+    input.value = val;
+    input.classList.add("saving-flash");
+    setTimeout(() => input.classList.remove("saving-flash"), 500);
+});
+
+// ── ORDER FILTER ─────────────────────────────────────────────
+const orderSearch = document.getElementById("orderSearch");
+const orderStatusFilter = document.getElementById("orderStatusFilter");
+function filterOrders() {
+    const q = (orderSearch?.value || "").toLowerCase();
+    const s = (orderStatusFilter?.value || "").toLowerCase();
+    document.querySelectorAll(".admin-order-card").forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const matchQ = !q || text.includes(q);
+        const matchS = !s || card.dataset.status?.includes(s);
+        card.style.display = (matchQ && matchS) ? "" : "none";
+    });
+}
+orderSearch?.addEventListener("input", filterOrders);
+orderStatusFilter?.addEventListener("change", filterOrders);
+
+// ── ADMIN SEARCH + CATEGORY FILTER ─────────────────────────
+const adminCatFilter = document.getElementById("adminCategoryFilter");
+adminCatFilter?.addEventListener("change", () => {
+    const q   = (document.getElementById("adminSearch")?.value || "").toLowerCase();
+    const cat = adminCatFilter.value.toLowerCase();
+    document.querySelectorAll(".admin-product-row").forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const matchQ   = !q   || text.includes(q);
+        const matchCat = !cat || row.dataset.category?.includes(cat);
+        row.style.display = (matchQ && matchCat) ? "" : "none";
+    });
+});
+
+// ── LAST SAVED BADGE ─────────────────────────────────────────
+function updateLastSaved() {
+    const badge = document.getElementById("lastSavedBadge");
+    if (!badge) return;
+    badge.textContent = "Saved " + new Date().toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+// Hook into save button
+document.getElementById("productForm")?.addEventListener("submit", () => setTimeout(updateLastSaved, 1200));
+
+// ── CSV TEMPLATE DOWNLOAD ────────────────────────────────────
+document.getElementById("downloadCsvTemplate")?.addEventListener("click", () => {
+    const header = "name,category,price,stock,description,specs,featured";
+    const rows = [
+        'V8 Engine Remanufactured,engine,45000,2,"Fully remanufactured V8 engine","5.0L · 400HP",true',
+        'Front Brake Pads,parts,850,20,"Premium ceramic brake pads","Ceramic · Front Axle",false',
+    ];
+    const csv  = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = "mat-auto-products-template.csv"; a.click();
+    URL.revokeObjectURL(url);
+    showToast && showToast("success", "Template CSV downloaded");
+});
+
+// ── CSV FILE IMPORT ───────────────────────────────────────────
+let parsedCsvProducts = [];
+document.getElementById("csvFileInput")?.addEventListener("change", function() {
+    const file = this.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => parseCsvFile(e.target.result);
+    reader.readAsText(file);
+});
+const csvUploadZone = document.getElementById("csvUploadZone");
+if (csvUploadZone) {
+    csvUploadZone.addEventListener("dragover",  ev => { ev.preventDefault(); csvUploadZone.classList.add("drag-over"); });
+    csvUploadZone.addEventListener("dragleave", () => csvUploadZone.classList.remove("drag-over"));
+    csvUploadZone.addEventListener("drop",      ev => {
+        ev.preventDefault(); csvUploadZone.classList.remove("drag-over");
+        const file = ev.dataTransfer?.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e2 => parseCsvFile(e2.target.result);
+        reader.readAsText(file);
+    });
+}
+function parseCsvFile(text) {
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { showToast && showToast("error", "CSV is empty or invalid"); return; }
+    const headers = lines[0].split(",").map(h => h.toLowerCase().trim().replace(/"/g,""));
+    parsedCsvProducts = [];
+    for (let i = 1; i < lines.length; i++) {
+        const vals = lines[i].match(/(?:"[^"]*"|[^,])+/g)?.map(v => v.trim().replace(/^"|"$/g,"")) || [];
+        const p = {};
+        headers.forEach((h, idx) => { p[h] = vals[idx] || ""; });
+        if (!p.name) continue;
+        parsedCsvProducts.push({
+            name       : p.name,
+            category   : p.category   || "parts",
+            price      : parseFloat(p.price)  || 0,
+            stock      : parseInt(p.stock)     || 0,
+            description: p.description || "",
+            specs      : p.specs       || "",
+            featured   : p.featured === "true" || p.featured === "1",
+        });
+    }
+    renderCsvPreview();
+}
+function renderCsvPreview() {
+    const preview = document.getElementById("csvPreview");
+    const count   = document.getElementById("csvPreviewCount");
+    const table   = document.getElementById("csvPreviewTable");
+    if (!preview || !table) return;
+    preview.style.display = "block";
+    count.textContent = `${parsedCsvProducts.length} products ready to import`;
+    table.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+            <thead><tr style="background:var(--bg);">
+                <th style="padding:6px 10px;text-align:left;border:1px solid var(--border);">#</th>
+                <th style="padding:6px 10px;text-align:left;border:1px solid var(--border);">Name</th>
+                <th style="padding:6px 10px;text-align:left;border:1px solid var(--border);">Category</th>
+                <th style="padding:6px 10px;text-align:left;border:1px solid var(--border);">Price</th>
+                <th style="padding:6px 10px;text-align:left;border:1px solid var(--border);">Stock</th>
+            </tr></thead>
+            <tbody>${parsedCsvProducts.map((p,i) => `
+                <tr><td style="padding:5px 10px;border:1px solid var(--border);">${i+1}</td>
+                    <td style="padding:5px 10px;border:1px solid var(--border);font-weight:600;">${p.name}</td>
+                    <td style="padding:5px 10px;border:1px solid var(--border);">${p.category}</td>
+                    <td style="padding:5px 10px;border:1px solid var(--border);">GMD ${p.price}</td>
+                    <td style="padding:5px 10px;border:1px solid var(--border);">${p.stock}</td>
+                </tr>`).join("")}
+            </tbody>
+        </table>`;
+}
+document.getElementById("importCsvBtn")?.addEventListener("click", () => bulkImportProducts(parsedCsvProducts));
+
+// ── JSON IMPORT ───────────────────────────────────────────────
+document.getElementById("validateJsonBtn")?.addEventListener("click", () => {
+    const raw = document.getElementById("bulkJsonInput")?.value?.trim();
+    const msg = document.getElementById("jsonValidationMsg");
+    if (!msg) return;
+    try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) throw new Error("Must be a JSON array");
+        msg.innerHTML = `<span style="color:var(--success);font-weight:700;">✅ Valid — ${arr.length} products found</span>`;
+    } catch(err) {
+        msg.innerHTML = `<span style="color:var(--danger);font-weight:700;">❌ ${err.message}</span>`;
+    }
+});
+document.getElementById("importJsonBtn")?.addEventListener("click", () => {
+    const raw = document.getElementById("bulkJsonInput")?.value?.trim();
+    try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr) || !arr.length) { showToast("error","Invalid or empty JSON array"); return; }
+        bulkImportProducts(arr);
+    } catch(err) {
+        showToast("error", "Invalid JSON: " + err.message);
+    }
+});
+
+// ── BULK IMPORT ENGINE ────────────────────────────────────────
+async function bulkImportProducts(products) {
+    if (!products.length) { showToast && showToast("error","No products to import"); return; }
+
+    const card     = document.getElementById("bulkProgressCard");
+    const fill     = document.getElementById("bulkProgressFill");
+    const text     = document.getElementById("bulkProgressText");
+    const log      = document.getElementById("bulkProgressLog");
+    if (card) { card.style.display = "block"; }
+
+    const logLine = (msg, ok = true) => {
+        if (log) log.innerHTML += `<div style="color:${ok?"var(--success)":"var(--danger)"};">${msg}</div>`;
+    };
+    logLine(`⚡ Starting bulk import of ${products.length} products…`, true);
+
+    let done = 0, errors = 0;
+    // Import in batches of 5 for speed
+    const BATCH = 5;
+    for (let i = 0; i < products.length; i += BATCH) {
+        const batch = products.slice(i, i + BATCH);
+        await Promise.all(batch.map(async p => {
+            try {
+                const product = {
+                    id         : "prod-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,6),
+                    name       : p.name       || "Unnamed Product",
+                    category   : p.category   || "parts",
+                    price      : parseFloat(p.price) || 0,
+                    stock      : parseInt(p.stock)   || 0,
+                    description: p.description || "",
+                    specs      : p.specs       || "",
+                    featured   : !!(p.featured),
+                    images     : p.image ? [p.image] : [],
+                    rating     : 4.5, ratingCount: 0,
+                    createdAt  : Date.now(),
+                    views      : 0,
+                };
+                // Use app.js fbWrite or push to Firebase
+                if (typeof db !== "undefined" && db) {
+                    await db.ref("matAutoProducts/" + product.id).set(product);
+                }
+                done++;
+                const pct = Math.round((done / products.length) * 100);
+                if (fill) fill.style.width = pct + "%";
+                if (text) text.textContent = `${done} / ${products.length} imported (${pct}%)`;
+                logLine(`✅ ${p.name}`, true);
+            } catch(err) {
+                errors++;
+                logLine(`❌ ${p.name}: ${err.message}`, false);
+            }
+        }));
+        // Short pause between batches to avoid rate limiting
+        if (i + BATCH < products.length) await new Promise(r => setTimeout(r, 80));
+    }
+
+    const summary = `Import complete: ${done} saved, ${errors} errors.`;
+    if (text) text.textContent = summary;
+    logLine("──────────────────────", true);
+    logLine(summary, errors === 0);
+    showToast && showToast(errors ? "warning" : "success", summary);
+
+    // Reload inventory list
+    if (typeof renderAdminProducts === "function") setTimeout(renderAdminProducts, 500);
+}
+
+// ── EXPORT PRODUCTS CSV ──────────────────────────────────────
+document.getElementById("exportProductsBtn")?.addEventListener("click", async () => {
+    const rows = document.querySelectorAll(".admin-product-row");
+    if (!rows.length) { showToast("warning","No products to export"); return; }
+    const header = "id,name,category,price,stock,description,specs,featured";
+    const lines  = [header];
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("[data-export]");
+        const vals = [...cols].map(c => `"${(c.dataset.export||"").replace(/"/g,'""')}"`);
+        lines.push(vals.join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = `mat-auto-products-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast && showToast("success","Products exported to CSV");
 });
 </script>
 </body>
