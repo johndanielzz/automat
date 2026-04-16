@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
     <link rel="apple-touch-icon" href="image.jpg">
+    <link rel="stylesheet" href="perf-patch.css">
 
     <!-- ── PAGE-SPECIFIC STYLES ── -->
     <style>
@@ -2000,9 +2001,29 @@ function installApp() {
 }
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+        navigator.serviceWorker.register('service-worker.js')
+            .then(reg => {
+                console.log('✅ Service Worker registered:', reg.scope);
+                // Notify app that SW is ready
+                window.dispatchEvent(new CustomEvent('swready'));
+            })
+            .catch(err => {
+                console.warn('⚠️ Service Worker registration failed:', err);
+            });
     });
 }
+
+// Detect online/offline status
+window.addEventListener('online', () => {
+    document.body.classList.remove('offline-mode');
+    console.log('✅ Back online');
+    location.reload();
+});
+
+window.addEventListener('offline', () => {
+    document.body.classList.add('offline-mode');
+    console.log('❌ Offline mode activated');
+});
 
 /* ── COUNTDOWN TIMER (end of day) ── */
 function startCountdown() {
@@ -2179,5 +2200,6 @@ document.querySelectorAll('.feature-card, .testimonial-card, .tip-card, .cat-pil
         revealObs.observe(el);
     });
 </script>
+<script src="app-perf-patch.js"></script>
 </body>
 </html>

@@ -2,37 +2,214 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Offline — Mat Auto</title>
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <link rel="stylesheet" href="perf-patch.css">
     <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; background: var(--bg); padding: 2rem; }
-        .offline-box { max-width: 480px; }
-        .offline-icon { font-size: 4rem; margin-bottom: 1.5rem; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-        h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 900; color: var(--text-dark); margin-bottom: .75rem; }
-        p { color: var(--text-mid); font-size: clamp(.88rem, 2vw, 1rem); line-height: 1.7; margin-bottom: 2rem; }
-        .offline-links { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem; }
-        .retry-btn { animation: glowPulse 2.5s ease-in-out infinite; }
+        body { 
+            display: flex; align-items: center; justify-content: center; 
+            min-height: 100vh; text-align: center; background: var(--bg); 
+            padding: clamp(1.5rem, 5vw, 2rem);
+            font-family: 'Cabinet Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .offline-container { 
+            max-width: 480px; 
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .offline-icon { 
+            font-size: clamp(3rem, 10vw, 5rem); 
+            margin-bottom: 1.5rem; 
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float { 
+            0%, 100% { transform: translateY(0) rotate(0deg); } 
+            50% { transform: translateY(-16px) rotate(5deg); } 
+        }
+        h1 { 
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem); 
+            font-weight: 900; 
+            color: var(--text-dark); 
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
+        }
+        p { 
+            color: var(--text-mid); 
+            font-size: clamp(0.85rem, 2vw, 1rem); 
+            line-height: 1.7; 
+            margin-bottom: 2rem;
+        }
+        .offline-status {
+            background: var(--surface);
+            border: 2px solid var(--primary);
+            border-radius: var(--r-lg);
+            padding: clamp(1rem, 3vw, 1.5rem);
+            margin-bottom: 2rem;
+            color: var(--text-mid);
+        }
+        .offline-status strong {
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--danger);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .offline-actions { 
+            display: flex; 
+            gap: clamp(0.5rem, 2vw, 0.75rem); 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            margin-bottom: 2rem;
+        }
+        .btn {
+            padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
+            border: none;
+            border-radius: var(--r-lg);
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 130, 31, 0.3);
+            flex: 1;
+            min-width: 140px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 130, 31, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            flex: 1;
+            min-width: 140px;
+        }
+        .btn-outline:hover {
+            background: var(--primary-pale);
+        }
+        .offline-tips {
+            background: var(--surface-2);
+            border-radius: var(--r-lg);
+            padding: clamp(1rem, 3vw, 1.5rem);
+            text-align: left;
+        }
+        .offline-tips h3 {
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .offline-tips ul {
+            list-style: none;
+            color: var(--text-mid);
+            font-size: clamp(0.8rem, 1.5vw, 0.88rem);
+            line-height: 1.8;
+        }
+        .offline-tips li:before {
+            content: "✓ ";
+            color: var(--success);
+            font-weight: 700;
+            margin-right: 0.5rem;
+        }
+        .offline-tips li {
+            margin-bottom: 0.75rem;
+        }
+        @media (max-width: 480px) {
+            .offline-actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+            .btn-primary, .btn-outline {
+                flex: unset;
+                min-width: unset;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="offline-box">
+    <div class="offline-container">
         <div class="offline-icon">📡</div>
-        <h1>You're Offline</h1>
-        <p>It looks like your internet connection is unavailable. Some cached pages may still be accessible below.</p>
-        <div class="offline-links">
-            <a href="index.html" class="btn btn-primary retry-btn">🏠 Home</a>
-            <a href="orders.html" class="btn btn-outline">📦 My Orders</a>
-            <a href="faq.html" class="btn btn-outline">❓ FAQ</a>
+        <h1>No Internet Connection</h1>
+        <p>Mat Auto requires an internet connection to load content. Your cached pages are available below.</p>
+        
+        <div class="offline-status">
+            <strong><span class="status-dot"></span> Currently Offline</strong>
         </div>
-        <button onclick="location.reload()" class="btn btn-ghost" style="width:100%;">🔄 Try Again</button>
-        <p style="font-size:.8rem;margin-top:1.5rem;color:var(--text-muted);">
-            Previously visited pages are available offline. Product catalog requires a connection.
+        
+        <div class="offline-actions">
+            <a href="index.html" class="btn btn-primary">🏠 Go Home</a>
+            <a href="orders.html" class="btn btn-outline">📦 My Orders</a>
+        </div>
+        
+        <div class="offline-tips">
+            <h3>📋 What You Can Do</h3>
+            <ul>
+                <li>View previously visited pages (cached)</li>
+                <li>Check your saved orders</li>
+                <li>Read FAQ and help articles</li>
+                <li>View warranty information</li>
+            </ul>
+        </div>
+        
+        <button onclick="location.reload()" style="width:100%;margin-top:1.5rem;" class="btn" style="background:var(--surface);border:2px solid var(--border);color:var(--text-dark);">
+            🔄 Try Again
+        </button>
+        
+        <p style="font-size:clamp(0.75rem, 1.2vw, 0.82rem);margin-top:2rem;color:var(--text-muted);">
+            Once you're back online, restart the app for the latest products and updates.
         </p>
     </div>
-    <script src="app.js"></script>
+
+    <script>
+        // Auto-reload when back online
+        window.addEventListener('online', () => {
+            console.log('✅ Connection restored!');
+            setTimeout(() => {
+                location.replace('index.html');
+            }, 500);
+        });
+        
+        // Show connection status
+        window.addEventListener('offline', () => {
+            console.log('❌ Connection lost');
+        });
+    </script>
 </body>
 </html>

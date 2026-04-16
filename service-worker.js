@@ -14,10 +14,10 @@ const MAX_DYNAMIC_ITEMS = 60;
 const MAX_IMAGE_ITEMS   = 40;
 
 const STATIC_ASSETS = [
-    '/index.html', '/about.html', '/admin.html', '/checkout.html',
-    '/contact.html', '/features.html', '/orders.html',
-    '/promos.html', '/reviews.html', '/faq.html', '/track.html', '/warranty.html',
-    '/styles.css', '/app.js', '/manifest.json'
+    './index.html', './about.html', './admin.html', './checkout.html',
+    './contact.html', './features.html', './orders.html', './offline.html',
+    './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
+    './styles.css', './app.js', './app-perf-patch.js', './manifest.json'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -125,10 +125,9 @@ self.addEventListener('fetch', event => {
             if (cached) { networkFetch.catch(() => {}); return cached; }
             const fresh = await networkFetch;
             if (fresh) return fresh;
-            const fallback = await caches.match('/index.html');
-            return fallback || new Response('<h1>Offline</h1><p>Check your connection.</p>', {
-                headers: { 'Content-Type': 'text/html' }
-            });
+            // Try to serve offline.html as fallback
+            const offline = await caches.match('./offline.html');
+            return offline || await caches.match('./index.html') || new Response('Check your connection', { status: 503 });
         }));
         return;
     }
