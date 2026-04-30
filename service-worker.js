@@ -5,7 +5,7 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v3';
+const CACHE_VERSION    = 'mat-auto-v5';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
     './index.html', './about.html', './admin.html', './checkout.html',
     './contact.html', './features.html', './orders.html', './offline.html',
     './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
+    './reciept.html', './receipt.html', './delivery-drivers.html',
     './styles.css', './app.js', './app-perf-patch.js', './manifest.json'
 ];
 
@@ -104,12 +105,18 @@ self.addEventListener('fetch', event => {
         event.respondWith(caches.match(request).then(async cached => {
             if (cached) {
                 fetch(request).then(res => {
-                    if (res.ok) caches.open(STATIC_CACHE).then(c => c.put(request, res));
+                    if (res.ok) {
+                        const resClone = res.clone();
+                        caches.open(STATIC_CACHE).then(c => c.put(request, resClone));
+                    }
                 }).catch(() => {});
                 return cached;
             }
             const fresh = await fetch(request);
-            if (fresh.ok) caches.open(STATIC_CACHE).then(c => c.put(request, fresh.clone()));
+            if (fresh.ok) {
+                const freshClone = fresh.clone();
+                caches.open(STATIC_CACHE).then(c => c.put(request, freshClone));
+            }
             return fresh;
         }).catch(() => caches.match(request)));
         return;

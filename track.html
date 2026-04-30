@@ -177,8 +177,11 @@
 
                 <div class="timeline" id="orderTimeline"></div>
 
+                <div id="deliveryMeta" style="margin-top:1rem;"></div>
+
                 <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem;">
                     <a id="trackWA" href="#" target="_blank" class="btn btn-whatsapp" style="flex:1;text-align:center;">💬 Update via WhatsApp</a>
+                    <a id="trackMapBtn" href="#" target="_blank" class="btn btn-outline" style="flex:1;text-align:center;display:none;">📍 Open Delivery Map</a>
                     <a href="contact.html" class="btn btn-outline" style="flex:1;text-align:center;">📞 Contact Support</a>
                 </div>
             </div>
@@ -201,8 +204,8 @@
                 <p>Confirmed and being prepared for dispatch.</p>
             </div>
             <div class="feature-card">
-                <h3>🚚 Shipped</h3>
-                <p>On the way to your delivery address.</p>
+                <h3>🚚 Out for Delivery</h3>
+                <p>Assigned to delivery and moving to your address.</p>
             </div>
             <div class="feature-card">
                 <h3>✅ Completed</h3>
@@ -234,24 +237,24 @@
     <div class="footer-bottom"><p>&copy; 2026 Mat Auto. All rights reserved.</p></div>
 </footer>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-<script src="app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
+<script src="app.js?v=2026-04-30-4"></script>
 <script>
 const STATUS_STEPS = {
-    pending:    { index: 0, label: 'Pending',    emoji: '📋' },
+    pending: { index: 0, label: 'Pending', emoji: '📋' },
     processing: { index: 1, label: 'Processing', emoji: '🔄' },
-    shipped:    { index: 2, label: 'Shipped',    emoji: '🚚' },
-    completed:  { index: 3, label: 'Completed',  emoji: '✅' },
-    cancelled:  { index: -1, label: 'Cancelled', emoji: '❌' }
+    outfordelivery: { index: 2, label: 'Out for Delivery', emoji: '🚚' },
+    completed: { index: 3, label: 'Completed', emoji: '✅' },
+    cancelled: { index: -1, label: 'Cancelled', emoji: '❌' }
 };
 
 const TIMELINE_DEFS = [
-    { key: 'pending',    title: 'Order Received',       desc: 'Your order has been received and is under review.' },
-    { key: 'processing', title: 'Order Confirmed',      desc: 'Payment confirmed. Your items are being prepared for dispatch.' },
-    { key: 'shipped',    title: 'Out for Delivery',     desc: 'Your order is on its way to your delivery address.' },
-    { key: 'completed',  title: 'Delivered',            desc: 'Your order has been successfully delivered. Enjoy!' },
+    { key: 'pending', title: 'Order Received', desc: 'Your order has been received and is under review.' },
+    { key: 'processing', title: 'Packing & Confirmation', desc: 'The order is being confirmed, packed, and prepared.' },
+    { key: 'outfordelivery', title: 'Out for Delivery', desc: 'A rider has been assigned and the location details are now active.' },
+    { key: 'completed', title: 'Delivered', desc: 'The order has been delivered successfully.' }
 ];
 
 function formatDate(ts) {
@@ -260,32 +263,98 @@ function formatDate(ts) {
     catch { return '—'; }
 }
 
+function money(value) {
+    return `GMD ${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function statusKey(raw) {
+    return String(raw || 'Pending').toLowerCase().replace(/\s+/g, '');
+}
+
+function resolveStatus(raw) {
+    return STATUS_STEPS[statusKey(raw)] || STATUS_STEPS.pending;
+}
+
+function buildMapUrl(order) {
+    if (order.delivery?.mapUrl) return order.delivery.mapUrl;
+    const parts = [
+        order.delivery?.address,
+        order.delivery?.landmark,
+        order.delivery?.area,
+        order.delivery?.city,
+        order.delivery?.country
+    ].filter(Boolean);
+    if (!parts.length) return '';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`;
+}
+
 function renderTimeline(status) {
-    const cur = STATUS_STEPS[status] || STATUS_STEPS.pending;
-    if (status === 'cancelled') {
-        return `<div class="tl-step active"><div class="tl-dot" style="border-color:var(--danger);background:var(--danger);">❌</div><div class="tl-content"><div class="tl-title" style="color:var(--danger);">Order Cancelled</div><div class="tl-desc">This order has been cancelled. Contact us for assistance.</div></div></div>`;
+    const key = statusKey(status);
+    const cur = resolveStatus(status);
+    if (key === 'cancelled') {
+        return `<div class="tl-step active"><div class="tl-dot" style="border-color:var(--danger);background:var(--danger);">❌</div><div class="tl-content"><div class="tl-title" style="color:var(--danger);">Order Cancelled</div><div class="tl-desc">This order has been cancelled. Contact support for help.</div></div></div>`;
     }
     return TIMELINE_DEFS.map((def, i) => {
-        const done   = i < cur.index;
+        const done = i < cur.index;
         const active = i === cur.index;
-        const cls    = done ? 'done' : active ? 'active' : '';
-        const emoji  = done ? '✓' : STATUS_STEPS[def.key].emoji;
+        const cls = done ? 'done' : active ? 'active' : '';
+        const emoji = done ? '✓' : STATUS_STEPS[def.key].emoji;
         return `<div class="tl-step ${cls}"><div class="tl-dot">${emoji}</div><div class="tl-content"><div class="tl-title">${def.title}</div><div class="tl-desc">${def.desc}</div></div></div>`;
     }).join('');
 }
 
 function renderOrderInfo(order) {
     const productName = (Array.isArray(order.items) && order.items[0]?.name) || order.product?.name || order.productName || 'Order';
-    const total = order.total ? `GMD ${Number(order.total).toLocaleString()}` : '—';
-    const statusInfo = STATUS_STEPS[order.status] || STATUS_STEPS.pending;
+    const info = resolveStatus(order.status);
+    const deliveryFee = Number(order.delivery?.fee) || 0;
     return `
         <div class="toi-item"><label>Order ID</label><span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--primary);">${order.id}</span></div>
-        <div class="toi-item"><label>Status</label><span>${statusInfo.emoji} ${statusInfo.label}</span></div>
+        <div class="toi-item"><label>Status</label><span>${info.emoji} ${info.label}</span></div>
         <div class="toi-item"><label>Product</label><span>${productName}</span></div>
-        <div class="toi-item"><label>Total</label><span>${total}</span></div>
-        <div class="toi-item"><label>Customer</label><span>${order.customerName || order.name || '—'}</span></div>
+        <div class="toi-item"><label>Total</label><span>${money(order.total)}</span></div>
+        <div class="toi-item"><label>Customer</label><span>${order.customer?.name || order.customerName || order.name || '—'}</span></div>
         <div class="toi-item"><label>Date</label><span>${formatDate(order.createdAt)}</span></div>
+        <div class="toi-item"><label>Delivery Fee</label><span>${money(deliveryFee)}</span></div>
+        <div class="toi-item"><label>Driver</label><span>${order.delivery?.driverName || 'Unassigned'}</span></div>
     `;
+}
+
+function renderDeliveryMeta(order) {
+    const parts = [
+        order.delivery?.address,
+        order.delivery?.landmark,
+        order.delivery?.area,
+        order.delivery?.city
+    ].filter(Boolean);
+    if (!parts.length && !order.delivery?.driverPhone && !order.delivery?.receiptBody) return '';
+    const mapUrl = buildMapUrl(order);
+    return `
+        <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:1rem 1.1rem;">
+            <h4 style="margin:0 0 .65rem;font-family:'Syne',sans-serif;color:var(--text-dark);">Delivery Details</h4>
+            ${parts.length ? `<p style="margin:0 0 .5rem;color:var(--text-dark);"><strong>Address:</strong> ${parts.join(', ')}</p>` : ''}
+            ${order.delivery?.driverPhone ? `<p style="margin:0 0 .5rem;color:var(--text-dark);"><strong>Driver Phone:</strong> ${order.delivery.driverPhone}</p>` : ''}
+            ${order.delivery?.receiptBody ? `<p style="margin:0;color:var(--text-mid);font-size:.84rem;white-space:pre-wrap;">${order.delivery.receiptBody}</p>` : ''}
+            ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:.8rem;">📍 Open Delivery Location</a>` : ''}
+        </div>
+    `;
+}
+
+function getKnownOrders() {
+    if (globalThis.maApp?.state?.orders?.length) return globalThis.maApp.state.orders;
+    return JSON.parse(localStorage.getItem('maAllOrders') || '[]');
+}
+
+async function lookupOrder(id) {
+    let order = getKnownOrders().find(item => item.id === id) || null;
+    if (!order && window.db) {
+        const snap = await db.ref('matAutoOrders').orderByChild('id').equalTo(id).once('value');
+        const val = snap.val();
+        if (val) {
+            const entries = Object.values(val);
+            if (entries.length) order = entries[0];
+        }
+    }
+    return order;
 }
 
 async function trackOrder(id) {
@@ -298,28 +367,23 @@ async function trackOrder(id) {
     document.getElementById('trackBtn').disabled = true;
 
     try {
-        // Try local orders first
-        const localIds = JSON.parse(localStorage.getItem('maMyOrderIds') || '[]');
-        const localAll = JSON.parse(localStorage.getItem('maAllOrders') || '[]');
-        let order = localAll.find(o => o.id === id);
-
-        // Try Firebase
-        if (!order && window.db) {
-            const snap = await db.ref('matAutoOrders').orderByChild('id').equalTo(id).once('value');
-            const val = snap.val();
-            if (val) {
-                const entries = Object.values(val);
-                if (entries.length) order = entries[0];
-            }
-        }
-
+        const order = await lookupOrder(id);
         if (!order) {
             document.getElementById('noOrder').style.display = 'block';
         } else {
             document.getElementById('orderInfo').innerHTML = renderOrderInfo(order);
-            document.getElementById('orderTimeline').innerHTML = renderTimeline(order.status || 'pending');
-            const msg = encodeURIComponent(`Hi Mat Auto, I'd like to track my order: ${order.id}`);
+            document.getElementById('orderTimeline').innerHTML = renderTimeline(order.status || 'Pending');
+            document.getElementById('deliveryMeta').innerHTML = renderDeliveryMeta(order);
+            const msg = encodeURIComponent(`Hi Mat Auto, I'd like an update on order ${order.id}.`);
             document.getElementById('trackWA').href = `https://wa.me/2206785316?text=${msg}`;
+            const mapUrl = buildMapUrl(order);
+            const mapBtn = document.getElementById('trackMapBtn');
+            if (mapUrl) {
+                mapBtn.href = mapUrl;
+                mapBtn.style.display = 'inline-flex';
+            } else {
+                mapBtn.style.display = 'none';
+            }
             document.getElementById('orderFound').style.display = 'block';
         }
     } catch (err) {
@@ -331,42 +395,37 @@ async function trackOrder(id) {
     }
 }
 
-document.getElementById('trackBtn').addEventListener('click', () => {
-    trackOrder(document.getElementById('trackId').value);
-});
+document.getElementById('trackBtn').addEventListener('click', () => trackOrder(document.getElementById('trackId').value));
 document.getElementById('trackId').addEventListener('keydown', e => {
     if (e.key === 'Enter') trackOrder(document.getElementById('trackId').value);
 });
 
-// Load recent orders from localStorage
 function loadRecentOrders() {
     try {
         const ids = JSON.parse(localStorage.getItem('maMyOrderIds') || '[]');
         const all = JSON.parse(localStorage.getItem('maAllOrders') || '[]');
-        const mine = all.filter(o => ids.includes(o.id)).slice(-5).reverse();
+        const mine = all.filter(order => ids.includes(order.id)).slice(-5).reverse();
         if (!mine.length) return;
         const sec = document.getElementById('recentOrdersSection');
         const list = document.getElementById('recentOrdersList');
         sec.style.display = 'block';
-        list.innerHTML = mine.map(o => {
-            const name = (Array.isArray(o.items) && o.items[0]?.name) || o.product?.name || 'Order';
-            const st = STATUS_STEPS[o.status] || STATUS_STEPS.pending;
-            return `<div class="recent-order-row" onclick="document.getElementById('trackId').value='${o.id}';trackOrder('${o.id}')">
-                <span class="ror-id">${o.id}</span>
+        list.innerHTML = mine.map(order => {
+            const name = (Array.isArray(order.items) && order.items[0]?.name) || order.product?.name || 'Order';
+            const st = resolveStatus(order.status);
+            return `<div class="recent-order-row" onclick="document.getElementById('trackId').value='${order.id}';trackOrder('${order.id}')">
+                <span class="ror-id">${order.id}</span>
                 <span class="ror-name">${name}</span>
                 <span style="flex-shrink:0;font-size:.8rem;">${st.emoji} ${st.label}</span>
-                <span class="ror-date">${formatDate(o.createdAt)}</span>
+                <span class="ror-date">${formatDate(order.createdAt)}</span>
             </div>`;
         }).join('');
-    } catch(e) {}
+    } catch (e) {}
 }
 
-// Pre-fill from URL param
 const urlId = new URLSearchParams(location.search).get('id');
 if (urlId) {
     document.getElementById('trackId').value = urlId;
     document.addEventListener('appReady', () => trackOrder(urlId), { once: true });
-    // Fallback if event doesn't fire
     setTimeout(() => {
         if (document.getElementById('orderFound').style.display === 'none' &&
             document.getElementById('noOrder').style.display === 'none') {

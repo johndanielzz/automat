@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Delivery Driver Sheet — Mat Auto</title>
+    <meta name="description" content="Driver-facing delivery instructions and location sheet for Mat Auto orders.">
+    <meta name="theme-color" content="#1B2A4A">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <style>
+        .driver-hero {
+            background: linear-gradient(145deg, var(--navy) 0%, #12233f 100%);
+            color: #fff;
+            padding: clamp(2.5rem, 6vw, 4rem) 0;
+        }
+        .driver-hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: .5rem;
+        }
+        .driver-shell {
+            padding: clamp(1.5rem, 4vw, 3rem) 0 4rem;
+        }
+        .driver-grid {
+            display: grid;
+            grid-template-columns: minmax(300px, .85fr) minmax(320px, 1.15fr);
+            gap: 1.2rem;
+        }
+        .driver-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-2xl);
+            box-shadow: var(--shadow-lg);
+            padding: clamp(1rem, 3vw, 1.5rem);
+        }
+        .driver-card h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1rem;
+            margin-bottom: .9rem;
+        }
+        .driver-meta {
+            display: grid;
+            gap: .75rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .driver-meta .item, .address-box, .driver-note {
+            background: var(--surface-2);
+            border-radius: 18px;
+            padding: .9rem 1rem;
+        }
+        .driver-meta .item label, .address-box label, .driver-note label {
+            display: block;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-muted);
+            font-weight: 800;
+            margin-bottom: .35rem;
+        }
+        .driver-meta .item span, .address-box span, .driver-note div {
+            color: var(--text-dark);
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .address-box, .driver-note {
+            margin-top: .9rem;
+        }
+        .driver-actions {
+            display: flex;
+            gap: .75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .driver-actions .btn {
+            flex: 1 1 180px;
+        }
+        .driver-items {
+            display: grid;
+            gap: .7rem;
+        }
+        .driver-item {
+            display: flex;
+            justify-content: space-between;
+            gap: .75rem;
+            padding: .85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--surface-2);
+        }
+        .driver-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            background: var(--primary-pale);
+            color: var(--primary-dark);
+            border-radius: var(--r-full);
+            padding: .4rem .8rem;
+            font-weight: 800;
+            font-size: .82rem;
+        }
+        .driver-empty {
+            max-width: 620px;
+            margin: 2rem auto 0;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-2xl);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            text-align: center;
+        }
+        @media (max-width: 900px) {
+            .driver-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .driver-meta { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>Driver Sheet</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="track.html">Track</a></li>
+            <li><a href="reciept.html">Receipt</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<section class="driver-hero">
+    <div class="container">
+        <h1>🚚 Delivery Driver Sheet</h1>
+        <p style="max-width:720px;color:rgba(255,255,255,.72);">Share this page with the rider so they can open the delivery location, see the customer contact, and confirm the delivery charge before moving.</p>
+    </div>
+</section>
+
+<main class="driver-shell">
+    <div class="container">
+        <div class="form-card" style="max-width:680px;margin:0 auto 1.25rem;">
+            <div class="form-group">
+                <label for="driverOrderId">Order ID</label>
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+                    <input id="driverOrderId" type="text" placeholder="Enter order ID or use shared link" style="flex:1;min-width:220px;">
+                    <button id="loadDriverOrderBtn" class="btn btn-primary" type="button">Load Delivery Sheet</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="driverEmpty" class="driver-empty">
+            <p style="font-size:2rem;margin-bottom:.45rem;">📍</p>
+            <h2 style="font-family:'Syne',sans-serif;margin-bottom:.5rem;">No delivery selected yet</h2>
+            <p style="color:var(--text-mid);">Open this page with an order link from the receipt page, or type an order ID above.</p>
+        </div>
+
+        <div id="driverSheet" class="driver-grid" style="display:none;">
+            <section class="driver-card">
+                <h2>Delivery Summary</h2>
+                <div id="driverSummary"></div>
+                <div class="driver-actions">
+                    <a id="driverMapBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener">🗺 Open Map</a>
+                    <a id="driverBuyerWaBtn" class="btn btn-whatsapp" href="#" target="_blank" rel="noopener">💬 Buyer WhatsApp</a>
+                    <a id="driverTrackBtn" class="btn btn-outline" href="#" target="_blank" rel="noopener">📦 Track Order</a>
+                </div>
+            </section>
+
+            <section class="driver-card">
+                <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem;">
+                    <h2 style="margin:0;">Items To Deliver</h2>
+                    <span id="driverStatusBadge" class="driver-status">Pending</span>
+                </div>
+                <div id="driverItems" class="driver-items"></div>
+                <div class="address-box">
+                    <label>Address</label>
+                    <span id="driverAddress"></span>
+                </div>
+                <div class="driver-note">
+                    <label>Delivery Notes</label>
+                    <div id="driverNotes">No extra delivery instructions yet.</div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+<footer class="footer">
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. Driver handoff and route summary.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
+<script src="app.js?v=2026-04-30-4"></script>
+<script>
+function el(id) {
+    return document.getElementById(id);
+}
+
+let driverPageBooted = false;
+
+function money(value) {
+    return `GMD ${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getOrders() {
+    if (globalThis.maApp?.state?.orders?.length) return globalThis.maApp.state.orders;
+    return JSON.parse(localStorage.getItem("maAllOrders") || "[]");
+}
+
+function getOrderById(orderId) {
+    if (globalThis.maApp?.getOrderById) return globalThis.maApp.getOrderById(orderId);
+    return getOrders().find(order => order.id === orderId) || null;
+}
+
+function mapUrlFor(order) {
+    if (order.delivery?.mapUrl) return order.delivery.mapUrl;
+    const parts = [
+        order.delivery?.address,
+        order.delivery?.landmark,
+        order.delivery?.area,
+        order.delivery?.city,
+        order.delivery?.country
+    ].filter(Boolean);
+    if (!parts.length) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Mat Auto Gambia")}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+}
+
+function buyerWhatsApp(order) {
+    const phone = (order.customer?.phone || "").replace(/\D/g, "");
+    const lines = [
+        `Hello ${order.customer?.name || ""},`,
+        `This is your delivery rider for order ${order.id}.`,
+        order.delivery?.address ? `Address: ${order.delivery.address}` : "",
+        order.delivery?.landmark ? `Landmark: ${order.delivery.landmark}` : "",
+        `Delivery fee: ${money(order.delivery?.fee || 0)}`
+    ].filter(Boolean).join("\n");
+    return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(lines)}` : "#";
+}
+
+function statusLabel(order) {
+    return order.status || "Pending";
+}
+
+function renderDriverSheet(order) {
+    const customerName = order.customer?.name || "—";
+    const customerPhone = order.customer?.phone || "—";
+    const driverName = order.delivery?.driverName || "Unassigned";
+    const driverPhone = order.delivery?.driverPhone || "—";
+    const mapUrl = mapUrlFor(order);
+    const deliveryFee = Number(order.delivery?.fee) || 0;
+    const driverPrice = Number(order.delivery?.driverPrice) || 0;
+    const address = [
+        order.delivery?.address,
+        order.delivery?.landmark,
+        order.delivery?.area,
+        order.delivery?.city
+    ].filter(Boolean).join(", ");
+
+    el("driverSummary").innerHTML = `
+        <div class="driver-meta">
+            <div class="item"><label>Order ID</label><span>${order.id}</span></div>
+            <div class="item"><label>Customer</label><span>${customerName}</span></div>
+            <div class="item"><label>Customer Phone</label><span>${customerPhone}</span></div>
+            <div class="item"><label>Driver</label><span>${driverName}</span></div>
+            <div class="item"><label>Driver Phone</label><span>${driverPhone}</span></div>
+            <div class="item"><label>Delivery Fee</label><span>${money(deliveryFee)}</span></div>
+            <div class="item"><label>Driver Price</label><span>${money(driverPrice)}</span></div>
+            <div class="item"><label>Order Total</label><span>${money(order.total)}</span></div>
+        </div>
+    `;
+    el("driverItems").innerHTML = (order.items || []).map(item => `
+        <div class="driver-item">
+            <strong>${item.name}</strong>
+            <span>x${item.quantity}</span>
+            <span>${money((Number(item.price) || 0) * (Number(item.quantity) || 0))}</span>
+        </div>
+    `).join("") || `<p style="color:var(--text-mid);">No items on this order.</p>`;
+    el("driverAddress").textContent = address || "No delivery address saved yet.";
+    el("driverNotes").textContent = order.delivery?.receiptBody || order.delivery?.notes || "No extra delivery instructions yet.";
+    el("driverStatusBadge").textContent = statusLabel(order);
+    el("driverMapBtn").href = mapUrl;
+    el("driverBuyerWaBtn").href = buyerWhatsApp(order);
+    el("driverTrackBtn").href = `track.html?id=${encodeURIComponent(order.id)}`;
+    el("driverEmpty").style.display = "none";
+    el("driverSheet").style.display = "grid";
+}
+
+function loadDriverOrder() {
+    const orderId = el("driverOrderId").value.trim();
+    if (!orderId) {
+        globalThis.maApp?.showToast?.("warning", "Enter an order ID first");
+        return;
+    }
+    const order = getOrderById(orderId);
+    if (!order) {
+        globalThis.maApp?.showToast?.("error", "Order not found");
+        return;
+    }
+    renderDriverSheet(order);
+}
+
+function bootDriverPage() {
+    if (driverPageBooted) return;
+    driverPageBooted = true;
+    const urlId = new URLSearchParams(location.search).get("id") || "";
+    if (urlId) {
+        el("driverOrderId").value = urlId;
+        loadDriverOrder();
+    }
+    el("loadDriverOrderBtn").addEventListener("click", loadDriverOrder);
+    el("driverOrderId").addEventListener("keydown", event => {
+        if (event.key === "Enter") loadDriverOrder();
+    });
+}
+
+document.addEventListener("appReady", bootDriverPage, { once: true });
+setTimeout(bootDriverPage, 1800);
+</script>
+</body>
+</html>

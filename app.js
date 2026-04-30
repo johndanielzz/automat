@@ -1,5 +1,8 @@
 "use strict";
 
+const APP_BUILD = "2026-04-30-4";
+console.info(`Mat Auto app.js build ${APP_BUILD} loaded.`);
+
 // ===========================================================================
 // MAT AUTO — app.js  v5.0  (Production — CORS-safe + Performance Upgrade)
 // ===========================================================================
@@ -33,17 +36,16 @@ const ADMIN_AUTH_KEY = "matAutoAdminAuth";
 // FIREBASE INIT
 // ---------------------------------------------------------------------------
 const firebaseConfig = {
-    apiKey           : "AIzaSyCsM3bpflTPQtVvjxC8JCNCwlElxc5QkDk",
-    authDomain       : "gm-auto-9c02f.firebaseapp.com",
-    databaseURL      : "https://gm-auto-9c02f-default-rtdb.firebaseio.com",
-    projectId        : "gm-auto-9c02f",
-    // ✅ FIX: Use the legacy appspot bucket — the new .firebasestorage.app
-    //    domain triggers CORS pre-flight failures from GitHub Pages.
-    //    Both point to the same underlying bucket.
-    storageBucket    : "gm-auto-9c02f.appspot.com",
-    messagingSenderId: "910842464490",
-    appId            : "1:910842464490:web:598bc7b97a71b21177ef93",
-    measurementId    : "G-S74811TTQF"
+    apiKey           : "AIzaSyDAsfnmdDBoveZtX3bfTbbBOHXfruVbmgY",
+    authDomain       : "automat-gm.firebaseapp.com",
+    databaseURL      : globalThis.__MAT_AUTO_FIREBASE_DATABASE_URL__ || "https://automat-gm-default-rtdb.firebaseio.com",
+    projectId        : "automat-gm",
+    // Prefer the legacy appspot alias for web uploads; the newer bucket alias
+    // can fail preflight/CORS checks in some browser + local-dev setups.
+    storageBucket    : "automat-gm.appspot.com",
+    messagingSenderId: "952445013066",
+    appId            : "1:952445013066:web:510e78724ba1c62ab56ab3",
+    measurementId    : "G-WNX6LETM6G"
 };
 
 const firebaseLib = (typeof globalThis !== "undefined" && globalThis.firebase) ? globalThis.firebase : null;
@@ -61,16 +63,21 @@ if (firebaseLib) {
     console.error("Firebase SDK not loaded before app.js.");
 }
 
-const db = firebaseApp ? firebaseLib.database() : null;
+const db = firebaseApp && firebaseConfig.databaseURL ? firebaseLib.database() : null;
 
-// ✅ FIX: Try both bucket formats; if both fail, storage stays null and we
-//    fall back to base64 automatically — no CORS crash, no user-visible error.
+if (firebaseApp && !firebaseConfig.databaseURL) {
+    console.warn("Firebase databaseURL is not configured for automat-gm. Realtime Database features stay disabled until that URL is supplied.");
+}
+
+// Try both bucket formats so uploads keep working across Firebase bucket aliases.
 let storage = null;
 if (firebaseApp && typeof firebaseLib.storage === "function") {
-    for (const bucket of [
-        `gs://${firebaseConfig.storageBucket}`,
-        `gs://gm-auto-9c02f.firebasestorage.app`
-    ]) {
+    const storageBuckets = Array.from(new Set([
+        firebaseConfig.storageBucket ? `gs://${firebaseConfig.storageBucket}` : null,
+        firebaseConfig.projectId ? `gs://${firebaseConfig.projectId}.firebasestorage.app` : null
+    ].filter(Boolean)));
+
+    for (const bucket of storageBuckets) {
         try {
             storage = firebaseLib.app().storage(bucket);
             // Quick connectivity probe — if this throws, try next bucket
@@ -80,6 +87,14 @@ if (firebaseApp && typeof firebaseLib.storage === "function") {
             storage = null;
         }
     }
+}
+
+const isLocalDevHost = typeof location !== "undefined"
+    && /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+let storageUploadDisabled = isLocalDevHost;
+
+if (isLocalDevHost) {
+    console.info("Local development detected. Product images will use the base64 fallback instead of direct Firebase Storage uploads.");
 }
 
 // ---------------------------------------------------------------------------
@@ -105,7 +120,9 @@ const LS = {
     recent      : "maRecent",
     theme       : "maDarkMode",
     activeOrder : "maActiveOrder",
-    myOrderIds  : "maMyOrderIds"
+    myOrderIds  : "maMyOrderIds",
+    allOrders   : "maAllOrders",
+    productsDev : "maDevProducts"
 };
 
 // ---------------------------------------------------------------------------
@@ -246,7 +263,7 @@ async function uploadImages(files) {
         let url = null;
 
         // ── Attempt 1: Firebase Storage ─────────────────────────────────
-        if (storage) {
+        if (storage && !storageUploadDisabled) {
             try {
                 const safeName = `products/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
                 const ref      = storage.ref().child(safeName);
@@ -258,6 +275,7 @@ async function uploadImages(files) {
             } catch (storageErr) {
                 // CORS / network error — log a clean warning and fall through
                 console.warn("Firebase Storage upload failed (falling back to base64):", storageErr.code || storageErr.message);
+                storageUploadDisabled = true;
                 url = null;
             }
         }
@@ -292,6 +310,9 @@ function loadLocalState() {
     state.cart           = lsGet(LS.cart,    []);
     state.wishlist       = lsGet(LS.wishlist, []);
     state.recentlyViewed = lsGet(LS.recent,   []);
+    if (isLocalDevHost) {
+        state.products = normalizeFirebaseList(lsGet(LS.productsDev, state.products)).map(normalizeProduct);
+    }
 }
 
 function saveCart()     { lsSet(LS.cart,     state.cart); }
@@ -301,6 +322,46 @@ function saveRecent()   { lsSet(LS.recent,    state.recentlyViewed); }
 // ---------------------------------------------------------------------------
 // FIREBASE HELPERS
 // ---------------------------------------------------------------------------
+function normalizeOrder(order) {
+    const items = Array.isArray(order?.items) ? order.items : [];
+    const customer = order?.customer && typeof order.customer === "object" ? order.customer : {};
+    const delivery = order?.delivery && typeof order.delivery === "object" ? order.delivery : {};
+    const normalized = {
+        ...order,
+        items,
+        customer,
+        delivery: {
+            address      : delivery.address      || "",
+            landmark     : delivery.landmark     || "",
+            area         : delivery.area         || "",
+            city         : delivery.city         || "Banjul",
+            country      : delivery.country      || "Gambia",
+            mapUrl       : delivery.mapUrl       || "",
+            fee          : Number(delivery.fee) || 0,
+            driverName   : delivery.driverName   || "",
+            driverPhone  : delivery.driverPhone  || "",
+            driverPrice  : Number(delivery.driverPrice) || 0,
+            notes        : delivery.notes        || "",
+            receiptBody  : delivery.receiptBody  || "",
+            assignedAt   : delivery.assignedAt   || "",
+            updatedAt    : delivery.updatedAt    || ""
+        }
+    };
+    normalized.status = normalized.status || "Pending";
+    normalized.total = Number(normalized.total) || 0;
+    normalized.subtotal = Number(normalized.subtotal) || normalized.total || 0;
+    normalized.discount = Number(normalized.discount) || 0;
+    return normalized;
+}
+
+function syncOrderCache() {
+    lsSet(LS.allOrders, state.orders.map(normalizeOrder));
+}
+
+function getOrderById(orderId) {
+    return state.orders.find(order => order.id === orderId) || null;
+}
+
 function isDbReady() {
     if (db) return true;
     console.warn("Firebase Database not initialized.");
@@ -368,14 +429,47 @@ async function loadFirebaseState() {
         fbRead(FB.reviews,  [])
     ]);
     state.products = normalizeFirebaseList(rawProducts).map(normalizeProduct);
-    state.orders   = normalizeFirebaseList(rawOrders);
+    state.orders   = normalizeFirebaseList(rawOrders).map(normalizeOrder);
     state.quotes   = normalizeFirebaseList(rawQuotes);
     state.promos   = normalizeFirebaseList(rawPromos);
     state.reviews  = normalizeFirebaseList(rawReviews);
+
+    if (isLocalDevHost && !state.products.length) {
+        state.products = normalizeFirebaseList(lsGet(LS.productsDev, [])).map(normalizeProduct);
+    }
+    if (!state.orders.length) {
+        state.orders = normalizeFirebaseList(lsGet(LS.allOrders, [])).map(normalizeOrder);
+    }
+    syncOrderCache();
 }
 
-async function saveProducts() { await fbWrite(FB.products, state.products); }
-async function saveOrders()   { await fbWrite(FB.orders,   state.orders);   }
+async function saveProducts() {
+    try {
+        await fbWrite(FB.products, state.products);
+        if (isLocalDevHost) lsSet(LS.productsDev, state.products);
+    } catch (err) {
+        if (isLocalDevHost) {
+            lsSet(LS.productsDev, state.products);
+            console.warn("Firebase product save failed in local dev; saved product catalog to local fallback instead.", err);
+            return;
+        }
+        throw err;
+    }
+}
+async function saveOrders() {
+    state.orders = state.orders.map(normalizeOrder);
+    try {
+        await fbWrite(FB.orders, state.orders);
+        syncOrderCache();
+    } catch (err) {
+        syncOrderCache();
+        if (isLocalDevHost) {
+            console.warn("Firebase order save failed in local dev; saved orders to local fallback instead.", err);
+            return;
+        }
+        throw err;
+    }
+}
 async function saveQuotes()   { await fbWrite(FB.quotes,   state.quotes);   }
 async function savePromos()   { await fbWrite(FB.promos,   state.promos);   }
 
@@ -987,7 +1081,7 @@ function openCompareModal() {
 function buildOrder(items, discountPercent = 0, customerInfo = {}) {
     const raw   = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const total = discountPercent > 0 ? raw * (1 - discountPercent / 100) : raw;
-    return {
+    return normalizeOrder({
         id      : generateId("order"),
         items   : items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, category: i.category || "" })),
         subtotal: raw,
@@ -996,11 +1090,11 @@ function buildOrder(items, discountPercent = 0, customerInfo = {}) {
         status  : "Pending",
         customer: customerInfo,
         createdAt: new Date().toISOString()
-    };
+    });
 }
 
 async function persistOrder(order) {
-    state.orders.unshift(order);
+    state.orders.unshift(normalizeOrder(order));
     order.items.forEach(item => {
         const idx = state.products.findIndex(x => x.id === item.id);
         if (idx >= 0) state.products[idx].stock = Math.max(0, state.products[idx].stock - item.quantity);
@@ -1114,7 +1208,11 @@ async function setupCheckoutPage() {
             const finalOrder = { ...order, customer: { name, phone, notes }, discount: appliedDiscount };
             if (appliedDiscount > 0) finalOrder.total = order.total * (1 - appliedDiscount / 100);
             const idx = state.orders.findIndex(o => o.id === order.id);
-            if (idx >= 0) { state.orders[idx].customer = { name, phone, notes }; saveOrders(); }
+            if (idx >= 0) {
+                state.orders[idx].customer = { name, phone, notes };
+                state.orders[idx].delivery.updatedAt = new Date().toISOString();
+                saveOrders();
+            }
             window.open(`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${buildWhatsAppMessage(finalOrder)}`, "_blank");
         });
     }
@@ -1629,7 +1727,7 @@ function renderAdminOrders() {
     if (!container) return;
     if (!state.orders.length) { container.innerHTML = `<p class="empty-copy">No orders yet.</p>`; return; }
     container.innerHTML = state.orders.slice(0, 50).map(o => `
-        <div class="admin-order-card">
+        <div class="admin-order-card" data-status="${escapeHtml((o.status || "pending").toLowerCase())}">
             <div class="admin-order-header">
                 <strong>${escapeHtml(o.id)}</strong>
                 <span class="order-date">${formatDate(o.createdAt)}</span>
@@ -1639,15 +1737,23 @@ function renderAdminOrders() {
                 ${o.items.map(i => `<span>${escapeHtml(i.name)} ×${i.quantity}</span>`).join(" · ")}
                 ${o.customer?.name  ? `<br><strong>Customer:</strong> ${escapeHtml(o.customer.name)}` : ""}
                 ${o.customer?.phone ? ` <a href="https://wa.me/${o.customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, about order ${o.id}`)}" target="_blank" class="btn btn-sm btn-whatsapp" style="margin-left:.5rem;">💬 WhatsApp</a>` : ""}
+                ${o.delivery?.address ? `<br><strong>Delivery:</strong> ${escapeHtml(o.delivery.address)}` : ""}
+                ${(o.delivery?.driverName || o.delivery?.fee) ? `<br><strong>Driver:</strong> ${escapeHtml(o.delivery.driverName || "Unassigned")} · <strong>Fee:</strong> ${formatCurrency(o.delivery.fee || 0)}` : ""}
             </div>
             <div class="admin-order-footer">
                 <strong>${formatCurrency(o.total)}</strong>
                 <select class="order-status-select" data-order-id="${escapeHtml(o.id)}">
                     <option ${o.status === "Pending"    ? "selected" : ""}>Pending</option>
                     <option ${o.status === "Processing" ? "selected" : ""}>Processing</option>
+                    <option ${o.status === "Out for Delivery" ? "selected" : ""}>Out for Delivery</option>
                     <option ${o.status === "Completed"  ? "selected" : ""}>Completed</option>
                     <option ${o.status === "Cancelled"  ? "selected" : ""}>Cancelled</option>
                 </select>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.85rem;">
+                <a class="btn btn-sm btn-secondary" href="reciept.html?id=${encodeURIComponent(o.id)}">🧾 Receipt</a>
+                <a class="btn btn-sm btn-outline" href="delivery-drivers.html?id=${encodeURIComponent(o.id)}">🚚 Driver Sheet</a>
+                <a class="btn btn-sm btn-ghost" href="track.html?id=${encodeURIComponent(o.id)}">📍 Track</a>
             </div>
         </div>`).join("");
     qsa(".order-status-select", container).forEach(sel =>
@@ -1671,20 +1777,25 @@ async function updateOrderStatus(orderId, newStatus) {
     const o = state.orders.find(x => x.id === orderId);
     if (!o) return;
     o.status = newStatus;
+    o.delivery.updatedAt = new Date().toISOString();
     await saveOrders();
+    renderAdminOrders();
     renderAdminStats();
     showToast("success", `Order ${orderId} → ${newStatus}`);
 }
 
 function exportOrdersCSV() {
     if (!state.orders.length) { showToast("warning", "No orders to export"); return; }
-    const header = ["Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Items", "Total (GMD)"];
+    const header = ["Order ID", "Date", "Status", "Customer Name", "Customer Phone", "Delivery Address", "Driver", "Delivery Fee (GMD)", "Items", "Total (GMD)"];
     const rows   = state.orders.map(o => [
         o.id,
         o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "",
         o.status,
         o.customer?.name  || "",
         o.customer?.phone || "",
+        o.delivery?.address || "",
+        o.delivery?.driverName || "",
+        (Number(o.delivery?.fee) || 0).toFixed(2),
         o.items.map(i => `${i.name} x${i.quantity}`).join("; "),
         o.total.toFixed(2)
     ]);
@@ -1895,6 +2006,21 @@ async function initPage() {
         updateBadgeCounts();
         window.location.href = "checkout.html";
     });
+
+    globalThis.db = db;
+    globalThis.maApp = {
+        state,
+        lsGet,
+        lsSet,
+        LS,
+        getOrderById,
+        normalizeOrder,
+        saveOrders,
+        formatCurrency,
+        formatDate,
+        showToast
+    };
+    document.dispatchEvent(new CustomEvent("appReady"));
 }
 
 document.addEventListener("DOMContentLoaded", initPage);

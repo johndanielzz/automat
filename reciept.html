@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Receipt Builder — Mat Auto</title>
+    <meta name="description" content="Create, save, and share delivery receipts for Mat Auto orders.">
+    <meta name="theme-color" content="#1B2A4A">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <style>
+        .receipt-hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+            color: #fff;
+            padding: clamp(2.5rem, 6vw, 4rem) 0;
+        }
+        .receipt-hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3rem); margin-bottom: .5rem; }
+        .receipt-shell {
+            padding: clamp(1.5rem, 4vw, 3rem) 0 4rem;
+        }
+        .receipt-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 1.1fr) minmax(320px, .9fr);
+            gap: 1.25rem;
+            align-items: start;
+        }
+        .receipt-panel, .receipt-preview-wrap {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-2xl);
+            box-shadow: var(--shadow-lg);
+            padding: clamp(1rem, 3vw, 1.6rem);
+        }
+        .receipt-panel h2, .receipt-preview-wrap h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.15rem;
+            margin-bottom: .9rem;
+        }
+        .receipt-preview-wrap {
+            position: sticky;
+            top: 82px;
+        }
+        .receipt-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .9rem;
+        }
+        .receipt-form-grid .full {
+            grid-column: 1 / -1;
+        }
+        .helper-row {
+            display: flex;
+            gap: .6rem;
+            flex-wrap: wrap;
+            margin: .75rem 0 1.1rem;
+        }
+        .mini-chip {
+            border: 1.5px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-mid);
+            border-radius: var(--r-full);
+            padding: .45rem .8rem;
+            font-size: .8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .receipt-actions {
+            display: flex;
+            gap: .75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .receipt-actions .btn {
+            flex: 1 1 180px;
+        }
+        .receipt-card {
+            background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+            border: 1px solid #d9e3f1;
+            border-radius: 26px;
+            padding: 1.35rem;
+            color: #08111f;
+        }
+        .receipt-card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            border-bottom: 1px dashed #c9d6e7;
+            padding-bottom: .95rem;
+            margin-bottom: 1rem;
+        }
+        .receipt-brand {
+            display: flex;
+            gap: .85rem;
+            align-items: center;
+        }
+        .receipt-brand img {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            object-fit: cover;
+        }
+        .receipt-brand h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.15rem;
+            margin: 0;
+        }
+        .receipt-kv {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+        .receipt-kv .box {
+            background: #f3f7fc;
+            border-radius: 16px;
+            padding: .8rem .9rem;
+        }
+        .receipt-kv label {
+            display: block;
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #5b718d;
+            font-weight: 800;
+            margin-bottom: .3rem;
+        }
+        .receipt-kv span {
+            display: block;
+            font-weight: 700;
+            color: #0f1c31;
+            line-height: 1.45;
+        }
+        .receipt-items {
+            border: 1px solid #d9e3f1;
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .receipt-item {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: .75rem;
+            padding: .8rem 1rem;
+            font-size: .9rem;
+            border-bottom: 1px solid #e6edf6;
+        }
+        .receipt-item:last-child {
+            border-bottom: none;
+        }
+        .receipt-note {
+            background: #0f1c31;
+            color: #f7fbff;
+            border-radius: 18px;
+            padding: 1rem;
+            font-size: .88rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .totals {
+            display: grid;
+            gap: .45rem;
+            margin: 1rem 0;
+        }
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            gap: .75rem;
+            font-weight: 700;
+        }
+        .total-line.grand {
+            font-size: 1rem;
+            color: var(--primary-dark);
+        }
+        .guard-card {
+            max-width: 520px;
+            margin: 3rem auto;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-2xl);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            text-align: center;
+        }
+        @media (max-width: 980px) {
+            .receipt-grid { grid-template-columns: 1fr; }
+            .receipt-preview-wrap { position: static; }
+        }
+        @media (max-width: 640px) {
+            .receipt-form-grid, .receipt-kv { grid-template-columns: 1fr; }
+            .receipt-item { grid-template-columns: 1fr; }
+        }
+        @media print {
+            nav, .receipt-panel, .receipt-actions, .footer, #toastStack { display: none !important; }
+            body { background: #fff; }
+            .receipt-preview-wrap {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+            .receipt-card {
+                border: none;
+                border-radius: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="admin.html">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy"><strong>Mat Auto</strong><small>Receipt Builder</small></span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="admin.html">Admin</a></li>
+            <li><a href="delivery-drivers.html">Driver View</a></li>
+            <li><a href="track.html">Track</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div id="receiptGuard" class="guard-card" style="display:none;">
+    <h1 style="font-family:'Syne',sans-serif;margin-bottom:.65rem;">Admin Access Required</h1>
+    <p style="color:var(--text-mid);margin-bottom:1rem;">Open this page from the admin dashboard after logging in.</p>
+    <a href="admin.html" class="btn btn-primary">Go To Admin</a>
+</div>
+
+<main id="receiptApp" style="display:none;">
+    <section class="receipt-hero">
+        <div class="container">
+            <h1>🧾 Delivery Receipt Builder</h1>
+            <p style="max-width:760px;color:rgba(255,255,255,.72);">Prepare a buyer receipt, add delivery fee and address, then send it to the customer or delivery rider with one click.</p>
+        </div>
+    </section>
+
+    <section class="receipt-shell">
+        <div class="container receipt-grid">
+            <section class="receipt-panel">
+                <h2>Order Details</h2>
+                <div class="form-group">
+                    <label for="receiptOrderId">Select Order</label>
+                    <select id="receiptOrderId"></select>
+                </div>
+
+                <div class="helper-row">
+                    <button class="mini-chip" type="button" data-driver-preset="150">Local Rider · GMD 150</button>
+                    <button class="mini-chip" type="button" data-driver-preset="250">Town Delivery · GMD 250</button>
+                    <button class="mini-chip" type="button" data-driver-preset="400">Long Route · GMD 400</button>
+                </div>
+
+                <div class="receipt-form-grid">
+                    <div class="form-group">
+                        <label for="receiptCustomerName">Customer Name</label>
+                        <input id="receiptCustomerName" type="text" placeholder="Buyer name">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptCustomerPhone">Customer Phone</label>
+                        <input id="receiptCustomerPhone" type="text" placeholder="+220...">
+                    </div>
+                    <div class="form-group full">
+                        <label for="receiptAddress">Delivery Address</label>
+                        <textarea id="receiptAddress" rows="2" placeholder="Street, compound, shop name, pickup point..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptArea">Area</label>
+                        <input id="receiptArea" type="text" placeholder="Bakau / Serekunda / Brikama">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptLandmark">Landmark</label>
+                        <input id="receiptLandmark" type="text" placeholder="Near market / mosque / station">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptCity">City</label>
+                        <input id="receiptCity" type="text" placeholder="Banjul">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptMapUrl">Google Maps Link</label>
+                        <input id="receiptMapUrl" type="url" placeholder="https://maps.google.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDriverName">Driver Name</label>
+                        <input id="receiptDriverName" type="text" placeholder="Delivery rider">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDriverPhone">Driver Phone</label>
+                        <input id="receiptDriverPhone" type="text" placeholder="+220...">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDriverPrice">Driver Price (GMD)</label>
+                        <input id="receiptDriverPrice" type="number" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDeliveryFee">Delivery Fee On Receipt (GMD)</label>
+                        <input id="receiptDeliveryFee" type="number" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptStatus">Order Status</label>
+                        <select id="receiptStatus">
+                            <option>Pending</option>
+                            <option>Processing</option>
+                            <option>Out for Delivery</option>
+                            <option>Completed</option>
+                            <option>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label for="receiptBody">Receipt Message</label>
+                        <textarea id="receiptBody" rows="5" placeholder="Extra instructions, paid amount, cash on delivery note, contact instructions..."></textarea>
+                    </div>
+                </div>
+
+                <div class="receipt-actions">
+                    <button id="saveReceiptBtn" class="btn btn-primary" type="button">💾 Save Receipt</button>
+                    <button id="sendBuyerBtn" class="btn btn-whatsapp" type="button">📲 Send To Buyer</button>
+                    <button id="sendDriverBtn" class="btn btn-secondary" type="button">🚚 Send To Driver</button>
+                    <button id="downloadReceiptBtn" class="btn btn-outline" type="button">🖼 Save As Photo</button>
+                    <button id="printReceiptBtn" class="btn btn-ghost" type="button">🖨 Print</button>
+                </div>
+            </section>
+
+            <aside class="receipt-preview-wrap">
+                <h2>Preview</h2>
+                <div id="receiptCapture" class="receipt-card"></div>
+            </aside>
+        </div>
+    </section>
+</main>
+
+<div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+<footer class="footer">
+    <div class="footer-bottom"><p>&copy; 2026 Mat Auto. Receipt workflow for orders and delivery handoff.</p></div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
+<script src="app.js?v=2026-04-30-4"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const ADMIN_AUTH_STORAGE_KEY = "matAutoAdminAuth";
+let currentOrderId = "";
+let receiptPageBooted = false;
+
+function money(value) {
+    return `GMD ${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function sanitize(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function byId(id) {
+    return document.getElementById(id);
+}
+
+function getOrders() {
+    if (globalThis.maApp?.state?.orders?.length) return globalThis.maApp.state.orders;
+    return JSON.parse(localStorage.getItem("maAllOrders") || "[]");
+}
+
+function getOrder(orderId) {
+    if (globalThis.maApp?.getOrderById) return globalThis.maApp.getOrderById(orderId);
+    return getOrders().find(order => order.id === orderId) || null;
+}
+
+function buildMapUrl(order) {
+    if (order.delivery?.mapUrl) return order.delivery.mapUrl;
+    const parts = [
+        order.delivery?.address,
+        order.delivery?.landmark,
+        order.delivery?.area,
+        order.delivery?.city,
+        order.delivery?.country
+    ].filter(Boolean);
+    if (!parts.length) return "";
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+}
+
+function buildDefaultReceipt(order) {
+    const productLines = (order.items || []).map(item => `${item.name} x${item.quantity}`).join(", ");
+    return [
+        `Order ${order.id}`,
+        productLines ? `Items: ${productLines}` : "",
+        order.delivery?.address ? `Address: ${order.delivery.address}` : "",
+        order.delivery?.landmark ? `Landmark: ${order.delivery.landmark}` : "",
+        order.delivery?.driverName ? `Driver: ${order.delivery.driverName}` : "",
+        "Thank you for choosing Mat Auto."
+    ].filter(Boolean).join("\n");
+}
+
+function fillOrderSelect() {
+    const select = byId("receiptOrderId");
+    const orders = getOrders();
+    select.innerHTML = orders.length
+        ? orders.map(order => `<option value="${sanitize(order.id)}">${sanitize(order.id)} · ${sanitize(order.customer?.name || order.items?.[0]?.name || "Order")}</option>`).join("")
+        : `<option value="">No orders yet</option>`;
+    const urlId = new URLSearchParams(location.search).get("id");
+    if (urlId && orders.some(order => order.id === urlId)) select.value = urlId;
+    currentOrderId = select.value || "";
+}
+
+function populateForm(order) {
+    if (!order) return;
+    currentOrderId = order.id;
+    byId("receiptCustomerName").value = order.customer?.name || "";
+    byId("receiptCustomerPhone").value = order.customer?.phone || "";
+    byId("receiptAddress").value = order.delivery?.address || "";
+    byId("receiptArea").value = order.delivery?.area || "";
+    byId("receiptLandmark").value = order.delivery?.landmark || "";
+    byId("receiptCity").value = order.delivery?.city || "Banjul";
+    byId("receiptMapUrl").value = order.delivery?.mapUrl || "";
+    byId("receiptDriverName").value = order.delivery?.driverName || "";
+    byId("receiptDriverPhone").value = order.delivery?.driverPhone || "";
+    byId("receiptDriverPrice").value = order.delivery?.driverPrice || "";
+    byId("receiptDeliveryFee").value = order.delivery?.fee || "";
+    byId("receiptStatus").value = order.status || "Pending";
+    byId("receiptBody").value = order.delivery?.receiptBody || buildDefaultReceipt(order);
+    renderReceiptPreview();
+}
+
+function collectFormIntoOrder(order) {
+    const next = globalThis.maApp?.normalizeOrder ? globalThis.maApp.normalizeOrder(order) : structuredClone(order);
+    next.customer = next.customer || {};
+    next.delivery = next.delivery || {};
+    next.customer.name = byId("receiptCustomerName").value.trim();
+    next.customer.phone = byId("receiptCustomerPhone").value.trim();
+    next.status = byId("receiptStatus").value;
+    next.delivery.address = byId("receiptAddress").value.trim();
+    next.delivery.area = byId("receiptArea").value.trim();
+    next.delivery.landmark = byId("receiptLandmark").value.trim();
+    next.delivery.city = byId("receiptCity").value.trim() || "Banjul";
+    next.delivery.mapUrl = byId("receiptMapUrl").value.trim();
+    next.delivery.driverName = byId("receiptDriverName").value.trim();
+    next.delivery.driverPhone = byId("receiptDriverPhone").value.trim();
+    next.delivery.driverPrice = Number(byId("receiptDriverPrice").value) || 0;
+    next.delivery.fee = Number(byId("receiptDeliveryFee").value) || 0;
+    next.delivery.receiptBody = byId("receiptBody").value.trim();
+    next.delivery.updatedAt = new Date().toISOString();
+    if (next.delivery.driverName && !next.delivery.assignedAt) next.delivery.assignedAt = new Date().toISOString();
+    return next;
+}
+
+function renderReceiptPreview() {
+    const order = getOrder(currentOrderId);
+    if (!order) {
+        byId("receiptCapture").innerHTML = `<p style="color:#5b718d;">Choose an order to build a receipt.</p>`;
+        return;
+    }
+    const draft = collectFormIntoOrder(order);
+    const items = (draft.items || []).map(item => `
+        <div class="receipt-item">
+            <strong>${sanitize(item.name)}</strong>
+            <span>x${sanitize(item.quantity)}</span>
+            <span>${money((Number(item.price) || 0) * (Number(item.quantity) || 0))}</span>
+        </div>
+    `).join("");
+    const mapUrl = buildMapUrl(draft);
+    const deliveryFee = Number(draft.delivery?.fee) || 0;
+    const grandTotal = (Number(draft.total) || 0) + deliveryFee;
+    byId("receiptCapture").innerHTML = `
+        <div class="receipt-card-header">
+            <div class="receipt-brand">
+                <img src="image.jpg" alt="Mat Auto">
+                <div>
+                    <h3>Mat Auto</h3>
+                    <p style="margin:.2rem 0 0;color:#5b718d;font-size:.84rem;">Delivery Receipt</p>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <strong style="display:block;color:#0f1c31;">${sanitize(draft.id)}</strong>
+                <span style="display:block;color:#5b718d;font-size:.82rem;">${sanitize(draft.status || "Pending")}</span>
+                <span style="display:block;color:#5b718d;font-size:.8rem;">${sanitize((globalThis.maApp?.formatDate || ((v) => v))(draft.createdAt || ""))}</span>
+            </div>
+        </div>
+        <div class="receipt-kv">
+            <div class="box"><label>Customer</label><span>${sanitize(draft.customer?.name || "—")}</span></div>
+            <div class="box"><label>Phone</label><span>${sanitize(draft.customer?.phone || "—")}</span></div>
+            <div class="box"><label>Driver</label><span>${sanitize(draft.delivery?.driverName || "Unassigned")}</span></div>
+            <div class="box"><label>Driver Phone</label><span>${sanitize(draft.delivery?.driverPhone || "—")}</span></div>
+            <div class="box" style="grid-column:1/-1;"><label>Delivery Address</label><span>${sanitize(draft.delivery?.address || "No address added yet.")}</span></div>
+            <div class="box"><label>Landmark</label><span>${sanitize(draft.delivery?.landmark || "—")}</span></div>
+            <div class="box"><label>Area</label><span>${sanitize([draft.delivery?.area, draft.delivery?.city].filter(Boolean).join(", ") || "—")}</span></div>
+        </div>
+        <div class="receipt-items">${items || `<div class="receipt-item"><span>No items</span><span></span><span></span></div>`}</div>
+        <div class="totals">
+            <div class="total-line"><span>Order Total</span><span>${money(draft.total)}</span></div>
+            <div class="total-line"><span>Delivery Fee</span><span>${money(deliveryFee)}</span></div>
+            <div class="total-line"><span>Driver Price</span><span>${money(draft.delivery?.driverPrice || 0)}</span></div>
+            <div class="total-line grand"><span>Total With Delivery</span><span>${money(grandTotal)}</span></div>
+        </div>
+        <div class="receipt-note">${sanitize(draft.delivery?.receiptBody || buildDefaultReceipt(draft))}</div>
+        ${mapUrl ? `<p style="margin-top:.85rem;font-size:.8rem;color:#5b718d;"><strong>Map:</strong> ${sanitize(mapUrl)}</p>` : ""}
+    `;
+}
+
+async function saveReceipt() {
+    const order = getOrder(currentOrderId);
+    if (!order) {
+        globalThis.maApp?.showToast?.("warning", "Select an order first");
+        return null;
+    }
+    const next = collectFormIntoOrder(order);
+    const list = globalThis.maApp?.state?.orders || [];
+    const idx = list.findIndex(item => item.id === next.id);
+    if (idx >= 0) list[idx] = next;
+    localStorage.setItem("maAllOrders", JSON.stringify((idx >= 0 ? list : getOrders().map(item => item.id === next.id ? next : item))));
+    if (globalThis.maApp?.saveOrders) await globalThis.maApp.saveOrders();
+    renderReceiptPreview();
+    globalThis.maApp?.showToast?.("success", `Receipt saved for ${next.id}`);
+    return next;
+}
+
+function buildReceiptMessage(order, forDriver = false) {
+    const deliveryFee = Number(order.delivery?.fee) || 0;
+    const grandTotal = (Number(order.total) || 0) + deliveryFee;
+    const lines = [
+        forDriver ? `Delivery Job: ${order.id}` : `Receipt for Order ${order.id}`,
+        `Customer: ${order.customer?.name || "—"}`,
+        `Phone: ${order.customer?.phone || "—"}`,
+        order.delivery?.address ? `Address: ${order.delivery.address}` : "",
+        order.delivery?.landmark ? `Landmark: ${order.delivery.landmark}` : "",
+        `Delivery Fee: ${money(deliveryFee)}`,
+        `Order Total: ${money(order.total)}`,
+        `Total With Delivery: ${money(grandTotal)}`,
+        order.delivery?.receiptBody || ""
+    ].filter(Boolean);
+    if (forDriver) lines.push(`Driver link: ${location.origin}${location.pathname.replace("reciept.html", "delivery-drivers.html")}?id=${encodeURIComponent(order.id)}`);
+    else lines.push(`Tracking link: ${location.origin}${location.pathname.replace("reciept.html", "track.html")}?id=${encodeURIComponent(order.id)}`);
+    return encodeURIComponent(lines.join("\n\n"));
+}
+
+async function shareReceipt(target) {
+    const order = await saveReceipt();
+    if (!order) return;
+    const phone = target === "buyer" ? order.customer?.phone : order.delivery?.driverPhone;
+    if (!phone) {
+        globalThis.maApp?.showToast?.("warning", `Add the ${target} phone number first`);
+        return;
+    }
+    const message = buildReceiptMessage(order, target === "driver");
+    window.open(`https://wa.me/${String(phone).replace(/\D/g, "")}?text=${message}`, "_blank");
+}
+
+async function downloadReceiptImage() {
+    await saveReceipt();
+    const node = byId("receiptCapture");
+    const canvas = await html2canvas(node, { backgroundColor: "#ffffff", scale: 2 });
+    const link = document.createElement("a");
+    link.download = `${currentOrderId || "mat-auto-receipt"}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+
+function bindPage() {
+    byId("receiptOrderId").addEventListener("change", () => populateForm(getOrder(byId("receiptOrderId").value)));
+    document.querySelectorAll("#receiptApp input, #receiptApp textarea, #receiptApp select").forEach(field => {
+        field.addEventListener("input", renderReceiptPreview);
+        field.addEventListener("change", renderReceiptPreview);
+    });
+    document.querySelectorAll("[data-driver-preset]").forEach(button => {
+        button.addEventListener("click", () => {
+            const price = Number(button.dataset.driverPreset) || 0;
+            byId("receiptDriverPrice").value = price;
+            if (!byId("receiptDeliveryFee").value || Number(byId("receiptDeliveryFee").value) === 0) {
+                byId("receiptDeliveryFee").value = price;
+            }
+            renderReceiptPreview();
+        });
+    });
+    byId("saveReceiptBtn").addEventListener("click", saveReceipt);
+    byId("sendBuyerBtn").addEventListener("click", () => shareReceipt("buyer"));
+    byId("sendDriverBtn").addEventListener("click", () => shareReceipt("driver"));
+    byId("downloadReceiptBtn").addEventListener("click", downloadReceiptImage);
+    byId("printReceiptBtn").addEventListener("click", () => window.print());
+}
+
+function bootReceiptPage() {
+    if (receiptPageBooted) return;
+    receiptPageBooted = true;
+    if (sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY) !== "true") {
+        byId("receiptGuard").style.display = "block";
+        return;
+    }
+    byId("receiptApp").style.display = "block";
+    fillOrderSelect();
+    populateForm(getOrder(currentOrderId));
+    bindPage();
+}
+
+document.addEventListener("appReady", bootReceiptPage, { once: true });
+setTimeout(() => {
+    if (!byId("receiptApp").style.display && !byId("receiptGuard").style.display) bootReceiptPage();
+}, 1800);
+</script>
+</body>
+</html>
