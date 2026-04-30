@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>MAT AI | Car Help, Parts Advice & Vehicle Photo Analysis</title>
+    <meta name="description" content="Talk to MAT AI for car troubleshooting, parts recommendations, website help, and vehicle photo analysis grounded in Mat Auto's live catalog and pages.">
+    <meta property="og:title" content="MAT AI | Mat Auto">
+    <meta property="og:description" content="Ask MAT AI about your car, the Mat Auto catalog, repairs, or upload a vehicle photo for analysis.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1B2A4A">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="mat-ai.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+</head>
+<body class="mat-ai-page">
+    <nav class="navbar">
+        <div class="container nav-shell">
+            <a class="nav-brand" href="index.html" aria-label="Mat Auto home">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <span class="brand-copy">
+                    <strong>Mat Auto</strong>
+                    <small>MAT AI Assistant</small>
+                </span>
+            </a>
+            <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navLinks">
+                <span></span><span></span><span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="track.html">Track</a></li>
+                <li><a href="mat-ai.html" class="active">MAT AI</a></li>
+                <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="mat-hero">
+        <div class="container mat-hero-grid">
+            <div class="mat-hero-copy">
+                <span class="eyebrow">AI for drivers, workshops, and buyers</span>
+                <h1>MAT AI can explain your car issue, analyze a vehicle photo, and match you to the right part faster.</h1>
+                <p class="mat-hero-text">Ask about this website, live Mat Auto inventory, repair steps, compatibility questions, warning symptoms, or upload a car photo for visible-spec and part analysis.</p>
+                <div class="mat-hero-actions">
+                    <a href="#matAiConsole" class="btn btn-primary btn-large">Start Asking MAT AI</a>
+                    <a href="index.html#products" class="btn btn-glass btn-large">Browse Parts First</a>
+                </div>
+                <div class="mat-hero-stats">
+                    <article class="mat-stat-card">
+                        <strong id="siteProducts">--</strong>
+                        <span>Catalog Items Known</span>
+                    </article>
+                    <article class="mat-stat-card">
+                        <strong id="sitePages">--</strong>
+                        <span>Website Pages Grounded</span>
+                    </article>
+                    <article class="mat-stat-card">
+                        <strong>Photo</strong>
+                        <span>Vehicle Image Analysis</span>
+                    </article>
+                    <article class="mat-stat-card">
+                        <strong>Fix</strong>
+                        <span>Repair Guidance</span>
+                    </article>
+                </div>
+            </div>
+
+            <aside class="mat-hero-panel">
+                <div class="mat-side-card mat-highlight-card">
+                    <p class="panel-kicker">What MAT AI Handles</p>
+                    <ul class="mat-mini-list">
+                        <li>Diagnose likely causes from symptoms</li>
+                        <li>Recommend parts from the Mat Auto catalog</li>
+                        <li>Explain repair steps and safety checks</li>
+                        <li>Read a car photo for visible clues</li>
+                        <li>Answer website, quote, order, and contact questions</li>
+                    </ul>
+                </div>
+                <div class="mat-side-card">
+                    <p class="panel-kicker">Best Results</p>
+                    <p>Include your <strong>make, model, year, engine size, warning lights, and symptoms</strong>. For fitment, VIN or engine code still gives the most accurate answer.</p>
+                </div>
+            </aside>
+        </div>
+    </header>
+
+    <main class="section section-surface">
+        <div class="container mat-main-grid">
+            <section class="mat-console-card" id="matAiConsole" aria-labelledby="matAiTitle">
+                <div class="mat-console-head">
+                    <div>
+                        <p class="eyebrow">Live Assistant</p>
+                        <h2 id="matAiTitle">Talk to MAT AI</h2>
+                    </div>
+                    <div class="mat-console-actions">
+                        <button class="btn btn-ghost btn-sm" id="clearChatBtn" type="button">Clear Chat</button>
+                    </div>
+                </div>
+
+                <div class="mat-prompt-row" aria-label="Quick prompts">
+                    <button class="chip chip-primary mat-prompt-chip" type="button" data-prompt="My car has a rough idle and shakes at traffic lights. Help me diagnose it.">Rough Idle</button>
+                    <button class="chip chip-primary mat-prompt-chip" type="button" data-prompt="Recommend brake parts for my car and explain what I should inspect before buying.">Brake Parts</button>
+                    <button class="chip chip-primary mat-prompt-chip" type="button" data-prompt="What can you tell me about this website, its services, and how I can order from Mat Auto?">Website Help</button>
+                    <button class="chip chip-primary mat-prompt-chip" type="button" data-prompt="Analyze this vehicle photo and tell me the visible make, model clues, and parts I should inspect.">Analyze Photo</button>
+                </div>
+
+                <div class="mat-status" id="assistantStatus" aria-live="polite">Loading MAT AI knowledge…</div>
+
+                <div class="mat-chat-log" id="chatMessages" aria-live="polite" aria-label="Conversation"></div>
+
+                <form class="mat-composer" id="chatForm">
+                    <label class="sr-only" for="matAiInput">Ask MAT AI anything about your car or this website</label>
+                    <textarea id="matAiInput" class="mat-textarea" rows="4" placeholder="Ask about a car issue, a repair, a part, this website, or upload a photo for analysis."></textarea>
+
+                    <div class="mat-upload-preview" id="imagePreviewCard" hidden>
+                        <img id="imagePreview" alt="Selected vehicle preview">
+                        <div class="mat-upload-meta">
+                            <strong id="imagePreviewName">Vehicle photo</strong>
+                            <span id="imagePreviewSize">Compressed for AI analysis</span>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" id="removeImageBtn" type="button">Remove</button>
+                    </div>
+
+                    <div class="mat-composer-actions">
+                        <div class="mat-upload-actions">
+                            <input type="file" id="matAiImage" accept="image/png,image/jpeg,image/jpg" hidden>
+                            <button class="btn btn-outline" id="uploadImageBtn" type="button">Upload Car Photo</button>
+                            <span class="mat-helper-text">PNG or JPG, compressed automatically for visual analysis.</span>
+                        </div>
+                        <button class="btn btn-primary btn-large" id="sendBtn" type="submit">Ask MAT AI</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="mat-sidebar">
+                <section class="mat-side-card">
+                    <p class="panel-kicker">MAT Auto Snapshot</p>
+                    <div class="mat-kv-list">
+                        <div><span>Currency</span><strong id="storeCurrency">GMD</strong></div>
+                        <div><span>WhatsApp</span><strong id="storeWhatsapp">Loading…</strong></div>
+                        <div><span>Catalog</span><strong id="catalogSummary">Loading…</strong></div>
+                    </div>
+                </section>
+
+                <section class="mat-side-card">
+                    <p class="panel-kicker">Known Website Areas</p>
+                    <div class="mat-pill-list" id="knownPages"></div>
+                </section>
+
+                <section class="mat-side-card">
+                    <p class="panel-kicker">Related Parts</p>
+                    <div class="mat-related-grid" id="relatedProducts">
+                        <p class="mat-empty-copy">Ask a question and MAT AI will surface relevant parts from the catalog here.</p>
+                    </div>
+                </section>
+
+                <section class="mat-side-card">
+                    <p class="panel-kicker">Important Note</p>
+                    <p>If the car has brake failure, steering problems, heavy smoke, overheating, fuel leaks, or severe warning lights, use MAT AI for guidance but stop driving and get hands-on inspection immediately.</p>
+                </section>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div>
+                <h3>Mat Auto</h3>
+                <p>AI-assisted parts guidance, website help, and practical car support built for real customers.</p>
+            </div>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="contact.html">Contact</a>
+                <a href="orders.html">Orders</a>
+                <a href="mat-ai.html">MAT AI</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="mat-ai.js"></script>
+</body>
+</html>

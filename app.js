@@ -147,7 +147,11 @@ const state = {
     currentFilter : "all",
     currentSort   : "featured",
     currentQuery  : "",
-    currentPage   : 1
+    currentPage   : 1,
+    modalGalleryImages: [],
+    modalGalleryIndex : 0,
+    modalTouchStartX  : 0,
+    modalTouchStartY  : 0
 };
 
 // ---------------------------------------------------------------------------
@@ -805,8 +809,14 @@ function openProductModal(productId) {
     const stockStatus = qs("#stockStatus");
     const qtyInput    = qs("#quantityInput");
     const gallery     = qs("#modalGallery");
+    const prevBtn     = qs("#modalPrevImage");
+    const nextBtn     = qs("#modalNextImage");
 
-    if (modalImage) { modalImage.src = getPrimaryImage(product); modalImage.alt = product.name; }
+    state.modalGalleryImages = product.images?.length
+        ? product.images.map(sanitizeImageSrc)
+        : [getPrimaryImage(product)];
+    state.modalGalleryIndex = 0;
+
     if (stockStatus) {
         stockStatus.textContent = getStockLabel(product);
         stockStatus.className   = `stock-status ${product.stock <= 0 ? "out" : product.stock <= SITE_CONFIG.lowStockThreshold ? "low" : "in"}`;
@@ -814,25 +824,72 @@ function openProductModal(productId) {
     if (qtyInput) { qtyInput.value = "1"; qtyInput.max = String(product.stock); }
 
     if (gallery) {
-        const imgs = product.images?.length ? product.images : [getPrimaryImage(product)];
-        gallery.innerHTML = imgs.map((src, i) => `
+        gallery.innerHTML = state.modalGalleryImages.map((src, i) => `
             <button type="button" class="gallery-thumb${i === 0 ? " active" : ""}" data-gi="${i}">
                 <img src="${sanitizeImageSrc(src)}" alt="${escapeHtml(product.name)} view ${i + 1}" loading="lazy">
             </button>`).join("");
-        gallery.addEventListener("click", e => {
-            const thumb = e.target.closest(".gallery-thumb");
-            if (!thumb) return;
-            if (modalImage) modalImage.src = sanitizeImageSrc(imgs[Number(thumb.dataset.gi)]);
-            qsa(".gallery-thumb", gallery).forEach(t => t.classList.remove("active"));
-            thumb.classList.add("active");
-        });
     }
+    if (prevBtn) prevBtn.hidden = state.modalGalleryImages.length <= 1;
+    if (nextBtn) nextBtn.hidden = state.modalGalleryImages.length <= 1;
+    updateModalGalleryImage();
 
     updateWishlistButton();
     updateModalButtons(product);
     trackRecentlyViewed(product.id);
     incrementProductViews(product.id);
     openModal("productModal");
+}
+
+function updateModalGalleryImage(index = state.modalGalleryIndex) {
+    if (!state.activeProduct || !state.modalGalleryImages.length) return;
+    const total = state.modalGalleryImages.length;
+    state.modalGalleryIndex = ((Number(index) % total) + total) % total;
+
+    const modalImage = qs("#modalImage");
+    const gallery = qs("#modalGallery");
+    const currentSrc = state.modalGalleryImages[state.modalGalleryIndex];
+
+    if (modalImage) {
+        modalImage.src = currentSrc;
+        modalImage.alt = `${state.activeProduct.name} view ${state.modalGalleryIndex + 1}`;
+    }
+    if (gallery) {
+        qsa(".gallery-thumb", gallery).forEach((thumb, i) => {
+            thumb.classList.toggle("active", i === state.modalGalleryIndex);
+            thumb.setAttribute("aria-current", i === state.modalGalleryIndex ? "true" : "false");
+        });
+    }
+}
+
+function stepModalGallery(delta) {
+    if (state.modalGalleryImages.length <= 1) return;
+    updateModalGalleryImage(state.modalGalleryIndex + delta);
+}
+
+function setupModalImageSwipe() {
+    const modalImage = qs("#modalImage");
+    if (!modalImage) return;
+
+    modalImage.addEventListener("touchstart", e => {
+        const touch = e.changedTouches?.[0];
+        if (!touch) return;
+        state.modalTouchStartX = touch.clientX;
+        state.modalTouchStartY = touch.clientY;
+    }, { passive: true });
+
+    modalImage.addEventListener("touchend", e => {
+        const touch = e.changedTouches?.[0];
+        if (!touch || state.modalGalleryImages.length <= 1) return;
+
+        const deltaX = touch.clientX - state.modalTouchStartX;
+        const deltaY = touch.clientY - state.modalTouchStartY;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        if (absX < 45 || absX <= absY) return;
+        if (deltaX < 0) stepModalGallery(1);
+        else stepModalGallery(-1);
+    }, { passive: true });
 }
 
 function updateModalButtons(product) {
@@ -859,6 +916,20 @@ function setupModalActions() {
     qs("#wishlistBtn")?.addEventListener("click",    toggleWishlistForActive);
     qs("#increaseQtyBtn")?.addEventListener("click", () => updateModalQty(1));
     qs("#decreaseQtyBtn")?.addEventListener("click", () => updateModalQty(-1));
+    qs("#modalPrevImage")?.addEventListener("click", () => stepModalGallery(-1));
+    qs("#modalNextImage")?.addEventListener("click", () => stepModalGallery(1));
+    qs("#modalGallery")?.addEventListener("click", e => {
+        const thumb = e.target.closest(".gallery-thumb");
+        if (!thumb) return;
+        updateModalGalleryImage(Number(thumb.dataset.gi));
+    });
+    window.addEventListener("keydown", e => {
+        const modal = qs("#productModal");
+        if (!modal || modal.getAttribute("aria-hidden") === "true") return;
+        if (e.key === "ArrowLeft") stepModalGallery(-1);
+        if (e.key === "ArrowRight") stepModalGallery(1);
+    });
+    setupModalImageSwipe();
 }
 
 function setupQuickAccess() {

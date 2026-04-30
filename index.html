@@ -1020,6 +1020,7 @@
             <li><a href="reviews.html">Reviews</a></li>
             <li><a href="orders.html">Orders</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li><a href="mat-ai.html">MAT AI</a></li>
             <li><a href="admin.html">Admin</a></li>
             <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
             <li>
@@ -1077,6 +1078,7 @@
                 <a href="#products" class="btn btn-primary btn-large">Browse Catalog</a>
                 <a href="#quote" class="btn btn-glass btn-large">Request a Quote</a>
                 <a href="#part-finder" class="btn btn-glass btn-large">🔍 Find My Part</a>
+                <a href="mat-ai.html" class="btn btn-glass btn-large">🤖 Ask MAT AI</a>
             </div>
 
             <div class="hero-stats">
@@ -1897,7 +1899,9 @@
         <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
         <div class="modal-body">
             <div class="modal-image">
+                <button id="modalPrevImage" class="modal-image-nav modal-image-nav-left" type="button" aria-label="Previous image">‹</button>
                 <img id="modalImage" src="" alt="">
+                <button id="modalNextImage" class="modal-image-nav modal-image-nav-right" type="button" aria-label="Next image">›</button>
                 <div id="modalGallery" class="modal-gallery"></div>
             </div>
             <div class="modal-info">
