@@ -261,9 +261,7 @@ async function uploadImages(files) {
     if (!files || !files.length) return [];
 
     const fileArr = Array.from(files).slice(0, 6);
-    const results = [];
-
-    for (const file of fileArr) {
+    const uploadSingleImage = async (file) => {
         let url = null;
 
         // ── Attempt 1: Firebase Storage ─────────────────────────────────
@@ -294,10 +292,10 @@ async function uploadImages(files) {
             }
         }
 
-        results.push(url);
-    }
+        return url;
+    };
 
-    return results;
+    return Promise.all(fileArr.map(uploadSingleImage));
 }
 
 // ---------------------------------------------------------------------------
@@ -459,6 +457,18 @@ async function saveProducts() {
         }
         throw err;
     }
+}
+async function saveProductRecord(product) {
+    if (db) {
+        await db.ref(`${FB.products}/${product.id}`).set(product);
+        if (isLocalDevHost) lsSet(LS.productsDev, state.products);
+        return;
+    }
+    if (isLocalDevHost) {
+        lsSet(LS.productsDev, state.products);
+        return;
+    }
+    throw new Error("Firebase Database not initialized");
 }
 async function saveOrders() {
     state.orders = state.orders.map(normalizeOrder);
@@ -1663,7 +1673,7 @@ function setupAdminProductForm() {
         };
 
         setBtn(true, "⏳ Saving…");
-        showToast("info", files.length ? "Uploading images…" : "Saving product…", 6000);
+        showToast("info", files.length ? "Optimizing and uploading images…" : "Saving product…", 6000);
 
         try {
             // ✅ Smart upload — tries Storage, falls back to base64 automatically
@@ -1683,7 +1693,7 @@ function setupAdminProductForm() {
             };
 
             state.products.unshift(newProduct);
-            await saveProducts();
+            await saveProductRecord(newProduct);
             renderAdminProducts();
             renderAdminStats();
             form.reset();
