@@ -4,6 +4,7 @@
     const STANDALONE_PAGE = document.body.classList.contains("mat-ai-page");
     const MAT_AI_THEME_KEY = "maDarkMode";
     const MAT_AI_SESSION_KEY = "maMatAiSessionV2";
+    const MAT_AI_API_BASE_KEY = "maMatAiApiBase";
     const MAX_HISTORY_MESSAGES = 12;
     const REQUEST_TIMEOUT_MS = 12000;
 
@@ -634,6 +635,7 @@
                 const data = await parseJsonResponse(response);
                 if (response.ok && data?.status === "ok") {
                     state.apiBase = candidate;
+                    try { localStorage.setItem(MAT_AI_API_BASE_KEY, candidate); } catch {}
                     return candidate;
                 }
             } catch {
@@ -642,14 +644,24 @@
         }
 
         if (window.location.hostname.endsWith(".github.io")) {
-            throw new Error("MAT AI needs a live server backend. Point the `mat-ai-api-base` meta tag to your deployed Vercel URL, or host this site on Vercel so `/api/health` exists on the same domain.");
+            throw new Error("MAT AI needs a live server backend. Set your deployed Vercel backend URL in `mat-ai-config.js` or the `mat-ai-api-base` meta tag, then make sure `/api/health` works there.");
         }
 
-        throw new Error("MAT AI could not find a live backend for this website. Start this project with `start-mat-auto.bat` or `npm start`, then open `http://127.0.0.1:4010/`, or connect the `mat-ai-api-base` meta tag to your deployed backend.");
+        throw new Error("MAT AI could not find a live backend for this website. Start this project with `start-mat-auto.bat` or `npm start`, then open `http://127.0.0.1:4010/`, or connect `mat-ai-config.js` / the `mat-ai-api-base` meta tag to your deployed backend.");
     }
 
     function buildApiCandidates() {
         const candidates = [];
+        const queryBase = new URLSearchParams(window.location.search).get("matAiApiBase");
+        if (queryBase) candidates.push(String(queryBase).trim());
+
+        try {
+            const savedBase = localStorage.getItem(MAT_AI_API_BASE_KEY);
+            if (savedBase) candidates.push(String(savedBase).trim());
+        } catch {
+            // Ignore storage failures.
+        }
+
         const metaBase = document.querySelector('meta[name="mat-ai-api-base"]')?.getAttribute("content");
         if (metaBase) candidates.push(String(metaBase).trim());
 
@@ -712,7 +724,7 @@
         const sample = text.trim().slice(0, 120).toLowerCase();
         if (sample.startsWith("<!doctype") || sample.startsWith("<html") || sample.includes("<body")) {
             if (window.location.hostname.endsWith(".github.io")) {
-                throw new Error("MAT AI reached a static website response instead of a live backend. Connect the page to your Vercel backend with `mat-ai-api-base`, or move the site to Vercel.");
+                throw new Error("MAT AI reached a static website response instead of a live backend. Connect the page to your Vercel backend with `mat-ai-config.js` or the `mat-ai-api-base` meta tag, or move the site to Vercel.");
             }
             throw new Error("MAT AI reached an HTML page instead of the backend API. Confirm `/api/health` and `/api/mat-ai/chat` are running on this website, or start the local site with `start-mat-auto.bat`.");
         }

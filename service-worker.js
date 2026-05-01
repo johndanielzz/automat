@@ -21,7 +21,7 @@ const STATIC_ASSETS = [
     './contact.html', './features.html', './orders.html', './offline.html',
     './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
     './reciept.html', './receipt.html', './delivery-drivers.html',
-    './styles.css', './mat-ai.css', './app.js', './mat-ai.js', './app-perf-patch.js', './manifest.json'
+    './styles.css', './mat-ai.css', './app.js', './mat-ai-config.js', './mat-ai.js', './app-perf-patch.js', './manifest.json'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

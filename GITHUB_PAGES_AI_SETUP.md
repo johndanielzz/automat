@@ -22,13 +22,19 @@ Example backend URL:
 
 ## 2. Point the GitHub Pages frontend at that backend
 
-Open `mat-ai.html` and set:
+Open `mat-ai-config.js` and set:
+
+```js
+globalThis.__MAT_AI_API_BASE__ = "https://mat-auto-ai.vercel.app";
+```
+
+You can also still set it directly in `mat-ai.html` with:
 
 ```html
 <meta name="mat-ai-api-base" content="https://mat-auto-ai.vercel.app">
 ```
 
-That tells the frontend exactly where the live MAT AI backend is.
+Either option tells the frontend exactly where the live MAT AI backend is.
 
 ## 3. Redeploy GitHub Pages
 
