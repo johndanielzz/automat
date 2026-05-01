@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Products | Mat Auto</title>
+    <meta name="description" content="Browse the full Mat Auto catalog in its own dedicated products page. Search engines, car parts, compare items, and open product details in one place.">
+    <meta property="og:title" content="Products | Mat Auto">
+    <meta property="og:description" content="Search and shop the full Mat Auto inventory on a dedicated products page.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mat-ai-api-base" content="">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <link rel="stylesheet" href="perf-patch.css">
+    <style>
+        .catalog-page-hero {
+            background: linear-gradient(135deg, var(--navy-deepest) 0%, var(--navy) 50%, var(--navy-mid) 100%);
+            color: #fff;
+            padding: clamp(2.8rem, 7vw, 5rem) 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .catalog-page-hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(244,130,31,0.22), transparent 30%);
+            pointer-events: none;
+        }
+        .catalog-page-shell {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: clamp(1.2rem, 3vw, 2rem);
+            align-items: center;
+        }
+        .catalog-page-copy p {
+            color: rgba(255,255,255,0.7);
+        }
+        .catalog-page-copy .hero-search {
+            margin-top: 1rem;
+        }
+        .catalog-page-panel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--r-2xl);
+            padding: clamp(1rem, 2vw, 1.4rem);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-lg);
+        }
+        .catalog-page-panel ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.8;
+        }
+        .catalog-page-panel strong {
+            display: block;
+            color: #fff;
+            margin-bottom: 0.6rem;
+        }
+        .catalog-page-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .catalog-page-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 1.2rem;
+        }
+        @media (max-width: 940px) {
+            .catalog-page-shell {
+                grid-template-columns: 1fr;
+            }
+            .catalog-page-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="container nav-shell">
+        <a class="nav-brand" href="index.html" aria-label="Mat Auto home">
+            <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+            <span class="brand-copy">
+                <strong>Mat Auto</strong>
+                <small>Parts Marketplace</small>
+            </span>
+        </a>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navLinks">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="products.html" class="active">Products</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="owner.html">Owner</a></li>
+            <li><a href="promos.html">Promos</a></li>
+            <li><a href="reviews.html">Reviews</a></li>
+            <li><a href="orders.html">Orders</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="mat-ai.html">MAT AI</a></li>
+            <li><a href="admin.html">Admin</a></li>
+            <li><button class="nav-icon-btn" id="darkModeBtn" type="button">🌙 Dark</button></li>
+            <li><button class="nav-icon-btn" id="compareNavBtn" type="button">⚖️ Compare <span id="compareCount" class="nav-badge">0</span></button></li>
+            <li><button class="nav-icon-btn" id="wishlistTrigger" type="button">♡ Wishlist <span id="wishlistCount">0</span></button></li>
+            <li><button class="nav-icon-btn nav-icon-btn-primary" id="cartTrigger" type="button">🛒 Cart <span id="cartCount">0</span></button></li>
+        </ul>
+    </div>
+</nav>
+
+<header class="catalog-page-hero">
+    <div class="container catalog-page-shell">
+        <div class="catalog-page-copy">
+            <p class="eyebrow">Dedicated Catalog Page</p>
+            <h1>Browse all engines and parts on a page built just for products.</h1>
+            <p>Search the full Mat Auto inventory, filter by category, compare products, and open full product details without mixing the catalog into the homepage.</p>
+            <form id="heroSearchForm" class="hero-search" role="search">
+                <label class="sr-only" for="searchInput">Search products</label>
+                <input type="search" id="searchInput" class="search-input" placeholder="Search by part, engine, or keyword…" autocomplete="off">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </form>
+            <div class="search-chips" role="list" aria-label="Popular searches">
+                <button class="search-chip" type="button" data-search="Toyota engine">Toyota Engine</button>
+                <button class="search-chip" type="button" data-search="brake pads">Brake Pads</button>
+                <button class="search-chip" type="button" data-search="starter motor">Starter Motor</button>
+                <button class="search-chip" type="button" data-search="alternator">Alternator</button>
+                <button class="search-chip" type="button" data-search="filters">Filters</button>
+            </div>
+            <div class="catalog-page-summary">
+                <article class="stat-card">
+                    <strong id="catalogCount">0</strong>
+                    <span>Total Products</span>
+                </article>
+                <article class="stat-card">
+                    <strong id="engineCount">0</strong>
+                    <span>Engines</span>
+                </article>
+                <article class="stat-card">
+                    <strong>Live</strong>
+                    <span>Filter + Compare</span>
+                </article>
+            </div>
+        </div>
+        <aside class="catalog-page-panel">
+            <strong>What you can do here</strong>
+            <ul>
+                <li>Search the full inventory faster</li>
+                <li>Filter by engines or repair parts</li>
+                <li>Compare products side by side</li>
+                <li>Open product details and add to cart</li>
+                <li>Jump to a quote if you need help sourcing a part</li>
+            </ul>
+            <div class="catalog-page-actions">
+                <a href="index.html#quote" class="btn btn-primary btn-large">Request a Quote</a>
+                <a href="index.html#part-finder-widget" class="btn btn-glass btn-large">Find My Part</a>
+            </div>
+        </aside>
+    </div>
+</header>
+
+<section class="section section-surface">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">What are you looking for?</p>
+            <h2>Shop by category</h2>
+            <p>Jump directly into engines, repair parts, and the most common search flows.</p>
+        </div>
+        <div class="part-types-grid">
+            <button class="part-type-card part-type-card-accent" type="button" data-category-shortcut="engine">
+                <div>
+                    <div class="part-type-icon">🏎️</div>
+                    <h3>Complete Engines</h3>
+                    <p>Drop-in replacements and performance builds for many vehicle types.</p>
+                </div>
+                <span class="btn btn-primary btn-sm" style="width:fit-content;">Shop Engines →</span>
+            </button>
+            <button class="part-type-card" type="button" data-category-shortcut="parts">
+                <div class="part-type-icon">🔧</div>
+                <h3>Repair Parts</h3>
+                <p>Brakes, cooling, suspension, electrical, and more.</p>
+            </button>
+            <a class="part-type-card" href="index.html#quote">
+                <div class="part-type-icon">📋</div>
+                <h3>Custom Quote</h3>
+                <p>Need a special item? We can source it for you quickly.</p>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Quick Filters</p>
+            <h2>Browse by part type</h2>
+        </div>
+        <div class="category-grid-v2" role="list">
+            <button class="cat-pill" type="button" data-filter-part="Engine" role="listitem">
+                <span class="cat-icon">🔩</span>
+                <span class="cat-name">Engines</span>
+                <span class="cat-count" id="countEngine">—</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Brakes" role="listitem">
+                <span class="cat-icon">🛑</span>
+                <span class="cat-name">Brakes</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Suspension" role="listitem">
+                <span class="cat-icon">🔗</span>
+                <span class="cat-name">Suspension</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Electrical" role="listitem">
+                <span class="cat-icon">⚡</span>
+                <span class="cat-name">Electrical</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Cooling" role="listitem">
+                <span class="cat-icon">🌡️</span>
+                <span class="cat-name">Cooling</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+            <button class="cat-pill" type="button" data-filter-part="Filters" role="listitem">
+                <span class="cat-icon">🔍</span>
+                <span class="cat-name">Filters</span>
+                <span class="cat-count">Shop →</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="section section-surface">
+    <div class="container">
+        <div class="section-heading with-action">
+            <div>
+                <p class="eyebrow">Best picks</p>
+                <h2>Featured inventory</h2>
+            </div>
+            <a href="#products" class="text-link">Jump to full catalog →</a>
+        </div>
+        <div class="products-grid" id="featuredGrid"></div>
+    </div>
+</section>
+
+<section id="products" class="section section-surface">
+    <div class="container">
+        <div class="section-heading">
+            <p class="eyebrow">Catalog</p>
+            <h2>All inventory</h2>
+            <p id="resultsSummary">Browse all available products.</p>
+        </div>
+
+        <div class="catalog-toolbar">
+            <div class="filter-buttons" role="group" aria-label="Filter by category">
+                <button class="filter-btn active" data-filter="all" type="button">All</button>
+                <button class="filter-btn" data-filter="engine" type="button">🔩 Engines</button>
+                <button class="filter-btn" data-filter="parts" type="button">🔧 Car Parts</button>
+            </div>
+            <div class="toolbar-actions">
+                <label class="sr-only" for="secondarySearchInput">Refine results</label>
+                <input type="search" id="secondarySearchInput" class="toolbar-input" placeholder="Refine results…" autocomplete="off">
+                <label class="sr-only" for="sortSelect">Sort</label>
+                <select id="sortSelect" class="sort-select">
+                    <option value="featured">⭐ Featured First</option>
+                    <option value="newest">🆕 Newest</option>
+                    <option value="price-low">💰 Low → High</option>
+                    <option value="price-high">💎 High → Low</option>
+                    <option value="popular">👁 Most Viewed</option>
+                    <option value="rating">⭐ Top Rated</option>
+                    <option value="stock">📦 Best Stocked</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="products-grid" id="productsGrid"></div>
+        <div id="paginationBar"></div>
+        <div class="empty-state" id="catalogEmpty" hidden>
+            <h3>No matching products found</h3>
+            <p>Try another keyword, switch category, or request a custom quote.</p>
+            <a href="index.html#quote" class="btn btn-primary">Request a Quote</a>
+        </div>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="footer-content container">
+        <div class="footer-section">
+            <h4>Mat Auto</h4>
+            <p>Dedicated catalog browsing for engines, car parts, and faster product discovery.</p>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+                <a href="https://wa.me/2207000000" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:var(--transition);" aria-label="WhatsApp">📱</a>
+                <a href="https://facebook.com" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:var(--transition);" aria-label="Facebook">📘</a>
+            </div>
+        </div>
+        <div class="footer-section">
+            <h4>Explore</h4>
+            <ul>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="owner.html">Meet The Owner</a></li>
+                <li><a href="products.html">Full Catalog</a></li>
+                <li><a href="promos.html">Promotions</a></li>
+                <li><a href="reviews.html">Customer Reviews</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Support</h4>
+            <ul>
+                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="orders.html">Track My Order</a></li>
+                <li><a href="index.html#quote">Get a Quote</a></li>
+                <li><a href="index.html#part-finder-widget">Find My Part</a></li>
+                <li><a href="admin.html">Admin Panel</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Stay in the Loop</h4>
+            <p style="margin-bottom:12px;">New arrivals and flash deals to your inbox.</p>
+            <form data-newsletter-form>
+                <label class="sr-only" for="footerNewsletterEmail">Email address</label>
+                <input id="footerNewsletterEmail" name="email" type="email" class="newsletter-input" placeholder="Your email address" required style="margin-bottom:8px;">
+                <button class="btn btn-primary btn-block" type="submit">Subscribe</button>
+            </form>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 Mat Auto. All rights reserved. Quality engines &amp; parts — Gambia. &nbsp;·&nbsp; <a href="contact.html" style="color:rgba(255,255,255,0.25);text-decoration:none;">Privacy</a></p>
+    </div>
+</footer>
+
+<a class="float-wa" href="https://wa.me/2206785316?text=Hi Mat Auto, I need help finding a part" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    <span class="wa-text">Chat with us</span>
+</a>
+
+<button id="backToTop" type="button" aria-label="Back to top">↑</button>
+
+<div id="productModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-content modal-large">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-body">
+            <div class="modal-image">
+                <button id="modalPrevImage" class="modal-image-nav modal-image-nav-left" type="button" aria-label="Previous image">‹</button>
+                <img id="modalImage" src="" alt="">
+                <button id="modalNextImage" class="modal-image-nav modal-image-nav-right" type="button" aria-label="Next image">›</button>
+                <div id="modalGallery" class="modal-gallery"></div>
+            </div>
+            <div class="modal-info">
+                <div class="modal-meta-row">
+                    <span class="modal-category" id="modalCategory"></span>
+                    <span class="stock-status" id="stockStatus"></span>
+                </div>
+                <h2 id="modalTitle"></h2>
+                <div class="rating" id="modalRating"></div>
+                <p class="price" id="modalPrice"></p>
+                <p class="description" id="modalDescription"></p>
+                <p class="product-spec-line" id="modalSpecs"></p>
+                <div id="modalTrustBadges" class="modal-trust-badges"></div>
+                <div class="modal-detail-grid">
+                    <div><strong>SKU</strong><span id="modalSku"></span></div>
+                    <div><strong>Brand</strong><span id="modalBrand"></span></div>
+                    <div><strong>Condition</strong><span id="modalCondition"></span></div>
+                    <div><strong>Warranty</strong><span id="modalWarranty"></span></div>
+                    <div style="grid-column:1 / -1;"><strong>Delivery</strong><span id="modalDeliveryEta"></span></div>
+                </div>
+                <div class="modal-fitment-box">
+                    <strong>Vehicle compatibility</strong>
+                    <ul id="modalCompatibility"></ul>
+                </div>
+                <div class="quantity-selector">
+                    <button type="button" id="decreaseQtyBtn" aria-label="Decrease">−</button>
+                    <input type="number" id="quantityInput" value="1" min="1" aria-label="Quantity">
+                    <button type="button" id="increaseQtyBtn" aria-label="Increase">+</button>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" id="modalAddToCart" type="button">Add to Cart</button>
+                    <button class="btn btn-secondary-dark" id="modalBuyNow" type="button">Buy Now</button>
+                </div>
+                <div class="modal-support-grid">
+                    <button class="btn btn-outline btn-sm" id="modalFitmentHelpBtn" type="button">Ask if it fits</button>
+                    <button class="btn btn-outline btn-sm" id="modalRequestStockBtn" type="button">Request trade quote</button>
+                    <button class="btn btn-outline btn-sm" id="modalInstallHelpBtn" type="button">Ask about installation</button>
+                </div>
+                <button class="text-button" id="wishlistBtn" type="button">♡ Save to wishlist</button>
+                <div class="modal-related-section">
+                    <div class="modal-related-head">
+                        <strong>Related picks</strong>
+                        <span>Cross-sell engines, parts, and alternatives.</span>
+                    </div>
+                    <div id="modalRelatedProducts" class="modal-related-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="cartModal" class="modal" aria-hidden="true" role="dialog" aria-label="Shopping Cart">
+    <div class="modal-content modal-medium">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>Shopping Cart</h2>
+                <p id="cartSummaryText">Your saved items appear here.</p>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+            <div class="cart-summary">
+                <div class="summary-row"><span>Subtotal</span><strong id="subtotal">GMD 0.00</strong></div>
+                <div class="summary-row total"><span>Total</span><strong id="total">GMD 0.00</strong></div>
+                <button class="btn btn-primary btn-block btn-large" id="checkoutFromCartBtn" type="button">Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="wishlistModal" class="modal" aria-hidden="true" role="dialog" aria-label="Wishlist">
+    <div class="modal-content modal-medium">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>♡ Wishlist</h2>
+                <p>Your saved products for later review.</p>
+            </div>
+            <div id="wishlistItems" class="wishlist-items"></div>
+        </div>
+    </div>
+</div>
+
+<div id="compareModal" class="modal" aria-hidden="true" role="dialog" aria-label="Product Comparison">
+    <div class="modal-content modal-xl">
+        <button class="close" type="button" data-close-modal aria-label="Close">&times;</button>
+        <div class="modal-panel">
+            <div class="modal-panel-header">
+                <h2>Product Comparison</h2>
+                <p>Side-by-side comparison of selected products.</p>
+            </div>
+            <div id="compareModalBody" style="overflow-x:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="compareBar" role="region" aria-label="Compare products"></div>
+<div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
+<script src="app.js?v=2026-05-01-5"></script>
+<script>
+document.querySelectorAll('.search-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+        const input = document.getElementById('searchInput');
+        if (!input) return;
+        input.value = this.dataset.search || '';
+        document.getElementById('heroSearchForm')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+});
+
+document.querySelectorAll('[data-filter-part]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = document.getElementById('searchInput');
+        if (!input) return;
+        input.value = this.dataset.filterPart || '';
+        document.getElementById('heroSearchForm')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+});
+
+document.getElementById('backToTop')?.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>
+<script src="app-perf-patch.js"></script>
+</body>
+</html>

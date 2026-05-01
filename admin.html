@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <!-- Preload critical assets -->
     <link rel="preload" href="styles.css" as="style">
-    <link rel="preload" href="app.js?v=2026-04-30-4" as="script">
+    <link rel="preload" href="app.js?v=2026-05-01-5" as="script">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
     <link rel="apple-touch-icon" href="image.jpg">
@@ -729,6 +729,33 @@
                         <input type="number" id="productStock" min="0" value="10">
                     </div>
                 </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="productSku">SKU / Internal Code</label>
+                        <input type="text" id="productSku" placeholder="e.g. ENG-TOY-25-01" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="productBrand">Brand / Manufacturer</label>
+                        <input type="text" id="productBrand" placeholder="e.g. Toyota, Bosch, OEM" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="productCondition">Condition</label>
+                        <select id="productCondition">
+                            <option value="">— Select —</option>
+                            <option value="new">New</option>
+                            <option value="used">Used</option>
+                            <option value="reconditioned">Reconditioned</option>
+                            <option value="oem">OEM</option>
+                            <option value="aftermarket">Aftermarket</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productWarranty">Warranty</label>
+                        <input type="text" id="productWarranty" placeholder="e.g. 30-day replacement warranty" autocomplete="off">
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="productDescription">Description *</label>
                     <textarea id="productDescription" required rows="3" placeholder="Condition, compatibility, warranty details…"></textarea>
@@ -740,8 +767,28 @@
                     </div>
                     <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
                         <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
-                            <input type="checkbox" id="productFeatured" style="width:18px;height:18px;accent-color:var(--primary);">
+                            <input type="checkbox" id="productFeatured" checked style="width:18px;height:18px;accent-color:var(--primary);">
                             <span style="font-weight:700;font-size:.88rem;">⭐ Feature on homepage</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="productCompatibility">Vehicle Compatibility</label>
+                    <textarea id="productCompatibility" rows="2" placeholder="Toyota Camry 2018 2.5L, RAV4 2016-2019, Nissan X-Trail QR25"></textarea>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="productDeliveryEta">Delivery / Pickup ETA</label>
+                        <input type="text" id="productDeliveryEta" placeholder="e.g. Pickup today · Delivery 1-2 days" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;gap:.55rem;padding-bottom:4px;">
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" id="productInstallSupport" style="width:18px;height:18px;accent-color:var(--primary);">
+                            <span style="font-weight:700;font-size:.88rem;">🛠 Installation help available</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" id="productRequestIfMissing" checked style="width:18px;height:18px;accent-color:var(--primary);">
+                            <span style="font-weight:700;font-size:.88rem;">📩 Allow request when out of stock</span>
                         </label>
                     </div>
                 </div>
@@ -977,6 +1024,53 @@
                     <label for="editSpecs">Specifications</label>
                     <input type="text" id="editSpecs">
                 </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="editSku">SKU / Internal Code</label>
+                        <input type="text" id="editSku">
+                    </div>
+                    <div class="form-group">
+                        <label for="editBrand">Brand / Manufacturer</label>
+                        <input type="text" id="editBrand">
+                    </div>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="editCondition">Condition</label>
+                        <select id="editCondition">
+                            <option value="">— Select —</option>
+                            <option value="new">New</option>
+                            <option value="used">Used</option>
+                            <option value="reconditioned">Reconditioned</option>
+                            <option value="oem">OEM</option>
+                            <option value="aftermarket">Aftermarket</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editWarranty">Warranty</label>
+                        <input type="text" id="editWarranty">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editCompatibility">Vehicle Compatibility</label>
+                    <textarea id="editCompatibility" rows="2"></textarea>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="editDeliveryEta">Delivery / Pickup ETA</label>
+                        <input type="text" id="editDeliveryEta">
+                    </div>
+                    <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;gap:.55rem;padding-bottom:4px;">
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" id="editInstallSupport" style="width:18px;height:18px;accent-color:var(--primary);">
+                            <span>🛠 Installation help available</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                            <input type="checkbox" id="editRequestIfMissing" style="width:18px;height:18px;accent-color:var(--primary);">
+                            <span>📩 Allow request when out of stock</span>
+                        </label>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
                         <input type="checkbox" id="editFeatured" style="width:18px;height:18px;accent-color:var(--primary);">
@@ -1010,7 +1104,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
-<script src="app.js?v=2026-04-30-4"></script>
+<script src="app.js?v=2026-05-01-5"></script>
 <script>
 /* ══════════════════════════════════════════════════════════
    ADMIN PANEL ENHANCEMENTS v2.0

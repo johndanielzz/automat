@@ -315,6 +315,9 @@ function extractSiteFacts() {
 function normalizeCatalogProduct(raw = {}, index = 0) {
     const description = cleanText(raw.description, 280);
     const specs = cleanText(raw.specs, 240);
+    const compatibility = Array.isArray(raw.compatibility)
+        ? raw.compatibility.map(item => cleanText(item, 120)).filter(Boolean).slice(0, 8)
+        : cleanText(raw.compatibility, 480).split(/[\n,;|]+/).map(item => cleanText(item, 120)).filter(Boolean).slice(0, 8);
     return {
         id          : raw.id || `product-${index + 1}`,
         name        : cleanText(raw.name, 120) || `Product ${index + 1}`,
@@ -323,15 +326,24 @@ function normalizeCatalogProduct(raw = {}, index = 0) {
         stock       : safeNumber(raw.stock, 0),
         rating      : safeNumber(raw.rating, 0),
         featured    : Boolean(raw.featured),
+        sku         : cleanText(raw.sku, 80),
+        brand       : cleanText(raw.brand, 80),
+        condition   : cleanText(raw.condition, 40).toLowerCase(),
         description,
         specs,
         warranty    : cleanText(raw.warranty, 120),
+        deliveryEta : cleanText(raw.deliveryEta, 120),
+        compatibility,
         image       : cleanText(raw.image || (Array.isArray(raw.images) ? raw.images[0] : ""), 400),
         searchable  : [
             cleanText(raw.name, 180),
             cleanText(raw.category, 80),
+            cleanText(raw.brand, 80),
+            cleanText(raw.sku, 80),
+            cleanText(raw.condition, 40),
             description,
             specs,
+            compatibility.join(" "),
             cleanText(raw.make, 80),
             cleanText(raw.model, 80)
         ].join(" ").toLowerCase()
@@ -1110,6 +1122,9 @@ function normalizeAdminProductPayload(raw = {}) {
         .filter(item => typeof item === "string" && /^(data:image\/|https?:\/\/)/i.test(item))
         .map(item => item.trim())
         .slice(0, 6);
+    const compatibility = Array.isArray(raw.compatibility)
+        ? raw.compatibility
+        : String(raw.compatibility || "").split(/[\n,;|]+/);
 
     const id = Number(raw.id);
     const createdAt = cleanText(raw.createdAt, 64) || new Date().toISOString();
@@ -1119,8 +1134,19 @@ function normalizeAdminProductPayload(raw = {}) {
         category    : cleanText(raw.category, 48).toLowerCase() || "parts",
         price       : Math.max(0, safeNumber(raw.price, 0)),
         stock       : Math.max(0, Math.round(safeNumber(raw.stock, 0))),
+        sku         : cleanText(raw.sku, 80),
+        brand       : cleanText(raw.brand, 80),
+        condition   : cleanText(raw.condition, 40).toLowerCase(),
         description : cleanText(raw.description, 3000),
         specs       : cleanText(raw.specs, 1800),
+        warranty    : cleanText(raw.warranty, 180),
+        deliveryEta : cleanText(raw.deliveryEta, 120),
+        compatibility: compatibility
+            .map(item => cleanText(item, 120))
+            .filter(Boolean)
+            .slice(0, 8),
+        installationAvailable     : Boolean(raw.installationAvailable),
+        requestQuoteWhenOutOfStock: raw.requestQuoteWhenOutOfStock !== false,
         featured    : Boolean(raw.featured),
         images,
         image       : images[0] || "",

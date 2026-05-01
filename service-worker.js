@@ -5,7 +5,7 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v6';
+const CACHE_VERSION    = 'mat-auto-v13';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
@@ -15,9 +15,10 @@ const MAX_IMAGE_ITEMS   = 40;
 const PRODUCT_UPLOAD_QUEUE_DB    = 'matAutoUploadQueue';
 const PRODUCT_UPLOAD_QUEUE_STORE = 'productJobs';
 const PRODUCT_UPLOAD_SYNC_TAG    = 'sync-product-uploads';
+const DEFAULT_PRODUCT_DATABASE_URL = 'https://automat-gm-default-rtdb.firebaseio.com';
 
 const STATIC_ASSETS = [
-    './index.html', './about.html', './owner.html', './mat-ai.html', './admin.html', './checkout.html',
+    './index.html', './about.html', './owner.html', './products.html', './mat-ai.html', './admin.html', './checkout.html',
     './contact.html', './features.html', './orders.html', './offline.html',
     './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
     './reciept.html', './receipt.html', './delivery-drivers.html',
@@ -71,12 +72,44 @@ async function deleteQueuedProductUploadJob(jobId) {
     });
 }
 
+function normalizeQueuedProductUploadJob(job) {
+    if (!job || typeof job !== 'object') return job;
+    return {
+        ...job,
+        databaseUrl: String(job.databaseUrl || DEFAULT_PRODUCT_DATABASE_URL || '').trim()
+    };
+}
+
 async function broadcastUploadEvent(message) {
     const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
     await Promise.all(allClients.map(client => client.postMessage(message)));
 }
 
-async function postQueuedProductUpload(job) {
+function buildProductUploadUrl(databaseUrl, productId) {
+    const cleanBase = String(databaseUrl || '').trim().replace(/\/+$/, '');
+    if (!cleanBase) return '';
+    return `${cleanBase}/matAutoProducts/${encodeURIComponent(productId)}.json`;
+}
+
+async function postQueuedProductUploadToFirebase(job) {
+    const uploadUrl = buildProductUploadUrl(job.databaseUrl || DEFAULT_PRODUCT_DATABASE_URL, job.product?.id);
+    if (!uploadUrl) {
+        throw new Error('Firebase Database URL is not configured for product uploads.');
+    }
+
+    const response = await fetch(uploadUrl, {
+        method  : 'PUT',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify(job.product)
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Firebase upload failed (${response.status})`);
+    }
+}
+
+async function postQueuedProductUploadToAdminApi(job) {
     const response = await fetch('/api/admin/products', {
         method  : 'POST',
         headers : {
@@ -92,9 +125,30 @@ async function postQueuedProductUpload(job) {
     }
 }
 
+async function postQueuedProductUpload(job) {
+    const errors = [];
+
+    if (job?.databaseUrl) {
+        try {
+            return await postQueuedProductUploadToFirebase(job);
+        } catch (err) {
+            errors.push(err);
+        }
+    }
+
+    try {
+        return await postQueuedProductUploadToAdminApi(job);
+    } catch (err) {
+        errors.push(err);
+    }
+
+    throw errors[0] || new Error('Upload failed');
+}
+
 async function flushQueuedProductUploads() {
     const jobs = await getQueuedProductUploadJobs().catch(() => []);
-    for (const job of jobs) {
+    for (const rawJob of jobs) {
+        const job = normalizeQueuedProductUploadJob(rawJob);
         try {
             await postQueuedProductUpload(job);
             await deleteQueuedProductUploadJob(job.id);

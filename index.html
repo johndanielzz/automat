@@ -1015,7 +1015,7 @@
         </button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html" class="active">Home</a></li>
-            <li><a href="#products">Products</a></li>
+            <li><a href="products.html">Products</a></li>
             <li><a href="about.html">About</a></li>
             <li><a href="owner.html">Owner</a></li>
             <li><a href="promos.html">Promos</a></li>
@@ -1077,7 +1077,7 @@
             </div>
 
             <div class="hero-actions" style="margin-top: clamp(20px, 3.5vw, 28px);">
-                <a href="#products" class="btn btn-primary btn-large">Browse Catalog</a>
+                <a href="products.html" class="btn btn-primary btn-large">Browse Catalog</a>
                 <a href="#quote" class="btn btn-glass btn-large">Request a Quote</a>
                 <a href="#part-finder" class="btn btn-glass btn-large">🔍 Find My Part</a>
                 <a href="mat-ai.html" class="btn btn-glass btn-large">🤖 Ask MAT AI</a>
@@ -1262,7 +1262,7 @@
                     <h3>Complete Engines</h3>
                     <p>Drop-in replacements &amp; performance builds for all vehicle types.</p>
                 </div>
-                <a href="#products" class="btn btn-primary btn-sm" style="width:fit-content;" tabindex="-1">Shop Engines →</a>
+                <a href="products.html?filter=engine" class="btn btn-primary btn-sm" style="width:fit-content;" tabindex="-1">Shop Engines →</a>
             </button>
             <button class="part-type-card" type="button" data-category-shortcut="parts">
                 <div class="part-type-icon">🔧</div>
@@ -1360,12 +1360,12 @@
 <!-- ── HOT DEALS ──────────────────────────────────────────── -->
 <section class="section section-surface">
     <div class="container">
-        <div class="section-heading with-action">
+            <div class="section-heading with-action">
             <div>
                 <p class="eyebrow">⚡ Flash Deals</p>
                 <h2>Hot deals right now</h2>
             </div>
-            <a href="#products" class="text-link">See all products →</a>
+            <a href="products.html" class="text-link">See all products →</a>
         </div>
         <div class="deals-grid" id="hotDealsGrid">
             <!-- Populated by JS using product data; static fallbacks below -->
@@ -1409,74 +1409,46 @@
     </div>
 </section>
 
-<!-- ── FEATURED INVENTORY ─────────────────────────────────── -->
+<!-- ── LIVE INVENTORY PREVIEW ─────────────────────────────── -->
 <section class="section section-alt">
     <div class="container">
         <div class="section-heading with-action">
             <div>
-                <p class="eyebrow">Best picks</p>
-                <h2>Featured inventory</h2>
+                <p class="eyebrow">Live Inventory</p>
+                <h2>Popular products on the homepage</h2>
+                <p>Fresh products from the live catalog now appear here too, so customers can discover engines and parts right from the homepage.</p>
             </div>
-            <a href="#products" class="text-link">View full catalog →</a>
+            <a href="products.html" class="text-link">Browse full catalog →</a>
         </div>
         <div class="products-grid" id="featuredGrid"></div>
-    </div>
-</section>
-
-<!-- ── FULL CATALOG ───────────────────────────────────────── -->
-<section id="products" class="section section-surface">
-    <div class="container">
-        <div class="section-heading">
-            <p class="eyebrow">Catalog</p>
-            <h2>All inventory</h2>
-            <p id="resultsSummary">Browse all available products.</p>
-        </div>
-
-        <div class="catalog-toolbar">
-            <div class="filter-buttons" role="group" aria-label="Filter by category">
-                <button class="filter-btn active" data-filter="all"    type="button">All</button>
-                <button class="filter-btn"         data-filter="engine" type="button">🔩 Engines</button>
-                <button class="filter-btn"         data-filter="parts"  type="button">🔧 Car Parts</button>
-            </div>
-            <div class="toolbar-actions">
-                <label class="sr-only" for="secondarySearchInput">Refine results</label>
-                <input type="search" id="secondarySearchInput" class="toolbar-input" placeholder="Refine results…" autocomplete="off">
-                <label class="sr-only" for="sortSelect">Sort</label>
-                <select id="sortSelect" class="sort-select">
-                    <option value="featured">⭐ Featured First</option>
-                    <option value="newest">🆕 Newest</option>
-                    <option value="price-low">💰 Low → High</option>
-                    <option value="price-high">💎 High → Low</option>
-                    <option value="popular">👁 Most Viewed</option>
-                    <option value="rating">⭐ Top Rated</option>
-                    <option value="stock">📦 Best Stocked</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="products-grid" id="productsGrid"></div>
-        <div id="paginationBar"></div>
-        <div class="empty-state" id="catalogEmpty" hidden>
-            <h3>No matching products found</h3>
-            <p>Try another keyword, switch category, or request a custom quote.</p>
-            <a href="#quote" class="btn btn-primary">Request a Quote</a>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:clamp(18px,3vw,28px);">
+            <a href="products.html" class="btn btn-primary btn-large">Go to Products</a>
+            <a href="products.html?filter=parts" class="btn btn-glass btn-large">Browse Car Parts</a>
+            <a href="products.html?filter=engine" class="btn btn-glass btn-large">Browse Engines</a>
         </div>
     </div>
 </section>
 
-<!-- ── RECENTLY VIEWED ────────────────────────────────────── -->
+<!-- ── CATALOG CTA ────────────────────────────────────────── -->
 <section class="section">
     <div class="container">
-        <div class="section-heading with-action">
+        <div class="workshop-cta" style="background:linear-gradient(135deg, var(--navy-deepest) 0%, var(--navy) 100%);">
             <div>
-                <p class="eyebrow">Personalized</p>
-                <h2>Recently viewed</h2>
+                <div class="wcta-badge">🛒 Dedicated Product Page</div>
+                <h2>All products now live on their own page.</h2>
+                <p>Use the dedicated products page for full inventory browsing, search, filters, compare, and product details without crowding the homepage.</p>
+                <div class="hero-actions" style="margin-top:clamp(16px,3vw,24px);">
+                    <a href="products.html" class="btn btn-primary btn-large">Open Products Page</a>
+                    <a href="products.html?filter=engine" class="btn btn-glass btn-large">Browse Engines</a>
+                </div>
             </div>
-            <a href="#products" class="text-link">Keep shopping →</a>
-        </div>
-        <div class="products-grid compact-grid" id="recentlyViewedGrid"></div>
-        <div class="empty-state" id="recentlyViewedEmpty">
-            <p>Open a product and it will appear here for quick return visits.</p>
+            <div class="wcta-actions" style="position:relative;z-index:1;">
+                <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r-xl);padding:clamp(16px,3vw,24px);text-align:center;min-width:180px;">
+                    <div style="font-size:2.8rem;margin-bottom:8px;">📦</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:0.94rem;">Dedicated Catalog</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;">Cleaner Shopping Flow</div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -1611,6 +1583,7 @@
             <form id="quoteForm">
                 <div class="form-group"><label for="quoteName">Full Name *</label><input id="quoteName" type="text" required autocomplete="name"></div>
                 <div class="form-group"><label for="quotePhone">Phone / WhatsApp *</label><input id="quotePhone" type="tel" required autocomplete="tel" placeholder="+220 7XX XXXX"></div>
+                <div class="form-group"><label for="quoteEmail">Email</label><input id="quoteEmail" type="email" autocomplete="email" placeholder="name@example.com"></div>
                 <div class="form-group"><label for="quoteVehicle">Vehicle / Fitment *</label><input id="quoteVehicle" type="text" placeholder="e.g. 2018 Toyota Camry 2.5L" required></div>
                 <div class="form-group"><label for="quotePart">Part or Engine Needed *</label><input id="quotePart" type="text" placeholder="e.g. starter motor, V6 engine" required></div>
                 <div class="form-split">
@@ -1621,6 +1594,25 @@
                             <option value="Routine">Routine</option>
                             <option value="This week">This week</option>
                             <option value="Urgent today">Urgent today</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="quoteBusinessType">Customer Type</label>
+                        <select id="quoteBusinessType">
+                            <option value="Individual">Individual</option>
+                            <option value="Workshop">Workshop</option>
+                            <option value="Fleet">Fleet</option>
+                            <option value="Reseller">Reseller</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quotePreferredContact">Preferred Contact</label>
+                        <select id="quotePreferredContact">
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Phone call">Phone call</option>
+                            <option value="Email">Email</option>
                         </select>
                     </div>
                 </div>
@@ -1859,7 +1851,7 @@
                 <li><a href="features.html">Platform Features</a></li>
                 <li><a href="promos.html">Promotions</a></li>
                 <li><a href="reviews.html">Customer Reviews</a></li>
-                <li><a href="#products">Full Catalog</a></li>
+                <li><a href="products.html">Full Catalog</a></li>
             </ul>
         </div>
         <div class="footer-section">
@@ -1917,6 +1909,18 @@
                 <p class="price" id="modalPrice"></p>
                 <p class="description" id="modalDescription"></p>
                 <p class="product-spec-line" id="modalSpecs"></p>
+                <div id="modalTrustBadges" class="modal-trust-badges"></div>
+                <div class="modal-detail-grid">
+                    <div><strong>SKU</strong><span id="modalSku"></span></div>
+                    <div><strong>Brand</strong><span id="modalBrand"></span></div>
+                    <div><strong>Condition</strong><span id="modalCondition"></span></div>
+                    <div><strong>Warranty</strong><span id="modalWarranty"></span></div>
+                    <div style="grid-column:1 / -1;"><strong>Delivery</strong><span id="modalDeliveryEta"></span></div>
+                </div>
+                <div class="modal-fitment-box">
+                    <strong>Vehicle compatibility</strong>
+                    <ul id="modalCompatibility"></ul>
+                </div>
                 <div class="quantity-selector">
                     <button type="button" id="decreaseQtyBtn" aria-label="Decrease">−</button>
                     <input type="number" id="quantityInput" value="1" min="1" aria-label="Quantity">
@@ -1926,7 +1930,19 @@
                     <button class="btn btn-primary" id="modalAddToCart" type="button">Add to Cart</button>
                     <button class="btn btn-secondary-dark" id="modalBuyNow" type="button">Buy Now</button>
                 </div>
+                <div class="modal-support-grid">
+                    <button class="btn btn-outline btn-sm" id="modalFitmentHelpBtn" type="button">Ask if it fits</button>
+                    <button class="btn btn-outline btn-sm" id="modalRequestStockBtn" type="button">Request trade quote</button>
+                    <button class="btn btn-outline btn-sm" id="modalInstallHelpBtn" type="button">Ask about installation</button>
+                </div>
                 <button class="text-button" id="wishlistBtn" type="button">♡ Save to wishlist</button>
+                <div class="modal-related-section">
+                    <div class="modal-related-head">
+                        <strong>Related picks</strong>
+                        <span>Cross-sell engines, parts, and alternatives.</span>
+                    </div>
+                    <div id="modalRelatedProducts" class="modal-related-grid"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1983,7 +1999,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
-<script src="app.js?v=2026-05-01-1"></script>
+<script src="app.js?v=2026-05-01-5"></script>
 
 <script>
 /* ── PWA ── */
@@ -2113,11 +2129,7 @@ document.getElementById('vehicleSearchForm').addEventListener('submit', function
     const part = document.getElementById('vsPartType').value;
     const query = [make, model, year, part].filter(Boolean).join(' ');
     if (query) {
-        const si = document.getElementById('searchInput');
-        si.value = query;
-        document.getElementById('secondarySearchInput').value = query;
-        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        window.location.href = `products.html?q=${encodeURIComponent(query)}`;
     }
 });
 
@@ -2128,9 +2140,7 @@ document.getElementById('partFinderForm').addEventListener('submit', function(e)
     const part = document.getElementById('pfPart').value;
     const query = [vehicle, part].filter(Boolean).join(' ');
     if (query) {
-        document.getElementById('searchInput').value = query;
-        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        window.location.href = `products.html?q=${encodeURIComponent(query)}`;
     }
 });
 
@@ -2138,9 +2148,7 @@ document.getElementById('partFinderForm').addEventListener('submit', function(e)
 document.querySelectorAll('.search-chip').forEach(chip => {
     chip.addEventListener('click', function() {
         const q = this.dataset.search;
-        document.getElementById('searchInput').value = q;
-        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        window.location.href = `products.html?q=${encodeURIComponent(q)}`;
     });
 });
 
@@ -2148,9 +2156,7 @@ document.querySelectorAll('.search-chip').forEach(chip => {
 document.querySelectorAll('[data-filter-part]').forEach(btn => {
     btn.addEventListener('click', function() {
         const type = this.dataset.filterPart;
-        document.getElementById('searchInput').value = type;
-        document.getElementById('heroSearchForm').dispatchEvent(new Event('submit'));
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        window.location.href = `products.html?q=${encodeURIComponent(type)}`;
     });
 });
 
@@ -2159,9 +2165,7 @@ document.querySelectorAll('[data-category-shortcut]').forEach(btn => {
     btn.addEventListener('click', function(e) {
         e.preventDefault();
         const val = this.dataset.categoryShortcut;
-        const filterBtn = document.querySelector(`.filter-btn[data-filter="${val}"]`);
-        if (filterBtn) filterBtn.click();
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        window.location.href = `products.html?filter=${encodeURIComponent(val)}`;
     });
 });
 

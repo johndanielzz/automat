@@ -669,19 +669,23 @@
         if (configured) candidates.push(String(configured).trim());
 
         const { protocol, origin, hostname, port } = window.location;
-        if (protocol === "http:" || protocol === "https:") {
+        const isGithubPagesHost = /\.github\.io$/i.test(hostname || "");
+
+        if (!isGithubPagesHost && (protocol === "http:" || protocol === "https:")) {
             candidates.push(origin);
         }
 
         const isPreviewPort = port === "3000" || port === "4173" || port === "5500" || port === "5501" || port === "8080";
-        if (hostname && isPreviewPort) {
+        if (!isGithubPagesHost && hostname && isPreviewPort) {
             candidates.push(`${protocol}//${hostname}:4010`);
         }
 
-        candidates.push("http://127.0.0.1:4010");
-        candidates.push("http://localhost:4010");
-        candidates.push("http://127.0.0.1:3000");
-        candidates.push("http://localhost:3000");
+        if (!isGithubPagesHost) {
+            candidates.push("http://127.0.0.1:4010");
+            candidates.push("http://localhost:4010");
+            candidates.push("http://127.0.0.1:3000");
+            candidates.push("http://localhost:3000");
+        }
 
         return Array.from(new Set(
             candidates

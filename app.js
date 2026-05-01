@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_BUILD = "2026-05-01-1";
+const APP_BUILD = "2026-05-01-5";
 console.info(`Mat Auto app.js build ${APP_BUILD} loaded.`);
 
 // ===========================================================================
@@ -122,7 +122,8 @@ const LS = {
     activeOrder : "maActiveOrder",
     myOrderIds  : "maMyOrderIds",
     allOrders   : "maAllOrders",
-    productsDev : "maDevProducts"
+    productsDev : "maDevProducts",
+    pendingQuote: "maPendingQuote"
 };
 
 const PRODUCT_UPLOAD_QUEUE_DB    = "matAutoUploadQueue";
@@ -202,11 +203,40 @@ function getPrimaryImage(p) {
     return sanitizeImageSrc((Array.isArray(p.images) && p.images[0]) || p.image || PLACEHOLDER_IMAGE);
 }
 
+function toSafeNumber(value, fallback = 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+}
+
+function isRenderableProduct(product) {
+    return Boolean(String(product?.name || "").trim());
+}
+
 function normalizeProduct(p) {
     const images = Array.isArray(p.images) && p.images.length
         ? p.images.map(sanitizeImageSrc)
         : p.image ? [sanitizeImageSrc(p.image)] : [PLACEHOLDER_IMAGE];
-    return { ...p, images, image: images[0], views: p.views || 0 };
+    return {
+        ...p,
+        id                        : p?.id ?? createProductId(),
+        name                      : String(p?.name || "").trim(),
+        category                  : String(p?.category || "parts").trim().toLowerCase() || "parts",
+        price                     : Math.max(0, toSafeNumber(p?.price, 0)),
+        stock                     : Math.max(0, Math.round(toSafeNumber(p?.stock, 0))),
+        rating                    : Math.max(0, toSafeNumber(p?.rating, 0)),
+        featured                  : Boolean(p?.featured),
+        sku                       : String(p?.sku || "").trim(),
+        brand                     : String(p?.brand || "").trim(),
+        condition                 : normalizeProductCondition(p?.condition),
+        warranty                  : String(p?.warranty || "").trim(),
+        deliveryEta               : String(p?.deliveryEta || "").trim(),
+        compatibility             : normalizeDelimitedList(p?.compatibility),
+        installationAvailable     : Boolean(p?.installationAvailable),
+        requestQuoteWhenOutOfStock: p?.requestQuoteWhenOutOfStock !== false,
+        images,
+        image                     : images[0],
+        views                     : Math.max(0, Math.round(toSafeNumber(p?.views, 0)))
+    };
 }
 
 function debounce(fn, ms = 250) {
@@ -222,6 +252,160 @@ function formatDate(isoStr) {
             hour: "2-digit", minute: "2-digit"
         });
     } catch { return isoStr; }
+}
+
+function getProductFreshnessValue(product) {
+    const createdAt = Date.parse(product?.createdAt || "");
+    if (Number.isFinite(createdAt) && createdAt > 0) return createdAt;
+
+    const numericId = Number(product?.id);
+    if (Number.isFinite(numericId) && numericId > 0) return numericId;
+
+    return 0;
+}
+
+function normalizeDelimitedList(value, limit = 8) {
+    const rawList = Array.isArray(value)
+        ? value
+        : String(value || "").split(/[\n,;|]+/);
+
+    return rawList
+        .map(item => String(item || "").trim())
+        .filter(Boolean)
+        .slice(0, limit);
+}
+
+function normalizeProductCondition(value) {
+    const clean = String(value || "").trim().toLowerCase();
+    return ["new", "used", "reconditioned", "oem", "aftermarket"].includes(clean) ? clean : "";
+}
+
+function getProductConditionLabel(condition) {
+    switch (normalizeProductCondition(condition)) {
+        case "new": return "New";
+        case "used": return "Used";
+        case "reconditioned": return "Reconditioned";
+        case "oem": return "OEM";
+        case "aftermarket": return "Aftermarket";
+        default: return "";
+    }
+}
+
+function getProductCompatibilitySummary(product, limit = 2) {
+    const items = normalizeDelimitedList(product?.compatibility, 8);
+    if (!items.length) return "";
+    return items.slice(0, limit).join(" • ");
+}
+
+function getProductTrustTags(product) {
+    const tags = [];
+    const condition = getProductConditionLabel(product?.condition);
+    if (condition) tags.push(condition);
+    if (product?.brand) tags.push(product.brand);
+    if (product?.warranty) tags.push(product.warranty);
+    if (product?.deliveryEta) tags.push(product.deliveryEta);
+    if (product?.installationAvailable) tags.push("Installation help");
+    return tags.slice(0, 4);
+}
+
+function getProductSupportMessage(product, intent = "fitment") {
+    const compatibility = getProductCompatibilitySummary(product, 3) || "not listed";
+    const lines = [
+        `Hello ${SITE_CONFIG.storeName},`,
+        ""
+    ];
+
+    if (intent === "fitment") lines.push(`I want fitment help for ${product.name}.`);
+    if (intent === "quote") lines.push(`I want a quote for ${product.name}.`);
+    if (intent === "request") lines.push(`I want to request ${product.name}${product.stock <= 0 ? " even though it is currently out of stock" : ""}.`);
+    if (intent === "install") lines.push(`I want to ask about installation support for ${product.name}.`);
+
+    lines.push(
+        `Price: ${formatCurrency(product.price)}`,
+        `Condition: ${getProductConditionLabel(product.condition) || "Not specified"}`,
+        `Compatibility: ${compatibility}`
+    );
+
+    if (product.sku) lines.push(`SKU: ${product.sku}`);
+    if (product.brand) lines.push(`Brand: ${product.brand}`);
+
+    return encodeURIComponent(lines.join("\n"));
+}
+
+function openProductWhatsApp(product, intent = "fitment") {
+    const msg = getProductSupportMessage(product, intent);
+    window.open(`https://wa.me/${SITE_CONFIG.whatsappNumber}?text=${msg}`, "_blank");
+}
+
+function savePendingQuotePrefill(payload) {
+    lsSet(LS.pendingQuote, payload);
+}
+
+function consumePendingQuotePrefill() {
+    const payload = lsGet(LS.pendingQuote, null);
+    try { localStorage.removeItem(LS.pendingQuote); } catch {}
+    return payload;
+}
+
+function prefillQuoteForm(payload = {}) {
+    const form = qs("#quoteForm");
+    if (!form) return false;
+
+    const setValue = (id, value) => {
+        const input = qs(`#${id}`);
+        if (input && value != null && String(value).trim()) input.value = String(value).trim();
+    };
+
+    setValue("quoteVehicle", payload.vehicle || payload.compatibility || "");
+    setValue("quotePart", payload.part || payload.productName || "");
+    setValue("quoteNotes", payload.notes || "");
+    setValue("quoteBusinessType", payload.businessType || "");
+    setValue("quotePreferredContact", payload.preferredContact || "");
+
+    const quoteSection = qs("#quote");
+    quoteSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    qs("#quotePart")?.focus();
+    return true;
+}
+
+function startQuoteForProduct(product, intent = "quote") {
+    const payload = {
+        productId        : product.id,
+        productName      : product.name,
+        part             : product.name,
+        compatibility    : getProductCompatibilitySummary(product, 3),
+        businessType     : "Individual",
+        preferredContact : "WhatsApp",
+        notes            : [
+            product.brand ? `Brand: ${product.brand}` : "",
+            product.sku ? `SKU: ${product.sku}` : "",
+            getProductConditionLabel(product.condition) ? `Condition: ${getProductConditionLabel(product.condition)}` : "",
+            product.warranty ? `Warranty: ${product.warranty}` : "",
+            product.stock <= 0 ? "Customer wants this item even though it is out of stock." : "",
+            intent === "request" ? "Customer requested a sourcing / trade quote." : "Customer requested a quote from the product modal."
+        ].filter(Boolean).join("\n")
+    };
+
+    if (prefillQuoteForm(payload)) return;
+    savePendingQuotePrefill(payload);
+    window.location.href = "index.html#quote";
+}
+
+function getRelatedProducts(product, limit = 3) {
+    return state.products
+        .filter(item => item.id !== product.id)
+        .map(item => {
+            let score = 0;
+            if (item.category === product.category) score += 3;
+            if (item.brand && product.brand && item.brand.toLowerCase() === product.brand.toLowerCase()) score += 2;
+            if ((item.stock || 0) > 0) score += 1;
+            score += Math.min(item.rating || 0, 5) * 0.1;
+            score += getProductFreshnessValue(item) / 1e15;
+            return { item, score };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(entry => entry.item);
 }
 
 // ---------------------------------------------------------------------------
@@ -374,7 +558,11 @@ function createProductId() {
     return Date.now() + Math.floor(Math.random() * 1000);
 }
 
-function buildQueuedProductPayload({ name, category, price, stock, desc, specs, featured, images }) {
+function buildQueuedProductPayload({
+    name, category, price, stock, desc, specs, featured, images,
+    sku, brand, condition, warranty, compatibility, deliveryEta,
+    installationAvailable, requestQuoteWhenOutOfStock
+}) {
     return {
         id          : createProductId(),
         name,
@@ -384,6 +572,14 @@ function buildQueuedProductPayload({ name, category, price, stock, desc, specs, 
         description : desc,
         specs,
         featured,
+        sku                       : String(sku || "").trim(),
+        brand                     : String(brand || "").trim(),
+        condition                 : normalizeProductCondition(condition),
+        warranty                  : String(warranty || "").trim(),
+        compatibility             : normalizeDelimitedList(compatibility),
+        deliveryEta               : String(deliveryEta || "").trim(),
+        installationAvailable     : Boolean(installationAvailable),
+        requestQuoteWhenOutOfStock: requestQuoteWhenOutOfStock !== false,
         images      : images.length ? images : [PLACEHOLDER_IMAGE],
         image       : images[0] || PLACEHOLDER_IMAGE,
         rating      : 5,
@@ -395,10 +591,48 @@ function buildQueuedProductPayload({ name, category, price, stock, desc, specs, 
 async function compressImagesForQueue(files) {
     const selectedFiles = Array.from(files || []).slice(0, 6);
     if (!selectedFiles.length) return [PLACEHOLDER_IMAGE];
-    return Promise.all(selectedFiles.map(file => compressImage(file, 800, 800, 0.72)));
+    return Promise.all(selectedFiles.map(file => compressImage(file, 640, 640, 0.68)));
 }
 
-async function postQueuedProductUpload(job) {
+function buildProductUploadUrl(databaseUrl, productId) {
+    const cleanBase = String(databaseUrl || "").trim().replace(/\/+$/, "");
+    if (!cleanBase) return "";
+    return `${cleanBase}/${FB.products}/${encodeURIComponent(productId)}.json`;
+}
+
+function getDefaultProductUploadDatabaseUrl() {
+    return firebaseConfig?.databaseURL || "https://automat-gm-default-rtdb.firebaseio.com";
+}
+
+function normalizeQueuedProductUploadJob(job) {
+    if (!job || typeof job !== "object") return job;
+    return {
+        ...job,
+        databaseUrl: String(job.databaseUrl || getDefaultProductUploadDatabaseUrl() || "").trim()
+    };
+}
+
+async function postQueuedProductUploadToFirebase(job) {
+    const uploadUrl = buildProductUploadUrl(job.databaseUrl || getDefaultProductUploadDatabaseUrl(), job.product?.id);
+    if (!uploadUrl) {
+        throw new Error("Firebase Database URL is not configured for product uploads.");
+    }
+
+    const response = await fetch(uploadUrl, {
+        method  : "PUT",
+        headers : { "Content-Type": "application/json" },
+        body    : JSON.stringify(job.product)
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Firebase upload failed (${response.status})`);
+    }
+
+    return response.json().catch(() => ({ ok: true }));
+}
+
+async function postQueuedProductUploadToAdminApi(job) {
     const response = await fetch("/api/admin/products", {
         method  : "POST",
         headers : {
@@ -414,6 +648,26 @@ async function postQueuedProductUpload(job) {
     }
 
     return response.json().catch(() => ({ ok: true }));
+}
+
+async function postQueuedProductUpload(job) {
+    const errors = [];
+
+    if (job?.databaseUrl) {
+        try {
+            return await postQueuedProductUploadToFirebase(job);
+        } catch (err) {
+            errors.push(err);
+        }
+    }
+
+    try {
+        return await postQueuedProductUploadToAdminApi(job);
+    } catch (err) {
+        errors.push(err);
+    }
+
+    throw errors[0] || new Error("Product upload failed.");
 }
 
 async function requestProductUploadSync() {
@@ -434,8 +688,12 @@ async function flushQueuedProductUploads() {
 
     productUploadDrainPromise = (async () => {
         const jobs = await getQueuedProductUploadJobs().catch(() => []);
-        for (const job of jobs) {
+        for (const rawJob of jobs) {
+            const job = normalizeQueuedProductUploadJob(rawJob);
             try {
+                if (job?.id && job.databaseUrl !== rawJob?.databaseUrl) {
+                    await putQueuedProductUploadJob(job);
+                }
                 await postQueuedProductUpload(job);
                 await deleteQueuedProductUploadJob(job.id);
                 window.dispatchEvent(new CustomEvent("matAutoProductUploadComplete", { detail: { job } }));
@@ -508,13 +766,9 @@ function bindProductUploadRuntime() {
     });
 
     window.addEventListener("matAutoProductUploadComplete", event => {
-        const product = normalizeProduct(event.detail?.job?.product || {});
+        const product = upsertProductInState(event.detail?.job?.product || {}, { prepend: true });
         if (!product?.id) return;
-        const idx = state.products.findIndex(item => String(item.id) === String(product.id));
-        if (idx >= 0) state.products[idx] = product;
-        else state.products.unshift(product);
-        if (qs("#productsList")) renderAdminProducts();
-        if (qs("#totalProductsCount")) renderAdminStats();
+        refreshProductUiSurfaces();
         if (typeof showToast === "function" && qs(".admin-container")) {
             showToast("success", `"${product.name}" finished uploading.`);
         }
@@ -531,6 +785,38 @@ function lsGet(key, fallback = null) {
 }
 function lsSet(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { console.warn("localStorage write failed:", key); }
+}
+
+function syncLocalDevProductsCache() {
+    if (isLocalDevHost) lsSet(LS.productsDev, state.products);
+}
+
+function upsertProductInState(product, { prepend = false } = {}) {
+    const normalized = normalizeProduct(product);
+    if (!normalized?.id) return null;
+
+    const idx = state.products.findIndex(item => String(item.id) === String(normalized.id));
+    if (idx >= 0) state.products[idx] = normalized;
+    else if (prepend) state.products.unshift(normalized);
+    else state.products.push(normalized);
+
+    syncLocalDevProductsCache();
+    return normalized;
+}
+
+function removeProductFromState(productId) {
+    const before = state.products.length;
+    state.products = state.products.filter(item => String(item.id) !== String(productId));
+    if (state.products.length !== before) syncLocalDevProductsCache();
+}
+
+function refreshProductUiSurfaces() {
+    updateHeroStats();
+    if (qs("#featuredGrid"))       renderFeatured();
+    if (qs("#productsGrid"))       refreshCatalog();
+    if (qs("#recentlyViewedGrid")) renderRecentlyViewed();
+    if (qs("#productsList"))       renderAdminProducts();
+    if (typeof renderAdminStats === "function") renderAdminStats();
 }
 
 function loadLocalState() {
@@ -635,7 +921,7 @@ function attachProductsListener() {
     productsListenerAttached = true;
     db.ref(FB.products).on("value", snap => {
         const raw = snap.exists() ? snap.val() : [];
-        state.products = normalizeFirebaseList(raw).map(normalizeProduct);
+        state.products = normalizeFirebaseList(raw).map(normalizeProduct).filter(isRenderableProduct);
         updateHeroStats();
         if (qs("#featuredGrid"))       renderFeatured();
         if (qs("#productsGrid"))       refreshCatalog();
@@ -655,7 +941,7 @@ async function loadFirebaseState() {
         fbRead(FB.promos,   []),
         fbRead(FB.reviews,  [])
     ]);
-    state.products = normalizeFirebaseList(rawProducts).map(normalizeProduct);
+    state.products = normalizeFirebaseList(rawProducts).map(normalizeProduct).filter(isRenderableProduct);
     state.orders   = normalizeFirebaseList(rawOrders).map(normalizeOrder);
     state.quotes   = normalizeFirebaseList(rawQuotes);
     state.promos   = normalizeFirebaseList(rawPromos);
@@ -673,10 +959,10 @@ async function loadFirebaseState() {
 async function saveProducts() {
     try {
         await fbWrite(FB.products, state.products);
-        if (isLocalDevHost) lsSet(LS.productsDev, state.products);
+        syncLocalDevProductsCache();
     } catch (err) {
         if (isLocalDevHost) {
-            lsSet(LS.productsDev, state.products);
+            syncLocalDevProductsCache();
             console.warn("Firebase product save failed in local dev; saved product catalog to local fallback instead.", err);
             return;
         }
@@ -686,11 +972,11 @@ async function saveProducts() {
 async function saveProductRecord(product) {
     if (db) {
         await db.ref(`${FB.products}/${product.id}`).set(product);
-        if (isLocalDevHost) lsSet(LS.productsDev, state.products);
+        syncLocalDevProductsCache();
         return;
     }
     if (isLocalDevHost) {
-        lsSet(LS.productsDev, state.products);
+        syncLocalDevProductsCache();
         return;
     }
     throw new Error("Firebase Database not initialized");
@@ -857,17 +1143,22 @@ function renderPagination(total) {
 function renderProducts(list, targetId) {
     const grid = qs(`#${targetId}`);
     if (!grid) return;
-    if (!list.length) {
+    const safeList = list.map(normalizeProduct).filter(isRenderableProduct);
+    if (!safeList.length) {
         grid.innerHTML = `<div class="empty-state"><p>No products found.</p></div>`;
         return;
     }
     const frag = document.createDocumentFragment();
-    list.forEach(product => {
+    safeList.forEach(product => {
         const inCompare  = state.compareList.includes(product.id);
         const inWishlist = state.wishlist.some(w => w.id === product.id);
+        const trustTags = getProductTrustTags(product);
+        const compatibility = getProductCompatibilitySummary(product, 2);
+        const metaBits = [product.brand, product.sku].filter(Boolean);
         const card = document.createElement("article");
         card.className = "product-card";
         const stockClass = product.stock <= 0 ? "out" : product.stock <= SITE_CONFIG.lowStockThreshold ? "low" : "in";
+        const categoryLabel = String(product.category || "parts").toUpperCase();
         card.innerHTML = `
             <div class="product-media">
                 <img src="${getPrimaryImage(product)}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async">
@@ -881,17 +1172,20 @@ function renderProducts(list, targetId) {
                 </button>
             </div>
             <div class="product-body">
-                <div class="product-category">${escapeHtml(product.category.toUpperCase())}</div>
+                <div class="product-category">${escapeHtml(categoryLabel)}</div>
                 <h3 class="product-name">${escapeHtml(product.name)}</h3>
+                ${metaBits.length ? `<p class="product-micro-meta">${escapeHtml(metaBits.join(" • "))}</p>` : ""}
                 <div class="product-rating" title="${product.rating}/5">${getRatingStars(product.rating)}</div>
                 <p class="product-price">${formatCurrency(product.price)}</p>
+                ${compatibility ? `<p class="product-compatibility">Fits: ${escapeHtml(compatibility)}</p>` : ""}
+                ${trustTags.length ? `<div class="product-trust-row">${trustTags.map(tag => `<span class="trust-chip compact">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
                 <div class="product-stock-row">
                     <span class="stock-dot stock-${stockClass}"></span>
                     <span class="stock-label-sm">${getStockLabel(product)}</span>
                     ${product.views ? `<span class="view-count">👁 ${product.views}</span>` : ""}
                 </div>
                 <div class="product-actions">
-                    <button class="btn btn-primary btn-sm" type="button" data-product-id="${product.id}">View Details</button>
+                    <button class="btn btn-primary btn-sm" type="button" data-product-id="${product.id}">${product.stock <= 0 && product.requestQuoteWhenOutOfStock ? "Request Item" : "View Details"}</button>
                     <button class="btn btn-compare${inCompare ? " active" : ""} btn-sm" type="button"
                         data-compare-id="${product.id}" title="${inCompare ? "Remove from compare" : "Compare"}">
                         ${inCompare ? "✓" : "⇌"}
@@ -924,8 +1218,12 @@ function filterAndSortProducts() {
         const q = state.currentQuery.toLowerCase();
         list = list.filter(p =>
             p.name.toLowerCase().includes(q) ||
+            (p.brand || "").toLowerCase().includes(q) ||
+            (p.sku || "").toLowerCase().includes(q) ||
             (p.description || "").toLowerCase().includes(q) ||
-            (p.specs       || "").toLowerCase().includes(q)
+            (p.specs       || "").toLowerCase().includes(q) ||
+            (p.warranty    || "").toLowerCase().includes(q) ||
+            normalizeDelimitedList(p.compatibility).join(" ").toLowerCase().includes(q)
         );
     }
     switch (state.currentSort) {
@@ -940,6 +1238,55 @@ function filterAndSortProducts() {
     return list;
 }
 
+function buildCatalogUrl({ query = "", filter = "all", sort = "featured" } = {}) {
+    const nextUrl = new URL("products.html", window.location.href);
+    const cleanQuery = String(query || "").trim();
+    const cleanFilter = String(filter || "all").trim().toLowerCase();
+    const cleanSort = String(sort || "featured").trim().toLowerCase();
+
+    if (cleanQuery) nextUrl.searchParams.set("q", cleanQuery);
+    if (cleanFilter && cleanFilter !== "all") nextUrl.searchParams.set("filter", cleanFilter);
+    if (cleanSort && cleanSort !== "featured") nextUrl.searchParams.set("sort", cleanSort);
+
+    return `${nextUrl.pathname}${nextUrl.search}`;
+}
+
+function navigateToCatalog(params = {}) {
+    window.location.href = buildCatalogUrl(params);
+}
+
+function isCatalogPageReady() {
+    return Boolean(qs("#productsGrid"));
+}
+
+function applyCatalogStateFromUrl() {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const allowedFilters = new Set(["all", "engine", "parts"]);
+    const allowedSorts   = new Set(["featured", "newest", "price-low", "price-high", "popular", "rating", "stock"]);
+
+    const nextQuery  = String(params.get("q") || "").trim();
+    const nextFilter = String(params.get("filter") || "all").trim().toLowerCase();
+    const nextSort   = String(params.get("sort") || "featured").trim().toLowerCase();
+
+    state.currentQuery  = nextQuery;
+    state.currentFilter = allowedFilters.has(nextFilter) ? nextFilter : "all";
+    state.currentSort   = allowedSorts.has(nextSort) ? nextSort : "featured";
+    state.currentPage   = 1;
+
+    const heroSearch = qs("#searchInput");
+    const refineSearch = qs("#secondarySearchInput");
+    const sortSelect = qs("#sortSelect");
+
+    if (heroSearch) heroSearch.value = state.currentQuery;
+    if (refineSearch) refineSearch.value = state.currentQuery;
+    if (sortSelect) sortSelect.value = state.currentSort;
+
+    qsa(".filter-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.filter === state.currentFilter);
+    });
+}
+
 function refreshCatalog() {
     const all  = filterAndSortProducts();
     const from = (state.currentPage - 1) * SITE_CONFIG.productsPerPage;
@@ -952,7 +1299,20 @@ function refreshCatalog() {
 }
 
 function renderFeatured() {
-    renderProducts(state.products.filter(p => p.featured).slice(0, 4), "featuredGrid");
+    const ranked = [...state.products].sort((a, b) => {
+        const featuredScore = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+        if (featuredScore) return featuredScore;
+
+        const stockScore = Number((b.stock || 0) > 0) - Number((a.stock || 0) > 0);
+        if (stockScore) return stockScore;
+
+        const freshnessScore = getProductFreshnessValue(b) - getProductFreshnessValue(a);
+        if (freshnessScore) return freshnessScore;
+
+        return (b.rating || 0) - (a.rating || 0);
+    });
+
+    renderProducts(ranked.slice(0, 4), "featuredGrid");
 }
 
 function renderHeroPromos() {
@@ -983,6 +1343,14 @@ function updateHeroStats() {
 function setupCatalogControls() {
     const filterBtns = qsa(".filter-btn");
     filterBtns.forEach(btn => btn.addEventListener("click", () => {
+        if (!isCatalogPageReady()) {
+            navigateToCatalog({
+                query  : state.currentQuery,
+                filter : btn.dataset.filter || "all",
+                sort   : state.currentSort
+            });
+            return;
+        }
         filterBtns.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         state.currentFilter = btn.dataset.filter;
@@ -1004,6 +1372,14 @@ function setupCatalogControls() {
     }));
 
     qsa("[data-category-shortcut]").forEach(card => card.addEventListener("click", () => {
+        if (!isCatalogPageReady()) {
+            navigateToCatalog({
+                query  : state.currentQuery,
+                filter : card.dataset.categoryShortcut || "all",
+                sort   : state.currentSort
+            });
+            return;
+        }
         state.currentFilter = card.dataset.categoryShortcut;
         state.currentPage   = 1;
         filterBtns.forEach(b => b.classList.toggle("active", b.dataset.filter === state.currentFilter));
@@ -1017,6 +1393,14 @@ function setupHeroSearch() {
         e.preventDefault();
         const input = qs("#searchInput");
         if (!input) return;
+        if (!isCatalogPageReady()) {
+            navigateToCatalog({
+                query  : input.value.trim(),
+                filter : state.currentFilter,
+                sort   : state.currentSort
+            });
+            return;
+        }
         state.currentQuery = input.value.trim();
         state.currentPage  = 1;
         refreshCatalog();
@@ -1033,12 +1417,28 @@ function openProductModal(productId) {
     state.activeProduct = product;
 
     const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
+    const setHtml = (id, html) => { const el = qs(`#${id}`); if (el) el.innerHTML = html; };
     set("modalTitle",       product.name);
     set("modalRating",      getRatingStars(product.rating));
     set("modalPrice",       formatCurrency(product.price));
     set("modalCategory",    product.category.toUpperCase());
     set("modalDescription", product.description || "");
     set("modalSpecs",       product.specs || "");
+    set("modalSku",         product.sku || "On request");
+    set("modalBrand",       product.brand || "Mixed sourcing");
+    set("modalCondition",   getProductConditionLabel(product.condition) || "Checked stock");
+    set("modalWarranty",    product.warranty || "Warranty details on request");
+    set("modalDeliveryEta", product.deliveryEta || "Pickup and delivery ETA confirmed on WhatsApp");
+
+    const compatibilityItems = normalizeDelimitedList(product.compatibility);
+    setHtml("modalCompatibility", compatibilityItems.length
+        ? compatibilityItems.map(item => `<li>${escapeHtml(item)}</li>`).join("")
+        : `<li>Share your vehicle make, model, year, or chassis number for fitment confirmation.</li>`);
+
+    const trustTags = getProductTrustTags(product);
+    setHtml("modalTrustBadges", trustTags.length
+        ? trustTags.map(tag => `<span class="trust-chip">${escapeHtml(tag)}</span>`).join("")
+        : `<span class="trust-chip">Live catalog item</span>`);
 
     const modalImage  = qs("#modalImage");
     const stockStatus = qs("#stockStatus");
@@ -1070,6 +1470,7 @@ function openProductModal(productId) {
 
     updateWishlistButton();
     updateModalButtons(product);
+    renderModalRelatedProducts(product);
     trackRecentlyViewed(product.id);
     incrementProductViews(product.id);
     openModal("productModal");
@@ -1131,8 +1532,12 @@ function updateModalButtons(product) {
     const dis    = product.stock <= 0;
     const addBtn = qs("#modalAddToCart");
     const buyBtn = qs("#modalBuyNow");
+    const requestBtn = qs("#modalRequestStockBtn");
+    const installBtn = qs("#modalInstallHelpBtn");
     if (addBtn) { addBtn.disabled = dis; addBtn.textContent = dis ? "Out of Stock" : "Add to Cart"; }
     if (buyBtn) { buyBtn.disabled = dis; }
+    if (requestBtn) requestBtn.textContent = dis ? "Request this item" : "Request trade quote";
+    if (installBtn) installBtn.hidden = !product.installationAvailable;
 }
 
 function getQtyFromModal() {
@@ -1149,6 +1554,15 @@ function setupModalActions() {
     qs("#modalAddToCart")?.addEventListener("click", () => { if (state.activeProduct) addToCart(state.activeProduct, getQtyFromModal()); });
     qs("#modalBuyNow")?.addEventListener("click",    buyNowActiveProduct);
     qs("#wishlistBtn")?.addEventListener("click",    toggleWishlistForActive);
+    qs("#modalFitmentHelpBtn")?.addEventListener("click", () => {
+        if (state.activeProduct) openProductWhatsApp(state.activeProduct, "fitment");
+    });
+    qs("#modalRequestStockBtn")?.addEventListener("click", () => {
+        if (state.activeProduct) startQuoteForProduct(state.activeProduct, "request");
+    });
+    qs("#modalInstallHelpBtn")?.addEventListener("click", () => {
+        if (state.activeProduct) openProductWhatsApp(state.activeProduct, "install");
+    });
     qs("#increaseQtyBtn")?.addEventListener("click", () => updateModalQty(1));
     qs("#decreaseQtyBtn")?.addEventListener("click", () => updateModalQty(-1));
     qs("#modalPrevImage")?.addEventListener("click", () => stepModalGallery(-1));
@@ -1165,6 +1579,32 @@ function setupModalActions() {
         if (e.key === "ArrowRight") stepModalGallery(1);
     });
     setupModalImageSwipe();
+}
+
+function renderModalRelatedProducts(product) {
+    const container = qs("#modalRelatedProducts");
+    if (!container) return;
+
+    const related = getRelatedProducts(product, 3);
+    if (!related.length) {
+        container.innerHTML = `<p class="empty-copy">More matching products will appear here as your catalog grows.</p>`;
+        return;
+    }
+
+    container.innerHTML = related.map(item => `
+        <button class="modal-related-card" type="button" data-related-product-id="${item.id}">
+            <img src="${getPrimaryImage(item)}" alt="${escapeHtml(item.name)}" loading="lazy">
+            <span class="modal-related-body">
+                <strong>${escapeHtml(item.name)}</strong>
+                <span>${escapeHtml([item.brand, getProductConditionLabel(item.condition)].filter(Boolean).join(" • ") || item.category)}</span>
+                <span>${formatCurrency(item.price)}</span>
+            </span>
+        </button>
+    `).join("");
+
+    qsa("[data-related-product-id]", container).forEach(button => {
+        button.addEventListener("click", () => openProductModal(Number(button.dataset.relatedProductId)));
+    });
 }
 
 function setupQuickAccess() {
@@ -1237,7 +1677,7 @@ function renderCart() {
     const summary   = qs("#cartSummaryText");
     if (!container) return;
     if (!state.cart.length) {
-        container.innerHTML = `<p class="empty-copy">Your cart is empty. <a href="index.html#products">Browse products →</a></p>`;
+        container.innerHTML = `<p class="empty-copy">Your cart is empty. <a href="products.html">Browse products →</a></p>`;
         if (summary) summary.textContent = "Start adding products.";
     } else {
         container.innerHTML = state.cart.map(item => `
@@ -1476,7 +1916,7 @@ async function setupCheckoutPage() {
         updateBadgeCounts();
     }
 
-    if (!order) { window.location.href = "index.html#products"; return; }
+    if (!order) { window.location.href = "products.html"; return; }
 
     const set = (id, val) => { const el = qs(`#${id}`); if (el) el.textContent = val; };
     set("productName", `Order ${order.id}`);
@@ -1535,7 +1975,7 @@ function setupOrdersPage() {
     const myOrders   = state.orders.filter(o => myOrderIds.includes(o.id));
 
     if (!myOrders.length) {
-        container.innerHTML = `<div class="empty-state"><p>No orders yet.</p><a href="index.html#products" class="btn btn-primary" style="margin-top:1rem;">Browse Products</a></div>`;
+    container.innerHTML = `<div class="empty-state"><p>No orders yet.</p><a href="products.html" class="btn btn-primary" style="margin-top:1rem;">Browse Products</a></div>`;
     } else {
         container.innerHTML = myOrders.map(o => `
             <div class="order-card">
@@ -1594,19 +2034,27 @@ function setupOrdersPage() {
 function setupQuoteForm() {
     const form = qs("#quoteForm");
     if (!form) return;
+    const pendingPrefill = consumePendingQuotePrefill();
+    if (pendingPrefill) prefillQuoteForm(pendingPrefill);
     form.addEventListener("submit", async e => {
         e.preventDefault();
         const phone = qs("#quotePhone")?.value.trim() || "";
         if (!/^\+?[\d\s\-]{7,15}$/.test(phone)) { showToast("error", "Please enter a valid phone number"); return; }
+        const email = qs("#quoteEmail")?.value.trim() || "";
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast("error", "Please enter a valid email address"); return; }
         const quote = {
             id      : generateId("quote"),
             name    : qs("#quoteName")?.value.trim()    || "",
             phone,
+            email,
             vehicle : qs("#quoteVehicle")?.value.trim() || "",
             part    : qs("#quotePart")?.value.trim()    || "",
             budget  : qs("#quoteBudget")?.value.trim()  || "",
             urgency : qs("#quoteUrgency")?.value         || "",
+            businessType     : qs("#quoteBusinessType")?.value || "Individual",
+            preferredContact : qs("#quotePreferredContact")?.value || "WhatsApp",
             notes   : qs("#quoteNotes")?.value.trim()   || "",
+            source  : (typeof location !== "undefined" ? location.pathname.split("/").pop() : "") || "index.html",
             status  : "New",
             createdAt: new Date().toISOString()
         };
@@ -1810,7 +2258,7 @@ function renderAdminDashboard() {
     if (!db) return;
     db.ref(FB.products).on("value", snap => {
         if (!isAdminAuthed()) return;
-        state.products = normalizeFirebaseList(snap.exists() ? snap.val() : []).map(normalizeProduct);
+        state.products = normalizeFirebaseList(snap.exists() ? snap.val() : []).map(normalizeProduct).filter(isRenderableProduct);
         renderAdminProducts();
         renderAdminStats();
     });
@@ -1863,9 +2311,13 @@ function setupAdminProductForm() {
     const form      = qs("#productForm");
     const preview   = qs("#imagePreview");
     const fileInput = qs("#productImage");
+    const featuredInput = qs("#productFeatured");
+    const requestInput  = qs("#productRequestIfMissing");
     if (!form) return;
     if (form.dataset.boundAdminProductForm === "true") return;
     form.dataset.boundAdminProductForm = "true";
+    if (featuredInput) featuredInput.checked = true;
+    if (requestInput) requestInput.checked = true;
 
     const progressWrap = qs("#uploadProgressWrap");
     const progressFill = qs("#uploadProgressFill");
@@ -1908,6 +2360,15 @@ function setupAdminProductForm() {
         const desc     = qs("#productDescription")?.value.trim();
         const specs    = qs("#productSpecs")?.value.trim() || "";
         const featured = qs("#productFeatured")?.checked   || false;
+        const sku      = qs("#productSku")?.value.trim() || "";
+        const brand    = qs("#productBrand")?.value.trim() || "";
+        const condition = qs("#productCondition")?.value || "";
+        const warranty = qs("#productWarranty")?.value.trim() || "";
+        const compatibility = qs("#productCompatibility")?.value || "";
+        const deliveryEta = qs("#productDeliveryEta")?.value.trim() || "";
+        const installationAvailable = qs("#productInstallSupport")?.checked || false;
+        const requestQuoteWhenOutOfStock = qs("#productRequestIfMissing")?.checked !== false;
+        const imageUrl = qs("#productImageUrl")?.value.trim() || "";
         const files    = fileInput?.files || [];
 
         if (!name || !category || !desc || !Number.isFinite(price) || price < 0) {
@@ -1933,42 +2394,85 @@ function setupAdminProductForm() {
                 ? `${Math.min(files.length, 6)} image(s) will keep uploading in the background.`
                 : "The product will save even if you leave this page."
         });
-        showToast("info", files.length ? "Preparing a faster background upload..." : "Queueing product save...", 5000);
+        showToast("info", files.length ? "Preparing product publish..." : "Saving product...", 5000);
+
+        let newProduct = null;
 
         try {
-            const images = await compressImagesForQueue(files);
+            const uploadedImages = await compressImagesForQueue(files);
+            const remoteImage = /^https?:\/\//i.test(imageUrl) ? imageUrl : "";
+            const images = [
+                ...(remoteImage ? [remoteImage] : []),
+                ...uploadedImages.filter(src => src !== PLACEHOLDER_IMAGE)
+            ];
+
+            newProduct = buildQueuedProductPayload({
+                name, category, price, stock, desc, specs, featured, images,
+                sku, brand, condition, warranty, compatibility, deliveryEta,
+                installationAvailable, requestQuoteWhenOutOfStock
+            });
+
+            upsertProductInState(newProduct, { prepend: true });
+            refreshProductUiSurfaces();
             updateUploadUi({
                 visible  : true,
-                progress : 72,
-                status   : "Upload queued",
-                detail   : "You can leave this page while the upload continues."
+                progress : 78,
+                status   : "Publishing live",
+                detail   : "Saving this product to the storefront catalog."
             });
 
-            const newProduct = buildQueuedProductPayload({
-                name, category, price, stock, desc, specs, featured, images
-            });
-            const job = {
-                id        : `product-${newProduct.id}`,
-                adminKey  : ADMIN_PASSWORD,
-                createdAt : new Date().toISOString(),
-                product   : newProduct
-            };
+            try {
+                await saveProductRecord(newProduct);
+            } catch (publishErr) {
+                console.warn("Direct product publish failed; falling back to background queue:", publishErr);
 
-            await putQueuedProductUploadJob(job);
-            flushQueuedProductUploads().catch(() => {});
-            requestProductUploadSync().catch(() => {});
+                const job = {
+                    id         : `product-${newProduct.id}`,
+                    adminKey   : ADMIN_PASSWORD,
+                    databaseUrl: firebaseConfig.databaseURL || "",
+                    createdAt  : new Date().toISOString(),
+                    product    : newProduct
+                };
 
+                await putQueuedProductUploadJob(job);
+                flushQueuedProductUploads().catch(() => {});
+                requestProductUploadSync().catch(() => {});
+
+                form.reset();
+                if (featuredInput) featuredInput.checked = true;
+                if (requestInput) requestInput.checked = true;
+                if (preview) preview.innerHTML = "";
+                updateUploadUi({
+                    visible  : true,
+                    progress : 100,
+                    status   : "Background sync queued",
+                    detail   : isLocalDevHost
+                        ? "Saved locally for preview and queued to sync to the live catalog."
+                        : "The product is queued and will keep publishing in the background."
+                });
+                showToast("warning", `"${name}" is saved in admin and queued to finish publishing.`, 5500);
+                return;
+            }
+
+            syncLocalDevProductsCache();
+            refreshProductUiSurfaces();
             form.reset();
+            if (featuredInput) featuredInput.checked = true;
+            if (requestInput) requestInput.checked = true;
             if (preview) preview.innerHTML = "";
             updateUploadUi({
                 visible  : true,
                 progress : 100,
-                status   : "Background upload started",
-                detail   : "The product will publish as soon as the upload finishes."
+                status   : "Published live",
+                detail   : "This product is now available on the storefront."
             });
-            showToast("success", `"${name}" is queued. Upload will keep running in the background.`, 5500);
+            showToast("success", `"${name}" is now live on the storefront.`, 5500);
         } catch (err) {
             console.error("Product save failed:", err);
+            if (newProduct?.id && !isLocalDevHost) {
+                removeProductFromState(newProduct.id);
+                refreshProductUiSurfaces();
+            }
             updateUploadUi({
                 visible  : true,
                 progress : 0,
@@ -1986,7 +2490,12 @@ function renderAdminProducts(filter = "") {
     const container = qs("#productsList");
     if (!container) return;
     const list = filter
-        ? state.products.filter(p => p.name.toLowerCase().includes(filter) || p.category.toLowerCase().includes(filter))
+        ? state.products.filter(p =>
+            p.name.toLowerCase().includes(filter) ||
+            p.category.toLowerCase().includes(filter) ||
+            (p.brand || "").toLowerCase().includes(filter) ||
+            (p.sku || "").toLowerCase().includes(filter)
+        )
         : state.products;
     if (!list.length) { container.innerHTML = `<p class="empty-copy">No products found.</p>`; return; }
     container.innerHTML = list.map(p => `
@@ -1995,6 +2504,8 @@ function renderAdminProducts(filter = "") {
             <div class="admin-product-info">
                 <strong>${escapeHtml(p.name)}</strong>
                 <span>${escapeHtml(p.category)} · ${formatCurrency(p.price)} · Stock: ${p.stock} · 👁 ${p.views || 0}</span>
+                <span>${escapeHtml([p.brand, p.sku, getProductConditionLabel(p.condition), p.warranty].filter(Boolean).join(" · ") || "No trust details yet")}</span>
+                ${getProductCompatibilitySummary(p, 2) ? `<span>Fits: ${escapeHtml(getProductCompatibilitySummary(p, 2))}</span>` : ""}
                 ${p.stock <= 0                                       ? `<span class="badge badge-danger">Out of Stock</span>`  : ""}
                 ${p.stock > 0 && p.stock <= SITE_CONFIG.lowStockThreshold ? `<span class="badge badge-warning">Low Stock</span>` : ""}
             </div>
@@ -2015,10 +2526,9 @@ function setupAdminSearch() {
 
 async function deleteProduct(id) {
     if (!confirm("Delete this product? This cannot be undone.")) return;
-    state.products = state.products.filter(p => p.id !== id);
+    removeProductFromState(id);
     await saveProducts();
-    renderAdminProducts();
-    renderAdminStats();
+    refreshProductUiSurfaces();
     showToast("success", "Product deleted");
 }
 
@@ -2027,8 +2537,7 @@ async function toggleFeatured(id) {
     if (!p) return;
     p.featured = !p.featured;
     await saveProducts();
-    renderAdminProducts();
-    if (qs("#featuredGrid")) renderFeatured();
+    refreshProductUiSurfaces();
     showToast("info", `${p.name} ${p.featured ? "featured" : "unfeatured"}`);
 }
 
@@ -2049,10 +2558,17 @@ function setupAdminEditModal() {
         p.stock       = Number.isFinite(parsedStock) && parsedStock >= 0 ? parsedStock : p.stock;
         p.description = qs("#editDescription")?.value.trim() || p.description;
         p.specs       = qs("#editSpecs")?.value.trim()       || p.specs;
+        p.sku         = qs("#editSku")?.value.trim()         || "";
+        p.brand       = qs("#editBrand")?.value.trim()       || "";
+        p.condition   = qs("#editCondition")?.value          || "";
+        p.warranty    = qs("#editWarranty")?.value.trim()    || "";
+        p.compatibility = normalizeDelimitedList(qs("#editCompatibility")?.value || "");
+        p.deliveryEta = qs("#editDeliveryEta")?.value.trim() || "";
+        p.installationAvailable = qs("#editInstallSupport")?.checked || false;
+        p.requestQuoteWhenOutOfStock = qs("#editRequestIfMissing")?.checked !== false;
         p.featured    = qs("#editFeatured")?.checked          || false;
         await saveProducts();
-        renderAdminProducts();
-        renderAdminStats();
+        refreshProductUiSurfaces();
         closeModal(qs("#adminEditModal"));
         showToast("success", "Product updated");
     });
@@ -2069,8 +2585,18 @@ function openAdminEditModal(id) {
     set("editStock",       p.stock);
     set("editDescription", p.description || "");
     set("editSpecs",       p.specs       || "");
+    set("editSku",         p.sku         || "");
+    set("editBrand",       p.brand       || "");
+    set("editCondition",   p.condition   || "");
+    set("editWarranty",    p.warranty    || "");
+    set("editCompatibility", normalizeDelimitedList(p.compatibility).join(", "));
+    set("editDeliveryEta", p.deliveryEta || "");
     const checked = qs("#editFeatured");
     if (checked) checked.checked = p.featured || false;
+    const install = qs("#editInstallSupport");
+    if (install) install.checked = p.installationAvailable || false;
+    const request = qs("#editRequestIfMissing");
+    if (request) request.checked = p.requestQuoteWhenOutOfStock !== false;
     openModal("adminEditModal");
 }
 
@@ -2172,6 +2698,7 @@ function renderAdminQuotes() {
     const container = qs("#adminQuotes");
     if (!container) return;
     if (!state.quotes.length) { container.innerHTML = `<p class="empty-copy">No quote requests yet.</p>`; return; }
+    const statusOptions = ["New", "Contacted", "Quoted", "Won", "Lost"];
     container.innerHTML = state.quotes.slice(0, 30).map(q => `
         <div class="quote-card">
             <div class="quote-card-header">
@@ -2183,6 +2710,11 @@ function renderAdminQuotes() {
                 <span><b>Part:</b> ${escapeHtml(q.part)}</span>
                 <span><b>Vehicle:</b> ${escapeHtml(q.vehicle)}</span>
                 <span><b>Phone:</b> ${escapeHtml(q.phone)}</span>
+                ${q.email ? `<span><b>Email:</b> ${escapeHtml(q.email)}</span>` : ""}
+                ${q.businessType ? `<span><b>Customer Type:</b> ${escapeHtml(q.businessType)}</span>` : ""}
+                ${q.preferredContact ? `<span><b>Preferred Contact:</b> ${escapeHtml(q.preferredContact)}</span>` : ""}
+                ${q.urgency ? `<span><b>Urgency:</b> ${escapeHtml(q.urgency)}</span>` : ""}
+                ${q.source ? `<span><b>Source:</b> ${escapeHtml(q.source)}</span>` : ""}
                 ${q.budget ? `<span><b>Budget:</b> ${escapeHtml(q.budget)}</span>` : ""}
                 ${q.notes  ? `<span><b>Notes:</b> ${escapeHtml(q.notes)}</span>`  : ""}
             </div>
@@ -2190,19 +2722,22 @@ function renderAdminQuotes() {
                 <a class="btn btn-sm btn-whatsapp"
                    href="https://wa.me/${q.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${q.name}, re your quote for ${q.part}`)}"
                    target="_blank">💬 WhatsApp</a>
-                <button class="btn btn-sm btn-secondary" data-qa="${q.id}:Approved">✓ Approve</button>
-                <button class="btn btn-sm btn-danger"    data-qa="${q.id}:Declined">✗ Decline</button>
+                <a class="btn btn-sm btn-outline" href="tel:${(q.phone || "").replace(/\s+/g, "")}">📞 Call</a>
+                <select class="order-status-select" data-quote-status-id="${q.id}">
+                    ${statusOptions.map(status => `<option value="${status}" ${status === (q.status || "New") ? "selected" : ""}>${status}</option>`).join("")}
+                </select>
             </div>
         </div>`).join("");
-    qsa("[data-qa]", container).forEach(btn => btn.addEventListener("click", async () => {
-        const [id, status] = btn.dataset.qa.split(":");
+    qsa("[data-quote-status-id]", container).forEach(select => select.addEventListener("change", async () => {
+        const id = select.dataset.quoteStatusId;
+        const status = select.value;
         const q = state.quotes.find(x => x.id === id);
         if (!q) return;
         q.status = status;
         await saveQuotes();
         renderAdminQuotes();
         renderAdminStats();
-        showToast("success", `Quote ${status.toLowerCase()}`);
+        showToast("success", `Quote marked ${status.toLowerCase()}`);
     }));
 }
 
@@ -2338,6 +2873,7 @@ async function initPage() {
     setupModalActions();
     setupHeroSearch();
     setupCatalogControls();
+    applyCatalogStateFromUrl();
     setupQuoteForm();
     setupNewsletterForm();
 
@@ -2374,7 +2910,8 @@ async function initPage() {
         saveOrders,
         formatCurrency,
         formatDate,
-        showToast
+        showToast,
+        navigateToCatalog
     };
     document.dispatchEvent(new CustomEvent("appReady"));
 }
