@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <!-- Preload critical assets -->
     <link rel="preload" href="styles.css" as="style">
-    <link rel="preload" href="app.js?v=2026-05-01-5" as="script">
+    <link rel="preload" href="app.js?v=2026-05-01-7" as="script">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/jpeg" href="image.jpg">
     <link rel="apple-touch-icon" href="image.jpg">
@@ -632,6 +632,7 @@
         <button class="admin-tab"        data-tab="promos">🎁 Promos</button>
         <button class="admin-tab"        data-tab="reviews">⭐ Reviews</button>
         <button class="admin-tab"        data-tab="contacts">📩 Contacts</button>
+        <button class="admin-tab"        data-tab="ai">🤖 AI Settings</button>
         <button class="admin-tab"        data-tab="bulkimport">📥 Bulk Import</button>
     </div>
 
@@ -919,6 +920,74 @@
         </div>
     </div>
 
+    <!-- ══════ AI SETTINGS TAB ══════ -->
+    <div class="admin-section" id="tab-ai">
+        <div class="form-card" style="margin-bottom:1.5rem;">
+            <h2>🤖 MAT AI Backend</h2>
+            <p style="color:var(--text-mid);font-size:.88rem;margin-bottom:1rem;line-height:1.6;">
+                Save the live AI provider key into your backend once, then visitors can use real AI online.
+                The key should never be stored in GitHub Pages files.
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:1rem;">
+                <div style="padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-2);">
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.35rem;">Status</div>
+                    <strong id="matAiStatusValue">Not checked</strong>
+                </div>
+                <div style="padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-2);">
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.35rem;">Source</div>
+                    <strong id="matAiSourceValue">--</strong>
+                </div>
+                <div style="padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-2);">
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.35rem;">Model</div>
+                    <strong id="matAiModelValue">--</strong>
+                </div>
+                <div style="padding:.85rem 1rem;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-2);">
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.35rem;">Updated</div>
+                    <strong id="matAiUpdatedValue">--</strong>
+                </div>
+            </div>
+            <p id="matAiStatusHint" style="color:var(--text-mid);font-size:.82rem;margin:0;">Connect your backend URL and setup key to manage the live MAT AI key.</p>
+        </div>
+
+        <div class="form-card">
+            <h2>🔐 Save Provider Key</h2>
+            <form id="matAiConfigForm">
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="matAiBackendUrl">Backend URL *</label>
+                        <input type="url" id="matAiBackendUrl" placeholder="https://your-backend-domain.com" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="matAiSetupKey">Backend Setup Key *</label>
+                        <input type="password" id="matAiSetupKey" placeholder="Enter MAT_AI_SETUP_KEY" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-split">
+                    <div class="form-group">
+                        <label for="matAiProviderKey">AI Provider API Key *</label>
+                        <input type="password" id="matAiProviderKey" placeholder="Paste your NVIDIA API key" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="matAiModel">Model</label>
+                        <input type="text" id="matAiModel" value="meta/llama-4-maverick-17b-128e-instruct" autocomplete="off">
+                    </div>
+                </div>
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary btn-large" style="flex:1;min-width:200px;">💾 Save AI Key To Backend</button>
+                    <button type="button" id="matAiStatusRefreshBtn" class="btn btn-outline btn-large" style="flex:1;min-width:160px;">🔄 Check Status</button>
+                    <button type="button" id="matAiClearConfigBtn" class="btn btn-ghost btn-large" style="flex:1;min-width:160px;">🗑️ Clear Runtime Key</button>
+                </div>
+            </form>
+            <div style="margin-top:1rem;padding:1rem;border:1px dashed var(--border);border-radius:var(--r-md);background:var(--surface-2);">
+                <p style="margin:0 0 .5rem;font-weight:700;">Backend environment variables required</p>
+                <p style="margin:0;color:var(--text-mid);font-size:.82rem;line-height:1.6;">
+                    Set <code>MAT_AI_CONFIG_SECRET</code> and <code>MAT_AI_SETUP_KEY</code> on the backend first.
+                    After saving the provider key here, point <code>mat-ai-config.js</code> to the same backend URL so the public MAT AI page can use it.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- ══════ BULK IMPORT TAB ══════ -->
     <div class="admin-section" id="tab-bulkimport">
         <div class="form-card" style="margin-bottom:1.5rem;">
@@ -1104,7 +1173,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
-<script src="app.js?v=2026-05-01-5"></script>
+<script src="mat-ai-config.js?v=2026-05-01-6"></script>
+<script src="app.js?v=2026-05-01-7"></script>
 <script>
 /* ══════════════════════════════════════════════════════════
    ADMIN PANEL ENHANCEMENTS v2.0

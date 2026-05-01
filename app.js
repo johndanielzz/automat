@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_BUILD = "2026-05-01-5";
+const APP_BUILD = "2026-05-01-7";
 console.info(`Mat Auto app.js build ${APP_BUILD} loaded.`);
 
 // ===========================================================================
@@ -31,6 +31,9 @@ const SITE_CONFIG = {
 // ---------------------------------------------------------------------------
 const ADMIN_PASSWORD = "MATADMIN2026";
 const ADMIN_AUTH_KEY = "matAutoAdminAuth";
+const ADMIN_AI_BACKEND_KEY = "maMatAiBackendBase";
+const ADMIN_AI_SETUP_KEY = "maMatAiSetupKey";
+const DEFAULT_MAT_AI_MODEL = "meta/llama-4-maverick-17b-128e-instruct";
 
 // ---------------------------------------------------------------------------
 // FIREBASE INIT
@@ -123,12 +126,14 @@ const LS = {
     myOrderIds  : "maMyOrderIds",
     allOrders   : "maAllOrders",
     productsDev : "maDevProducts",
-    pendingQuote: "maPendingQuote"
+    pendingQuote: "maPendingQuote",
+    productAlerts: "maProductAlertsEnabled"
 };
 
 const PRODUCT_UPLOAD_QUEUE_DB    = "matAutoUploadQueue";
 const PRODUCT_UPLOAD_QUEUE_STORE = "productJobs";
 const PRODUCT_UPLOAD_SYNC_TAG    = "sync-product-uploads";
+const PRODUCT_ALERT_SYNC_TAG     = "sync-product-alerts";
 let productUploadDrainPromise    = null;
 
 // ---------------------------------------------------------------------------
@@ -242,6 +247,51 @@ function normalizeProduct(p) {
 function debounce(fn, ms = 250) {
     let timer;
     return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+function normalizeUrlBase(value) {
+    return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function joinUrlBase(base, path) {
+    return `${normalizeUrlBase(base)}${path}`;
+}
+
+function getDefaultMatAiBackendBase() {
+    const configured = normalizeUrlBase(globalThis.__MAT_AI_API_BASE__ || "");
+    if (configured) return configured;
+    if (typeof window !== "undefined" && !/\.github\.io$/i.test(window.location.hostname || "")) {
+        return normalizeUrlBase(window.location.origin);
+    }
+    return "";
+}
+
+function getStoredMatAiBackendBase() {
+    try { return normalizeUrlBase(localStorage.getItem(ADMIN_AI_BACKEND_KEY) || ""); } catch { return ""; }
+}
+
+function setStoredMatAiBackendBase(value) {
+    try {
+        const normalized = normalizeUrlBase(value);
+        if (normalized) localStorage.setItem(ADMIN_AI_BACKEND_KEY, normalized);
+        else localStorage.removeItem(ADMIN_AI_BACKEND_KEY);
+    } catch {
+        // Ignore storage failures.
+    }
+}
+
+function getStoredMatAiSetupKey() {
+    try { return String(sessionStorage.getItem(ADMIN_AI_SETUP_KEY) || "").trim(); } catch { return ""; }
+}
+
+function setStoredMatAiSetupKey(value) {
+    try {
+        const trimmed = String(value || "").trim();
+        if (trimmed) sessionStorage.setItem(ADMIN_AI_SETUP_KEY, trimmed);
+        else sessionStorage.removeItem(ADMIN_AI_SETUP_KEY);
+    } catch {
+        // Ignore storage failures.
+    }
 }
 
 function formatDate(isoStr) {
@@ -683,6 +733,151 @@ async function requestProductUploadSync() {
     }
 }
 
+function isNotificationsSupported() {
+    return typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
+}
+
+function getNotificationPermissionState() {
+    return isNotificationsSupported() ? Notification.permission : "unsupported";
+}
+
+function isProductAlertsEnabled() {
+    return lsGet(LS.productAlerts, false) === true;
+}
+
+function setProductAlertsEnabled(next) {
+    lsSet(LS.productAlerts, Boolean(next));
+}
+
+function getProductAlertsDatabaseUrl() {
+    return String(firebaseConfig?.databaseURL || "https://automat-gm-default-rtdb.firebaseio.com").trim();
+}
+
+async function requestProductAlertSync({ forceBaseline = false, reason = "manual" } = {}) {
+    if (!isNotificationsSupported()) return null;
+    const registration = await registerAppServiceWorker();
+    if (!registration) return null;
+
+    try {
+        if ("sync" in registration) {
+            await registration.sync.register(PRODUCT_ALERT_SYNC_TAG);
+        }
+    } catch (err) {
+        console.warn("Product alert sync registration failed:", err.message || err);
+    }
+
+    const target = registration.active || registration.waiting || registration.installing;
+    target?.postMessage({
+        type: isProductAlertsEnabled() ? "ENABLE_PRODUCT_ALERTS" : "SYNC_PRODUCT_ALERTS",
+        databaseUrl: getProductAlertsDatabaseUrl(),
+        forceBaseline,
+        reason,
+    });
+    return registration;
+}
+
+async function disableProductAlerts() {
+    if (!isNotificationsSupported()) return;
+    setProductAlertsEnabled(false);
+    updateProductAlertUi();
+    const registration = await registerAppServiceWorker();
+    const target = registration?.active || registration?.waiting || registration?.installing;
+    target?.postMessage({
+        type: "DISABLE_PRODUCT_ALERTS",
+        databaseUrl: getProductAlertsDatabaseUrl(),
+        reason: "user-disabled",
+    });
+}
+
+async function enableProductAlerts() {
+    if (!isNotificationsSupported()) {
+        showToast("warning", "This browser does not support app notifications.");
+        return false;
+    }
+
+    if (Notification.permission === "denied") {
+        showToast("warning", "Notifications are blocked in this browser. Re-enable them in browser settings first.");
+        updateProductAlertUi();
+        return false;
+    }
+
+    const permission = Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+
+    if (permission !== "granted") {
+        setProductAlertsEnabled(false);
+        updateProductAlertUi();
+        showToast("info", "Notification permission was not granted.");
+        return false;
+    }
+
+    setProductAlertsEnabled(true);
+    updateProductAlertUi();
+    await requestProductAlertSync({ forceBaseline: true, reason: "permission-granted" });
+    showToast("success", "Product alerts are on. You will get a device notification when new products appear after your next sync.");
+    return true;
+}
+
+function updateProductAlertUi(detail = null) {
+    const permission = getNotificationPermissionState();
+    const enabled = isProductAlertsEnabled() && permission === "granted";
+    qsa("[data-enable-product-alerts]").forEach(button => {
+        button.hidden = enabled;
+        button.disabled = !isNotificationsSupported();
+    });
+    qsa("[data-disable-product-alerts]").forEach(button => {
+        button.hidden = !enabled;
+        button.disabled = !isNotificationsSupported();
+    });
+
+    qsa("[data-product-alert-status]").forEach(node => {
+        if (!isNotificationsSupported()) {
+            node.textContent = "Notifications are not supported on this browser.";
+            return;
+        }
+        if (permission === "denied") {
+            node.textContent = "Notifications are blocked in browser settings.";
+            return;
+        }
+        if (!enabled) {
+            node.textContent = "Turn on product alerts to get device notifications for new arrivals.";
+            return;
+        }
+
+        const syncText = detail?.lastSyncAt ? ` Last check: ${formatDate(detail.lastSyncAt)}.` : "";
+        node.textContent = detail?.status === "notified"
+            ? `New product alert sent.${syncText}`
+            : `Product alerts are active.${syncText}`;
+    });
+}
+
+function bindProductAlertUi() {
+    qsa("[data-enable-product-alerts]").forEach(button => {
+        if (button.dataset.boundProductAlert === "true") return;
+        button.dataset.boundProductAlert = "true";
+        button.addEventListener("click", () => {
+            enableProductAlerts().catch(err => {
+                console.warn("Enable alerts failed:", err);
+                showToast("error", "Could not enable product alerts.");
+            });
+        });
+    });
+
+    qsa("[data-disable-product-alerts]").forEach(button => {
+        if (button.dataset.boundProductAlert === "true") return;
+        button.dataset.boundProductAlert = "true";
+        button.addEventListener("click", () => {
+            disableProductAlerts().catch(err => {
+                console.warn("Disable alerts failed:", err);
+                showToast("error", "Could not disable product alerts.");
+            });
+        });
+    });
+
+    updateProductAlertUi();
+}
+
 async function flushQueuedProductUploads() {
     if (productUploadDrainPromise) return productUploadDrainPromise;
 
@@ -775,6 +970,43 @@ function bindProductUploadRuntime() {
     });
 
     flushQueuedProductUploads().catch(() => {});
+}
+
+function bindProductAlertRuntime() {
+    if (typeof window === "undefined" || window.__matAutoProductAlertRuntimeBound) return;
+    window.__matAutoProductAlertRuntimeBound = true;
+
+    bindProductAlertUi();
+    registerAppServiceWorker().catch(() => {});
+
+    if (getNotificationPermissionState() === "denied" && isProductAlertsEnabled()) {
+        setProductAlertsEnabled(false);
+    }
+    updateProductAlertUi();
+
+    window.addEventListener("online", () => {
+        if (isProductAlertsEnabled()) {
+            requestProductAlertSync({ reason: "browser-online" }).catch(() => {});
+        }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && isProductAlertsEnabled()) {
+            requestProductAlertSync({ reason: "visibility-visible" }).catch(() => {});
+        }
+    });
+
+    window.addEventListener("swready", () => {
+        if (isProductAlertsEnabled()) {
+            requestProductAlertSync({ reason: "sw-ready" }).catch(() => {});
+        }
+    });
+
+    navigator.serviceWorker?.addEventListener("message", event => {
+        const { data } = event;
+        if (data?.type !== "PRODUCT_ALERTS_STATUS") return;
+        updateProductAlertUi(data.detail || null);
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -927,6 +1159,9 @@ function attachProductsListener() {
         if (qs("#productsGrid"))       refreshCatalog();
         if (qs("#recentlyViewedGrid")) renderRecentlyViewed();
         if (typeof renderAdminStats === "function") renderAdminStats();
+        if (isProductAlertsEnabled() && navigator.onLine !== false) {
+            requestProductAlertSync({ reason: "firebase-products-update" }).catch(() => {});
+        }
     });
 }
 
@@ -2254,6 +2489,8 @@ function renderAdminDashboard() {
     setupAdminEditModal();
     setupAdminPromoForm();
     setupAdminSearch();
+    setupAdminAiSettings();
+    refreshAdminAiSettingsStatus().catch(() => {});
 
     if (!db) return;
     db.ref(FB.products).on("value", snap => {
@@ -2274,6 +2511,205 @@ function renderAdminDashboard() {
         renderAdminQuotes();
         renderAdminStats();
     });
+}
+
+function setupAdminAiSettings() {
+    const form = qs("#matAiConfigForm");
+    if (!form || form.dataset.boundMatAiConfig === "true") return;
+    form.dataset.boundMatAiConfig = "true";
+
+    const backendInput = qs("#matAiBackendUrl");
+    const setupKeyInput = qs("#matAiSetupKey");
+    const modelInput = qs("#matAiModel");
+
+    if (backendInput && !backendInput.value) {
+        backendInput.value = getStoredMatAiBackendBase() || getDefaultMatAiBackendBase();
+    }
+    if (setupKeyInput && !setupKeyInput.value) {
+        setupKeyInput.value = getStoredMatAiSetupKey();
+    }
+    if (modelInput && !modelInput.value) {
+        modelInput.value = DEFAULT_MAT_AI_MODEL;
+    }
+
+    backendInput?.addEventListener("change", () => {
+        setStoredMatAiBackendBase(backendInput.value);
+    });
+    setupKeyInput?.addEventListener("input", () => {
+        setStoredMatAiSetupKey(setupKeyInput.value);
+    });
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const apiKey = (qs("#matAiProviderKey")?.value || "").trim();
+        const model = (qs("#matAiModel")?.value || "").trim() || DEFAULT_MAT_AI_MODEL;
+        const setupKey = (qs("#matAiSetupKey")?.value || "").trim();
+
+        if (!apiKey) {
+            showToast("error", "Enter the AI provider key first.");
+            return;
+        }
+        if (!setupKey) {
+            showToast("error", "Enter the backend setup key first.");
+            return;
+        }
+
+        try {
+            toggleAdminAiConfigBusy(true, "Saving key to backend...");
+            const data = await requestAdminMatAiConfig("/api/admin/mat-ai/config", {
+                method: "POST",
+                body: JSON.stringify({
+                    apiKey,
+                    model,
+                    updatedBy: "admin-panel",
+                }),
+            });
+            if (qs("#matAiProviderKey")) qs("#matAiProviderKey").value = "";
+            updateAdminAiStatusUi(data, "Saved. The backend can now serve real AI replies to visitors.");
+            showToast("success", "MAT AI key saved to backend.");
+        } catch (error) {
+            updateAdminAiStatusUi(null, error.message || "Could not save the MAT AI key.", true);
+            showToast("error", error.message || "Could not save the MAT AI key.");
+        } finally {
+            toggleAdminAiConfigBusy(false);
+        }
+    });
+
+    qs("#matAiStatusRefreshBtn")?.addEventListener("click", async () => {
+        await refreshAdminAiSettingsStatus(true);
+    });
+
+    qs("#matAiClearConfigBtn")?.addEventListener("click", async () => {
+        const setupKey = (qs("#matAiSetupKey")?.value || "").trim();
+        if (!setupKey) {
+            showToast("error", "Enter the backend setup key before clearing the runtime key.");
+            return;
+        }
+        try {
+            toggleAdminAiConfigBusy(true, "Clearing saved runtime key...");
+            const data = await requestAdminMatAiConfig("/api/admin/mat-ai/config", {
+                method: "DELETE",
+            });
+            updateAdminAiStatusUi(data, data.source === "env"
+                ? "Runtime key removed. Backend will now use the environment key."
+                : "Runtime key removed. MAT AI will stay in fallback mode until a backend key exists.");
+            showToast("success", "Saved runtime MAT AI key removed.");
+        } catch (error) {
+            updateAdminAiStatusUi(null, error.message || "Could not clear the MAT AI key.", true);
+            showToast("error", error.message || "Could not clear the MAT AI key.");
+        } finally {
+            toggleAdminAiConfigBusy(false);
+        }
+    });
+}
+
+async function refreshAdminAiSettingsStatus(showToastOnSuccess = false) {
+    const statusHint = qs("#matAiStatusHint");
+    if (!isAdminAuthed()) return;
+
+    try {
+        const backendBase = getAdminMatAiBackendBase();
+        if (!backendBase) {
+            updateAdminAiStatusUi(null, "Add your backend URL first. GitHub Pages cannot store or use the AI key by itself.", true);
+            return;
+        }
+
+        const setupKey = (qs("#matAiSetupKey")?.value || "").trim();
+        if (!setupKey) {
+            if (statusHint) statusHint.textContent = "Enter the backend setup key to check or save MAT AI status.";
+            return;
+        }
+
+        toggleAdminAiConfigBusy(true, "Checking backend AI status...");
+        const data = await requestAdminMatAiConfig("/api/admin/mat-ai/config", { method: "GET" });
+        updateAdminAiStatusUi(data, data.configured
+            ? "Backend AI is configured and ready."
+            : "Backend AI is not configured yet. Save a provider key below.");
+        if (showToastOnSuccess) showToast("success", "MAT AI backend status refreshed.");
+    } catch (error) {
+        updateAdminAiStatusUi(null, error.message || "Could not load the MAT AI backend status.", true);
+        if (showToastOnSuccess) showToast("error", error.message || "Could not load the MAT AI backend status.");
+    } finally {
+        toggleAdminAiConfigBusy(false);
+    }
+}
+
+async function requestAdminMatAiConfig(path, options = {}) {
+    const backendBase = getAdminMatAiBackendBase();
+    if (!backendBase) {
+        throw new Error("Backend URL is required. Set the live backend URL for MAT AI first.");
+    }
+
+    const setupKey = (qs("#matAiSetupKey")?.value || "").trim();
+    if (!setupKey) {
+        throw new Error("Backend setup key is required.");
+    }
+
+    setStoredMatAiBackendBase(backendBase);
+    setStoredMatAiSetupKey(setupKey);
+
+    const response = await fetch(joinUrlBase(backendBase, path), {
+        method: options.method || "GET",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Admin-Key": ADMIN_PASSWORD,
+            "X-Mat-Ai-Setup-Key": setupKey,
+            ...(options.headers || {}),
+        },
+        body: options.body,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.error || `MAT AI backend request failed (${response.status}).`);
+    }
+    return data;
+}
+
+function getAdminMatAiBackendBase() {
+    const inputValue = qs("#matAiBackendUrl")?.value || "";
+    return normalizeUrlBase(inputValue || getStoredMatAiBackendBase() || getDefaultMatAiBackendBase());
+}
+
+function toggleAdminAiConfigBusy(isBusy, message = "") {
+    const form = qs("#matAiConfigForm");
+    form?.querySelectorAll("input, button").forEach(node => {
+        node.disabled = isBusy;
+    });
+    if (message) {
+        const hint = qs("#matAiStatusHint");
+        if (hint) hint.textContent = message;
+    }
+}
+
+function updateAdminAiStatusUi(data, hint = "", isError = false) {
+    const statusEl = qs("#matAiStatusValue");
+    const sourceEl = qs("#matAiSourceValue");
+    const modelEl = qs("#matAiModelValue");
+    const updatedEl = qs("#matAiUpdatedValue");
+    const hintEl = qs("#matAiStatusHint");
+
+    if (!data) {
+        if (statusEl) statusEl.textContent = isError ? "Error" : "Not connected";
+        if (sourceEl) sourceEl.textContent = "--";
+        if (modelEl) modelEl.textContent = "--";
+        if (updatedEl) updatedEl.textContent = "--";
+        if (hintEl) hintEl.textContent = hint || "Connect a backend to manage the live AI key.";
+        return;
+    }
+
+    if (statusEl) statusEl.textContent = data.configured ? "Configured" : "Not configured";
+    if (sourceEl) sourceEl.textContent = data.source || "none";
+    if (modelEl) modelEl.textContent = data.model || DEFAULT_MAT_AI_MODEL;
+    if (updatedEl) updatedEl.textContent = data.updatedAt ? formatDate(data.updatedAt) : "--";
+    if (hintEl) {
+        hintEl.textContent = hint || (
+            data.configured
+                ? "Visitors can use the backend AI once the public MAT AI page points to this backend URL."
+                : "Save the provider key here, then point mat-ai-config.js to this backend URL."
+        );
+    }
 }
 
 function renderAdminStats() {
@@ -2851,6 +3287,7 @@ function renderAdminPromos() {
 // ---------------------------------------------------------------------------
 async function initPage() {
     bindProductUploadRuntime();
+    bindProductAlertRuntime();
     showLoader("Loading Mat Auto…");
     loadLocalState();
     loadTheme();
@@ -2930,3 +3367,5 @@ window.logoutAdmin       = logoutAdmin;
 window.openProductModal  = openProductModal;
 window.openCompareModal  = openCompareModal;
 window.showToast         = showToast;
+window.enableProductAlerts = enableProductAlerts;
+window.disableProductAlerts = disableProductAlerts;

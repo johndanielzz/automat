@@ -5,7 +5,7 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v15';
+const CACHE_VERSION    = 'mat-auto-v17';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
@@ -15,7 +15,12 @@ const MAX_IMAGE_ITEMS   = 40;
 const PRODUCT_UPLOAD_QUEUE_DB    = 'matAutoUploadQueue';
 const PRODUCT_UPLOAD_QUEUE_STORE = 'productJobs';
 const PRODUCT_UPLOAD_SYNC_TAG    = 'sync-product-uploads';
+const PRODUCT_ALERT_SYNC_TAG     = 'sync-product-alerts';
 const DEFAULT_PRODUCT_DATABASE_URL = 'https://automat-gm-default-rtdb.firebaseio.com';
+const META_DB_NAME               = 'matAutoMeta';
+const META_DB_STORE              = 'kv';
+const PRODUCT_ALERT_STATE_KEY    = 'product-alert-state';
+const PRODUCT_ALERT_NOTIFICATION_TAG = 'mat-auto-product-alerts';
 
 const STATIC_ASSETS = [
     './index.html', './about.html', './owner.html', './products.html', './mat-ai.html', './admin.html', './checkout.html',
@@ -23,10 +28,12 @@ const STATIC_ASSETS = [
     './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
     './reciept.html', './receipt.html', './delivery-drivers.html',
     './styles.css', './mat-ai.css', './app.js', './mat-ai-config.js', './mat-ai-browser-fallback.js', './mat-ai.js', './app-perf-patch.js', './manifest.json',
+    './app.js?v=2026-05-01-7',
     './mat-ai-config.js?v=2026-05-01-6', './mat-ai-browser-fallback.js?v=2026-05-01-6', './mat-ai.js?v=2026-05-01-6'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+let productAlertSyncPromise = null;
 
 function openProductUploadQueueDb() {
     return new Promise((resolve, reject) => {
@@ -40,6 +47,201 @@ function openProductUploadQueueDb() {
         request.onsuccess = () => resolve(request.result);
         request.onerror   = () => reject(request.error || new Error('Upload queue unavailable'));
     });
+}
+
+function openMetaDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(META_DB_NAME, 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(META_DB_STORE)) {
+                db.createObjectStore(META_DB_STORE, { keyPath: 'key' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('Meta store unavailable'));
+    });
+}
+
+async function getMetaValue(key) {
+    const db = await openMetaDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(META_DB_STORE, 'readonly');
+        const request = tx.objectStore(META_DB_STORE).get(key);
+        request.onsuccess = () => resolve(request.result?.value);
+        request.onerror = () => reject(request.error || new Error('Could not load meta value'));
+        tx.oncomplete = () => db.close();
+        tx.onerror = tx.onabort = () => {
+            db.close();
+            reject(tx.error || new Error('Could not load meta value'));
+        };
+    });
+}
+
+async function setMetaValue(key, value) {
+    const db = await openMetaDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(META_DB_STORE, 'readwrite');
+        tx.objectStore(META_DB_STORE).put({ key, value });
+        tx.oncomplete = () => {
+            db.close();
+            resolve(value);
+        };
+        tx.onerror = tx.onabort = () => {
+            db.close();
+            reject(tx.error || new Error('Could not save meta value'));
+        };
+    });
+}
+
+function normalizeProductAlertState(state) {
+    return {
+        enabled   : Boolean(state?.enabled),
+        databaseUrl: String(state?.databaseUrl || DEFAULT_PRODUCT_DATABASE_URL).trim().replace(/\/+$/, ''),
+        knownKeys : Array.isArray(state?.knownKeys) ? state.knownKeys.map(key => String(key || '')).filter(Boolean) : [],
+        lastSyncAt: String(state?.lastSyncAt || ''),
+        lastNotifiedAt: String(state?.lastNotifiedAt || ''),
+    };
+}
+
+async function getProductAlertState() {
+    return normalizeProductAlertState(await getMetaValue(PRODUCT_ALERT_STATE_KEY).catch(() => null));
+}
+
+async function saveProductAlertState(state) {
+    return setMetaValue(PRODUCT_ALERT_STATE_KEY, normalizeProductAlertState(state));
+}
+
+function normalizeProductAlertProducts(raw) {
+    const list = Array.isArray(raw)
+        ? raw
+        : raw && typeof raw === 'object'
+            ? Object.values(raw)
+            : [];
+
+    return list
+        .filter(Boolean)
+        .map((product, index) => {
+            const id = product?.id ?? product?.sku ?? product?.name ?? `product-${index}`;
+            const createdAt = String(product?.createdAt || '');
+            const numericCreatedAt = createdAt ? Date.parse(createdAt) : NaN;
+            return {
+                key        : String(id),
+                id         : String(id),
+                name       : String(product?.name || 'New Product').trim(),
+                category   : String(product?.category || 'parts').trim(),
+                price      : Number(product?.price) || 0,
+                stock      : Number(product?.stock) || 0,
+                image      : String(product?.image || ''),
+                createdAt,
+                createdAtMs: Number.isFinite(numericCreatedAt) ? numericCreatedAt : 0,
+            };
+        })
+        .sort((a, b) => b.createdAtMs - a.createdAtMs || b.id.localeCompare(a.id));
+}
+
+async function fetchLiveProducts(databaseUrl) {
+    const base = String(databaseUrl || DEFAULT_PRODUCT_DATABASE_URL).trim().replace(/\/+$/, '');
+    const response = await fetch(`${base}/matAutoProducts.json`, {
+        headers: { 'Accept': 'application/json' },
+        cache  : 'no-store',
+    });
+    if (!response.ok) {
+        throw new Error(`Product notification sync failed (${response.status})`);
+    }
+    const raw = await response.json().catch(() => []);
+    return normalizeProductAlertProducts(raw);
+}
+
+function buildProductAlertBody(products) {
+    if (!products.length) return 'New parts are now live at Mat Auto.';
+    if (products.length === 1) return `${products[0].name} just arrived. Tap to view it in the app.`;
+    const names = products.slice(0, 3).map(product => product.name).join(', ');
+    const remainder = products.length > 3 ? ` and ${products.length - 3} more` : '';
+    return `${names}${remainder} just arrived at Mat Auto.`;
+}
+
+async function showNewProductsNotification(newProducts) {
+    if (!newProducts.length || !self.registration?.showNotification) return;
+    await self.registration.showNotification('New parts just arrived', {
+        body : buildProductAlertBody(newProducts),
+        icon : '/image.jpg',
+        badge: '/image.jpg',
+        tag  : PRODUCT_ALERT_NOTIFICATION_TAG,
+        renotify: true,
+        data : {
+            url  : './products.html?new=1',
+            type : 'new-products',
+            ids  : newProducts.map(product => product.id),
+        },
+    });
+}
+
+async function broadcastProductAlertStatus(detail) {
+    await broadcastUploadEvent({
+        type: 'PRODUCT_ALERTS_STATUS',
+        detail,
+    });
+}
+
+async function syncProductAlerts(options = {}) {
+    if (productAlertSyncPromise) return productAlertSyncPromise;
+
+    productAlertSyncPromise = (async () => {
+        const currentState = await getProductAlertState();
+        const nextState = {
+            ...currentState,
+            databaseUrl: String(options.databaseUrl || currentState.databaseUrl || DEFAULT_PRODUCT_DATABASE_URL).trim().replace(/\/+$/, ''),
+        };
+
+        if (typeof options.enabled === 'boolean') {
+            nextState.enabled = options.enabled;
+        }
+
+        const shouldFetchBaseline = options.forceBaseline === true || nextState.enabled;
+        if (!shouldFetchBaseline) {
+            await saveProductAlertState(nextState);
+            return { status: 'disabled', state: nextState, newCount: 0 };
+        }
+
+        const liveProducts = await fetchLiveProducts(nextState.databaseUrl);
+        const currentKeys = liveProducts.map(product => product.key);
+        const knownKeys = new Set(nextState.knownKeys);
+
+        let newProducts = [];
+        const hasBaseline = nextState.knownKeys.length > 0;
+        if (hasBaseline) {
+            newProducts = liveProducts.filter(product => !knownKeys.has(product.key));
+        }
+
+        nextState.knownKeys = currentKeys;
+        nextState.lastSyncAt = new Date().toISOString();
+
+        const canNotify = nextState.enabled && Notification.permission === 'granted' && hasBaseline && newProducts.length > 0;
+        if (canNotify) {
+            await showNewProductsNotification(newProducts);
+            nextState.lastNotifiedAt = new Date().toISOString();
+        }
+
+        await saveProductAlertState(nextState);
+        await broadcastProductAlertStatus({
+            status  : canNotify ? 'notified' : 'synced',
+            reason  : String(options.reason || ''),
+            newCount: newProducts.length,
+            enabled : nextState.enabled,
+            lastSyncAt: nextState.lastSyncAt,
+        });
+
+        return {
+            status: canNotify ? 'notified' : 'synced',
+            state: nextState,
+            newCount: newProducts.length,
+        };
+    })().finally(() => {
+        productAlertSyncPromise = null;
+    });
+
+    return productAlertSyncPromise;
 }
 
 async function getQueuedProductUploadJobs() {
@@ -298,6 +500,27 @@ self.addEventListener('message', event => {
     if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
     if (event.data?.type === 'CLEAR_CACHE') caches.keys().then(n => n.forEach(k => caches.delete(k)));
     if (event.data?.type === 'FLUSH_PRODUCT_UPLOADS') event.waitUntil(flushQueuedProductUploads());
+    if (event.data?.type === 'ENABLE_PRODUCT_ALERTS') {
+        event.waitUntil(syncProductAlerts({
+            enabled: true,
+            databaseUrl: event.data?.databaseUrl,
+            forceBaseline: event.data?.forceBaseline === true,
+            reason: event.data?.reason || 'enable-alerts',
+        }));
+    }
+    if (event.data?.type === 'DISABLE_PRODUCT_ALERTS') {
+        event.waitUntil(syncProductAlerts({
+            enabled: false,
+            databaseUrl: event.data?.databaseUrl,
+            reason: event.data?.reason || 'disable-alerts',
+        }));
+    }
+    if (event.data?.type === 'SYNC_PRODUCT_ALERTS') {
+        event.waitUntil(syncProductAlerts({
+            databaseUrl: event.data?.databaseUrl,
+            reason: event.data?.reason || 'manual-sync',
+        }));
+    }
 });
 
 self.addEventListener('push', event => {
@@ -313,10 +536,25 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
     event.notification.close();
-    event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
+    event.waitUntil((async () => {
+        const targetUrl = new URL(event.notification.data?.url || './', self.location.origin).href;
+        const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of windowClients) {
+            if ('focus' in client && client.url === targetUrl) {
+                return client.focus();
+            }
+        }
+        const reusable = windowClients.find(client => 'focus' in client);
+        if (reusable) {
+            reusable.navigate?.(targetUrl);
+            return reusable.focus();
+        }
+        return clients.openWindow(targetUrl);
+    })());
 });
 
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-orders') console.log('[SW] Background sync: orders');
     if (event.tag === PRODUCT_UPLOAD_SYNC_TAG) event.waitUntil(flushQueuedProductUploads());
+    if (event.tag === PRODUCT_ALERT_SYNC_TAG) event.waitUntil(syncProductAlerts({ reason: 'background-sync' }));
 });

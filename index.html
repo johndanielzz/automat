@@ -975,6 +975,8 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="installApp()" type="button">Install App</button>
+            <button class="btn btn-outline btn-sm" data-enable-product-alerts type="button">Enable Alerts</button>
+            <button class="btn btn-outline btn-sm" data-disable-product-alerts type="button" hidden>Alerts On</button>
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('installBanner').style.display='none'" type="button" style="color:rgba(255,255,255,0.5)">Dismiss</button>
         </div>
     </div>
@@ -1787,6 +1789,20 @@
                             <strong>Home Screen</strong>
                         </div>
                     </button>
+                    <button class="store-btn" data-enable-product-alerts type="button">
+                        <span style="font-size:1.6rem;">🔔</span>
+                        <div class="store-btn-label">
+                            <small>Turn on</small>
+                            <strong>Product Alerts</strong>
+                        </div>
+                    </button>
+                    <button class="store-btn" data-disable-product-alerts type="button" hidden>
+                        <span style="font-size:1.6rem;">✅</span>
+                        <div class="store-btn-label">
+                            <small>Alerts are</small>
+                            <strong>Enabled</strong>
+                        </div>
+                    </button>
                     <a class="store-btn" href="https://wa.me/2207000000?text=Hi Mat Auto, I'd like to shop for parts" target="_blank" rel="noopener">
                         <span style="font-size:1.6rem;">💬</span>
                         <div class="store-btn-label">
@@ -1795,6 +1811,7 @@
                         </div>
                     </a>
                 </div>
+                <p data-product-alert-status style="color:var(--text-mid);font-size:.88rem;margin-top:14px;margin-bottom:0;">Turn on product alerts to get device notifications for new arrivals.</p>
             </div>
             <div class="app-phones">
                 <div class="app-phone">📱</div>
@@ -1999,7 +2016,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
-<script src="app.js?v=2026-05-01-5"></script>
+<script src="app.js?v=2026-05-01-7"></script>
 
 <script>
 /* ── PWA ── */
@@ -2040,7 +2057,7 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('online', () => {
     document.body.classList.remove('offline-mode');
     console.log('✅ Back online');
-    location.reload();
+    window.dispatchEvent(new CustomEvent('matAutoReconnect'));
 });
 
 window.addEventListener('offline', () => {

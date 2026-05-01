@@ -47,7 +47,7 @@ Your Mat Auto store is now a **Progressive Web App (PWA)** that works on all dev
 
 ✓ **Works Offline** - Access saved data without internet
 ✓ **Fast Loading** - Cached for instant startup
-✓ **Push Notifications** - Get order updates (coming soon)
+✓ **Product Notifications** - Get device alerts for new products after the app reconnects
 ✓ **Native Feel** - Looks like a real app, not a website
 ✓ **No App Store** - Instant updates (no waiting)
 ✓ **All Platforms** - Same app everywhere

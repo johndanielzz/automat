@@ -25,7 +25,26 @@ Use this setup:
    - `NVIDIA_API_KEY`
    - `MAT_AI_MODEL`
    - `MAT_AUTO_FIREBASE_DATABASE_URL`
+   - `MAT_AI_CONFIG_SECRET`
+   - `MAT_AI_SETUP_KEY`
 5. Deploy
+
+## Runtime AI key upload
+
+If you do not want to keep the provider key only in deploy-time environment variables, the backend now supports an admin runtime upload flow.
+
+Required backend env vars:
+
+- `MAT_AI_CONFIG_SECRET`
+- `MAT_AI_SETUP_KEY`
+
+Then open `admin.html`, go to `AI Settings`, enter:
+
+- your backend URL
+- your backend setup key
+- your AI provider key
+
+The backend stores the provider key encrypted in Firebase and uses it for MAT AI chat requests.
 
 ## AI setup files
 

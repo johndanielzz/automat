@@ -116,6 +116,12 @@ const MAT_AI = {
 };
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "MATADMIN2026";
+const MAT_AI_RUNTIME = {
+    settingsPath      : "matAutoSettings/matAiConfig",
+    encryptionSecret  : process.env.MAT_AI_CONFIG_SECRET || "",
+    setupKey          : process.env.MAT_AI_SETUP_KEY || "",
+    cacheTtlMs        : parseInt(process.env.MAT_AI_CONFIG_CACHE_TTL_MS || "60000", 10),
+};
 
 // ============================================================
 // CLUSTER SUPPORT
@@ -209,6 +215,11 @@ const matAiKnowledgeCache = {
     summary : null,
 };
 
+const matAiRuntimeConfigCache = {
+    ts    : 0,
+    value : null,
+};
+
 function getCachedResponse(key) {
     const entry = responseCache.get(key);
     if (!entry) return null;
@@ -221,6 +232,174 @@ function setCachedResponse(key, data) {
         responseCache.delete(oldest);
     }
     responseCache.set(key, { data, ts: Date.now() });
+}
+
+function firebaseJsonUrl(dbPath = "") {
+    const trimmedPath = String(dbPath || "").replace(/^\/+|\/+$/g, "");
+    if (!MAT_AI.firebaseUrl) throw new Error("Firebase database URL is not configured on the server.");
+    return `${MAT_AI.firebaseUrl}/${trimmedPath}.json`;
+}
+
+async function fetchFirebaseJson(dbPath = "") {
+    const response = await fetch(firebaseJsonUrl(dbPath), {
+        headers: { "Accept": "application/json" },
+    });
+    if (!response.ok) {
+        throw new Error(`Firebase settings fetch failed (${response.status})`);
+    }
+    return response.json().catch(() => null);
+}
+
+async function writeFirebaseJson(dbPath = "", payload) {
+    const response = await fetch(firebaseJsonUrl(dbPath), {
+        method : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify(payload ?? null),
+    });
+    if (!response.ok) {
+        throw new Error(`Firebase settings save failed (${response.status})`);
+    }
+    return response.json().catch(() => ({ ok: true }));
+}
+
+function getMatAiEncryptionKey() {
+    if (!MAT_AI_RUNTIME.encryptionSecret) {
+        throw new Error("MAT_AI_CONFIG_SECRET is missing on the backend.");
+    }
+    return crypto.createHash("sha256").update(MAT_AI_RUNTIME.encryptionSecret).digest();
+}
+
+function encryptMatAiSecret(value = "") {
+    const plainText = String(value || "").trim();
+    if (!plainText) throw new Error("AI provider key cannot be empty.");
+
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv("aes-256-gcm", getMatAiEncryptionKey(), iv);
+    const encrypted = Buffer.concat([cipher.update(plainText, "utf8"), cipher.final()]);
+    const tag = cipher.getAuthTag();
+
+    return {
+        version    : 1,
+        iv         : iv.toString("base64"),
+        tag        : tag.toString("base64"),
+        ciphertext : encrypted.toString("base64"),
+    };
+}
+
+function decryptMatAiSecret(payload) {
+    if (!payload || typeof payload !== "object") return "";
+    const iv = Buffer.from(String(payload.iv || ""), "base64");
+    const tag = Buffer.from(String(payload.tag || ""), "base64");
+    const ciphertext = Buffer.from(String(payload.ciphertext || ""), "base64");
+    if (!iv.length || !tag.length || !ciphertext.length) {
+        throw new Error("Stored AI provider key is incomplete.");
+    }
+
+    const decipher = crypto.createDecipheriv("aes-256-gcm", getMatAiEncryptionKey(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8").trim();
+}
+
+async function readStoredMatAiConfig(options = {}) {
+    const force = options.force === true;
+    if (!MAT_AI_RUNTIME.encryptionSecret || !MAT_AI.firebaseUrl) return null;
+
+    if (!force && matAiRuntimeConfigCache.value && (Date.now() - matAiRuntimeConfigCache.ts) < MAT_AI_RUNTIME.cacheTtlMs) {
+        return matAiRuntimeConfigCache.value;
+    }
+
+    const raw = await fetchFirebaseJson(MAT_AI_RUNTIME.settingsPath).catch(() => null);
+    if (!raw?.encryptedApiKey) {
+        matAiRuntimeConfigCache.ts = Date.now();
+        matAiRuntimeConfigCache.value = null;
+        return null;
+    }
+
+    const config = {
+        apiKey    : decryptMatAiSecret(raw.encryptedApiKey),
+        model     : cleanText(raw.model, 120),
+        updatedAt : cleanText(raw.updatedAt, 80),
+        updatedBy : cleanText(raw.updatedBy, 120),
+    };
+
+    matAiRuntimeConfigCache.ts = Date.now();
+    matAiRuntimeConfigCache.value = config;
+    return config;
+}
+
+async function saveStoredMatAiConfig({ apiKey = "", model = "", updatedBy = "" } = {}) {
+    if (!MAT_AI_RUNTIME.encryptionSecret) {
+        throw new Error("MAT_AI_CONFIG_SECRET must be set on the backend before saving an AI key.");
+    }
+
+    const trimmedKey = String(apiKey || "").trim();
+    const payload = trimmedKey ? {
+        encryptedApiKey : encryptMatAiSecret(trimmedKey),
+        model           : cleanText(model, 120) || MAT_AI.model,
+        updatedAt       : new Date().toISOString(),
+        updatedBy       : cleanText(updatedBy, 120) || "admin",
+    } : null;
+
+    await writeFirebaseJson(MAT_AI_RUNTIME.settingsPath, payload);
+
+    const cachedValue = payload ? {
+        apiKey    : trimmedKey,
+        model     : payload.model,
+        updatedAt : payload.updatedAt,
+        updatedBy : payload.updatedBy,
+    } : null;
+
+    matAiRuntimeConfigCache.ts = Date.now();
+    matAiRuntimeConfigCache.value = cachedValue;
+    return cachedValue;
+}
+
+async function resolveMatAiProviderConfig(options = {}) {
+    const preferRuntime = options.preferRuntime !== false;
+
+    if (preferRuntime) {
+        const runtimeConfig = await readStoredMatAiConfig(options).catch(() => null);
+        if (runtimeConfig?.apiKey) {
+            return {
+                apiKey       : runtimeConfig.apiKey,
+                model        : runtimeConfig.model || MAT_AI.model,
+                source       : "runtime",
+                runtimeModel : runtimeConfig.model || "",
+                updatedAt    : runtimeConfig.updatedAt || "",
+                updatedBy    : runtimeConfig.updatedBy || "",
+            };
+        }
+    }
+
+    if (MAT_AI.apiKey) {
+        return {
+            apiKey       : MAT_AI.apiKey,
+            model        : MAT_AI.model,
+            source       : "env",
+            runtimeModel : "",
+            updatedAt    : "",
+            updatedBy    : "",
+        };
+    }
+
+    return {
+        apiKey       : "",
+        model        : MAT_AI.model,
+        source       : "none",
+        runtimeModel : "",
+        updatedAt    : "",
+        updatedBy    : "",
+    };
+}
+
+function requireMatAiSetupKey(req) {
+    const providedKey = String(req.get("x-mat-ai-setup-key") || req.body?.setupKey || "").trim();
+    if (!MAT_AI_RUNTIME.setupKey) {
+        throw Object.assign(new Error("MAT_AI_SETUP_KEY is not configured on the backend."), { statusCode: 503 });
+    }
+    if (!providedKey || providedKey !== MAT_AI_RUNTIME.setupKey) {
+        throw Object.assign(new Error("Invalid MAT AI setup key."), { statusCode: 403 });
+    }
 }
 
 function decodeHtmlEntities(str = "") {
@@ -653,7 +832,7 @@ function buildWebsiteHelpReply(knowledge, query) {
     ].filter(Boolean).join("\n\n");
 }
 
-function buildFallbackVehicleReply(knowledge, query, hasImage) {
+function buildFallbackVehicleReply(knowledge, query, hasImage, advancedAiConfigured = false) {
     const profile = detectVehicleIntent(query);
     const matchedProducts = buildProductShortList(knowledge.matchedProducts || []);
     const sections = [];
@@ -686,7 +865,7 @@ function buildFallbackVehicleReply(knowledge, query, hasImage) {
     if (hasImage) {
         sections.push(buildReplySection("Photo note", [
             "Your photo was attached successfully.",
-            MAT_AI.apiKey && !MAT_AI.forceFallback
+            advancedAiConfigured && !MAT_AI.forceFallback
                 ? "Advanced visual analysis is temporarily unavailable, so describe what the image shows and I will guide you from there."
                 : "This server is currently answering in smart local mode, so describe what the photo shows and I will guide you from there."
         ]));
@@ -695,7 +874,7 @@ function buildFallbackVehicleReply(knowledge, query, hasImage) {
     return sections.filter(Boolean).join("\n\n");
 }
 
-function buildMatAiFallbackReply({ knowledge, latestUserMessage, imageDataUrl = "" }) {
+function buildMatAiFallbackReply({ knowledge, latestUserMessage, imageDataUrl = "", advancedAiConfigured = false }) {
     const query = String(latestUserMessage || "").toLowerCase();
     const websiteIntent = hasAnyTerm(query, [
         "website", "site", "page", "order", "orders", "track", "tracking", "quote", "quotes",
@@ -710,7 +889,7 @@ function buildMatAiFallbackReply({ knowledge, latestUserMessage, imageDataUrl = 
     reply.push(
         websiteIntent
             ? buildWebsiteHelpReply(knowledge, query)
-            : buildFallbackVehicleReply(knowledge, query, Boolean(imageDataUrl))
+            : buildFallbackVehicleReply(knowledge, query, Boolean(imageDataUrl), advancedAiConfigured)
     );
 
     if (partIntent && !websiteIntent && knowledge.matchedProducts?.length) {
@@ -754,8 +933,8 @@ function validateImageDataUrl(imageDataUrl = "") {
     return imageDataUrl;
 }
 
-async function callNvidiaMatAi(messages, systemPrompt) {
-    if (!MAT_AI.apiKey) {
+async function callNvidiaMatAi(messages, systemPrompt, providerConfig) {
+    if (!providerConfig?.apiKey) {
         throw Object.assign(new Error("NVIDIA API key is not configured on the server."), { statusCode: 500 });
     }
 
@@ -765,12 +944,12 @@ async function callNvidiaMatAi(messages, systemPrompt) {
         const response = await fetch(MAT_AI.apiUrl, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${MAT_AI.apiKey}`,
+                "Authorization": `Bearer ${providerConfig.apiKey}`,
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                model: MAT_AI.model,
+                model: providerConfig.model || MAT_AI.model,
                 messages: [{ role: "system", content: systemPrompt }, ...messages],
                 max_tokens: 950,
                 temperature: 0.3,
@@ -1043,7 +1222,12 @@ app.use((req, res, next) => {
 // ============================================================
 
 // ── Health check ──
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
+    const providerConfig = await resolveMatAiProviderConfig().catch(() => ({
+        apiKey : "",
+        model  : MAT_AI.model,
+        source : "none",
+    }));
     res.json({
         status : "ok",
         ts     : Date.now(),
@@ -1052,9 +1236,11 @@ app.get("/api/health", (_req, res) => {
         uptime : Math.round(process.uptime()),
         mem    : Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + " MB",
         ai     : {
-            providerConfigured: Boolean(MAT_AI.apiKey),
+            providerConfigured: Boolean(providerConfig.apiKey),
             fallbackAvailable : true,
-            mode              : MAT_AI.forceFallback || !MAT_AI.apiKey ? "fallback" : "hybrid",
+            mode              : MAT_AI.forceFallback || !providerConfig.apiKey ? "fallback" : "hybrid",
+            source            : providerConfig.source || "none",
+            model             : providerConfig.model || MAT_AI.model,
         },
     });
 });
@@ -1189,9 +1375,93 @@ app.post("/api/admin/products", async (req, res) => {
     }
 });
 
+app.get("/api/admin/mat-ai/config", async (req, res) => {
+    try {
+        const adminKey = String(req.get("x-admin-key") || "").trim();
+        if (!adminKey || adminKey !== ADMIN_API_KEY) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+        requireMatAiSetupKey(req);
+
+        const providerConfig = await resolveMatAiProviderConfig({ force: true });
+        const runtimeConfig = await readStoredMatAiConfig({ force: true }).catch(() => null);
+
+        res.json({
+            configured      : Boolean(providerConfig.apiKey),
+            source          : providerConfig.source || "none",
+            model           : providerConfig.model || MAT_AI.model,
+            runtimeModel    : runtimeConfig?.model || "",
+            updatedAt       : runtimeConfig?.updatedAt || "",
+            updatedBy       : runtimeConfig?.updatedBy || "",
+            envConfigured   : Boolean(MAT_AI.apiKey),
+            runtimeConfigured: Boolean(runtimeConfig?.apiKey),
+            setupReady      : Boolean(MAT_AI_RUNTIME.setupKey && MAT_AI_RUNTIME.encryptionSecret),
+        });
+    } catch (err) {
+        const status = err.statusCode || 500;
+        res.status(status).json({ error: err.message || "Could not load MAT AI config." });
+    }
+});
+
+app.post("/api/admin/mat-ai/config", async (req, res) => {
+    try {
+        const adminKey = String(req.get("x-admin-key") || req.body?.adminKey || "").trim();
+        if (!adminKey || adminKey !== ADMIN_API_KEY) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+        requireMatAiSetupKey(req);
+
+        const apiKey = String(req.body?.apiKey || "").trim();
+        const model = cleanText(req.body?.model, 120) || MAT_AI.model;
+        const updatedBy = cleanText(req.body?.updatedBy, 120) || "admin-panel";
+        if (!apiKey) {
+            return res.status(400).json({ error: "AI provider key is required." });
+        }
+
+        const savedConfig = await saveStoredMatAiConfig({ apiKey, model, updatedBy });
+        res.status(201).json({
+            ok              : true,
+            configured      : Boolean(savedConfig?.apiKey),
+            source          : "runtime",
+            model           : savedConfig?.model || MAT_AI.model,
+            updatedAt       : savedConfig?.updatedAt || "",
+            updatedBy       : savedConfig?.updatedBy || "",
+            runtimeConfigured: true,
+        });
+    } catch (err) {
+        const status = err.statusCode || 500;
+        console.error("[MAT AI] Config save error:", err.message);
+        res.status(status).json({ error: err.message || "Could not save MAT AI config." });
+    }
+});
+
+app.delete("/api/admin/mat-ai/config", async (req, res) => {
+    try {
+        const adminKey = String(req.get("x-admin-key") || req.body?.adminKey || "").trim();
+        if (!adminKey || adminKey !== ADMIN_API_KEY) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+        requireMatAiSetupKey(req);
+
+        await saveStoredMatAiConfig({ apiKey: "", model: "", updatedBy: "admin-panel-clear" });
+        res.json({
+            ok              : true,
+            configured      : Boolean(MAT_AI.apiKey),
+            source          : MAT_AI.apiKey ? "env" : "none",
+            model           : MAT_AI.model,
+            runtimeConfigured: false,
+        });
+    } catch (err) {
+        const status = err.statusCode || 500;
+        console.error("[MAT AI] Config clear error:", err.message);
+        res.status(status).json({ error: err.message || "Could not clear MAT AI config." });
+    }
+});
+
 app.get("/api/mat-ai/context", async (_req, res) => {
     try {
         const knowledge = await getMatAiKnowledge("");
+        const providerConfig = await resolveMatAiProviderConfig();
         res.json({
             store         : knowledge.siteFacts,
             pageCount     : knowledge.pages.length,
@@ -1216,9 +1486,10 @@ app.get("/api/mat-ai/context", async (_req, res) => {
                 headings   : page.headings,
             })),
             capabilities: {
-                mode         : MAT_AI.forceFallback || !MAT_AI.apiKey ? "fallback" : "hybrid",
-                imageAnalysis: !MAT_AI.forceFallback && Boolean(MAT_AI.apiKey),
+                mode         : MAT_AI.forceFallback || !providerConfig.apiKey ? "fallback" : "hybrid",
+                imageAnalysis: !MAT_AI.forceFallback && Boolean(providerConfig.apiKey),
                 smartFallback: true,
+                source       : providerConfig.source || "none",
             }
         });
     } catch (err) {
@@ -1242,6 +1513,7 @@ app.post("/api/mat-ai/chat", async (req, res) => {
         const latestUserMessage = messages[messages.length - 1].content;
         const knowledge = await getMatAiKnowledge(latestUserMessage);
         const systemPrompt = buildMatAiSystemPrompt(knowledge, latestUserMessage, Boolean(imageDataUrl));
+        const providerConfig = await resolveMatAiProviderConfig();
         let reply = "";
         let mode = "advanced";
         let warning = "";
@@ -1251,17 +1523,18 @@ app.post("/api/mat-ai/chat", async (req, res) => {
             if (MAT_AI.forceFallback) {
                 throw Object.assign(new Error("MAT AI fallback mode is enabled on this server."), { statusCode: 503 });
             }
-            reply = await callNvidiaMatAi(messages, systemPrompt);
+            reply = await callNvidiaMatAi(messages, systemPrompt, providerConfig);
         } catch (err) {
             mode = "fallback";
             providerError = cleanText(err.message || "Unknown MAT AI provider error.", 220);
-            warning = MAT_AI.apiKey && !MAT_AI.forceFallback
+            warning = providerConfig.apiKey && !MAT_AI.forceFallback
                 ? "Advanced AI was temporarily unavailable, so MAT AI answered in smart local mode."
                 : "Advanced AI is not configured on this server, so MAT AI answered in smart local mode.";
             reply = buildMatAiFallbackReply({
                 knowledge,
                 latestUserMessage,
                 imageDataUrl,
+                advancedAiConfigured: Boolean(providerConfig.apiKey),
             });
         }
         const matchedProducts = knowledge.matchedProducts.slice(0, 6).map(product => ({

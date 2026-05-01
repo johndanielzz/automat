@@ -39,6 +39,7 @@ Deploy this same repo to Vercel and make sure these endpoints work:
 - `/api/health`
 - `/api/mat-ai/context`
 - `/api/mat-ai/chat`
+- `/api/admin/mat-ai/config`
 
 Example backend URL:
 
@@ -55,6 +56,13 @@ or:
 ```html
 <meta name="mat-ai-api-base" content="https://mat-auto-ai.vercel.app">
 ```
+
+Backend env vars for admin key upload:
+
+- `MAT_AI_CONFIG_SECRET`
+- `MAT_AI_SETUP_KEY`
+
+After the backend is live, open `admin.html`, go to `AI Settings`, and save the provider key there.
 
 ## Important
 
