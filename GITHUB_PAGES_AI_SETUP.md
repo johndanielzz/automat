@@ -1,14 +1,38 @@
-# MAT AI If Your Frontend Is On GitHub Pages
+# MAT AI On GitHub Pages
 
-If your public website pages are hosted on `github.io`, the MAT AI page cannot call NVIDIA directly from the browser because the API key must stay private.
+If your public website pages are hosted on `github.io`, MAT AI now supports two valid modes.
 
-## Correct setup
+## Option 1. GitHub smart mode only
 
-- Frontend pages: GitHub Pages
-- AI backend: Vercel
-- MAT AI page calls the Vercel API URL
+This requires no backend.
 
-## 1. Deploy the backend to Vercel
+What works:
+
+- website help
+- catalog-grounded part suggestions
+- practical symptom guidance
+- WhatsApp handoff
+
+What is limited:
+
+- no cloud LLM replies
+- no true image understanding from uploaded photos
+
+To use this mode, leave both of these blank:
+
+```js
+globalThis.__MAT_AI_API_BASE__ = "";
+```
+
+```html
+<meta name="mat-ai-api-base" content="">
+```
+
+The page will load its own site knowledge plus the live Firebase catalog directly in the browser.
+
+## Option 2. GitHub Pages + live backend
+
+If you want advanced AI replies and real photo analysis, connect a backend.
 
 Deploy this same repo to Vercel and make sure these endpoints work:
 
@@ -20,28 +44,20 @@ Example backend URL:
 
 `https://mat-auto-ai.vercel.app`
 
-## 2. Point the GitHub Pages frontend at that backend
-
-Open `mat-ai-config.js` and set:
+Then set either:
 
 ```js
 globalThis.__MAT_AI_API_BASE__ = "https://mat-auto-ai.vercel.app";
 ```
 
-You can also still set it directly in `mat-ai.html` with:
+or:
 
 ```html
 <meta name="mat-ai-api-base" content="https://mat-auto-ai.vercel.app">
 ```
 
-Either option tells the frontend exactly where the live MAT AI backend is.
-
-## 3. Redeploy GitHub Pages
-
-After that, `mat-ai.html` on GitHub Pages will send AI requests to your Vercel backend instead of trying to find a same-origin `/api` route that does not exist on GitHub Pages.
-
 ## Important
 
 Do not put `NVIDIA_API_KEY` in frontend JavaScript or HTML.
 
-Keep it only in Vercel environment variables.
+Keep it only on the backend.

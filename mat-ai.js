@@ -159,8 +159,25 @@
                 fallbackMode ? "warn" : "ok"
             );
         } catch (error) {
-            setStatus(error.message || "MAT AI context could not load right now.", "error");
-            updateConnectionUi("Needs Setup", error.message || "Backend not connected.", "error");
+            try {
+                const fallbackData = await loadBrowserFallbackContext();
+                state.context = fallbackData;
+                clearSavedApiBaseIfUnconfigured();
+                hydrateContext(fallbackData);
+                setStatus(
+                    "MAT AI is ready in GitHub smart mode. It can answer website questions, suggest parts, and guide basic diagnosis without a server.",
+                    "ready"
+                );
+                updateConnectionUi(
+                    "GitHub Smart Mode",
+                    "Running directly from GitHub Pages browser data. Live cloud AI and true photo analysis need a connected backend.",
+                    "warn"
+                );
+            } catch (fallbackError) {
+                const message = fallbackError.message || error.message || "MAT AI context could not load right now.";
+                setStatus(message, "error");
+                updateConnectionUi("Needs Setup", message, "error");
+            }
         }
     }
 
@@ -268,13 +285,7 @@
         setStatus(state.imageDataUrl ? "Analyzing your message and photo…" : "Thinking through your question…", "pending");
 
         try {
-            const data = await apiRequest("/api/mat-ai/chat", {
-                method: "POST",
-                body: JSON.stringify({
-                    messages: payloadMessages,
-                    imageDataUrl: state.imageDataUrl || "",
-                }),
-            });
+            const data = await requestMatAiReply(payloadMessages, state.imageDataUrl || "");
 
             const reply = data.reply || "I could not generate a reply.";
             appendMessage("assistant", reply, false);
@@ -283,7 +294,14 @@
             state.lastProducts = Array.isArray(data.matchedProducts) ? data.matchedProducts : [];
             renderRelatedProducts(state.lastProducts);
             clearImageSelection();
-            if (data.mode === "fallback") {
+            if (data.mode === "browser-fallback") {
+                setStatus(data.warning || "MAT AI answered in GitHub smart mode.", "ready");
+                updateConnectionUi(
+                    "GitHub Smart Mode",
+                    data.warning || "Running from browser data on GitHub Pages. Live cloud AI and true photo analysis need a backend.",
+                    "warn"
+                );
+            } else if (data.mode === "fallback") {
                 setStatus(data.warning || "MAT AI answered in smart local mode.", "pending");
                 updateConnectionUi("Smart Mode", data.warning || "Cloud AI is temporarily unavailable; site-side fallback is active.", "warn");
             } else {
@@ -623,6 +641,75 @@
         return data;
     }
 
+    async function requestMatAiReply(messages, imageDataUrl) {
+        if (isBrowserFallbackMode()) {
+            return await requestBrowserFallbackReply(messages, imageDataUrl);
+        }
+
+        try {
+            return await apiRequest("/api/mat-ai/chat", {
+                method: "POST",
+                body: JSON.stringify({
+                    messages,
+                    imageDataUrl,
+                }),
+            });
+        } catch (error) {
+            if (!canUseBrowserFallback()) throw error;
+            const fallbackData = await loadBrowserFallbackContext();
+            state.context = fallbackData;
+            clearSavedApiBaseIfUnconfigured();
+            hydrateContext(fallbackData);
+            return await requestBrowserFallbackReply(messages, imageDataUrl);
+        }
+    }
+
+    async function requestBrowserFallbackReply(messages, imageDataUrl) {
+        if (!canUseBrowserFallback()) {
+            throw new Error("Browser fallback is not available on this page.");
+        }
+        return await globalThis.MatAiBrowserFallback.respond({
+            messages,
+            imageDataUrl,
+        });
+    }
+
+    async function loadBrowserFallbackContext() {
+        if (!canUseBrowserFallback()) {
+            throw new Error("MAT AI could not find a live backend and browser fallback is unavailable.");
+        }
+        return await globalThis.MatAiBrowserFallback.loadContext();
+    }
+
+    function isBrowserFallbackMode() {
+        return state.context?.capabilities?.mode === "browser-fallback";
+    }
+
+    function canUseBrowserFallback() {
+        return Boolean(
+            globalThis.MatAiBrowserFallback
+            && typeof globalThis.MatAiBrowserFallback.loadContext === "function"
+            && typeof globalThis.MatAiBrowserFallback.respond === "function"
+        );
+    }
+
+    function clearSavedApiBaseIfUnconfigured() {
+        if (!window.location.hostname.endsWith(".github.io")) return;
+        if (hasExplicitApiBaseConfig()) return;
+        try {
+            localStorage.removeItem(MAT_AI_API_BASE_KEY);
+        } catch {
+            // Ignore storage failures.
+        }
+    }
+
+    function hasExplicitApiBaseConfig() {
+        const queryBase = new URLSearchParams(window.location.search).get("matAiApiBase");
+        const metaBase = document.querySelector('meta[name="mat-ai-api-base"]')?.getAttribute("content");
+        const configured = globalThis.__MAT_AI_API_BASE__;
+        return Boolean(String(queryBase || "").trim() || String(metaBase || "").trim() || String(configured || "").trim());
+    }
+
     async function discoverApiBase() {
         if (state.apiBase) return state.apiBase;
 
@@ -644,7 +731,7 @@
         }
 
         if (window.location.hostname.endsWith(".github.io")) {
-            throw new Error("MAT AI needs a live server backend. Set your deployed Vercel backend URL in `mat-ai-config.js` or the `mat-ai-api-base` meta tag, then make sure `/api/health` works there.");
+            throw new Error("MAT AI could not reach the live backend for this GitHub Pages site. Hard refresh the page to update cached files, then confirm the Vercel backend is live at `/api/health`.");
         }
 
         throw new Error("MAT AI could not find a live backend for this website. Start this project with `start-mat-auto.bat` or `npm start`, then open `http://127.0.0.1:4010/`, or connect `mat-ai-config.js` / the `mat-ai-api-base` meta tag to your deployed backend.");
@@ -689,9 +776,13 @@
 
         return Array.from(new Set(
             candidates
-                .map(value => String(value || "").trim().replace(/\/+$/, ""))
+                .map(normalizeApiCandidate)
                 .filter(Boolean)
         ));
+    }
+
+    function normalizeApiCandidate(value) {
+        return String(value || "").trim().replace(/\/+$/, "");
     }
 
     function joinApiUrl(base, path) {
