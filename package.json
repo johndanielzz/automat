@@ -5,9 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start":    "node server.js",
-    "dev":      "NODE_ENV=development node server.js",
-    "prod":     "NODE_ENV=production node server.js",
-    "cluster":  "NODE_ENV=production CLUSTER=true node server.js",
+    "dev":      "node -e \"process.env.NODE_ENV='development'; require('./server').start()\"",
+    "prod":     "node -e \"process.env.NODE_ENV='production'; require('./server').start()\"",
+    "cluster":  "powershell -Command \"$env:NODE_ENV='production'; $env:CLUSTER='true'; node server.js\"",
+    "start-local": "powershell -ExecutionPolicy Bypass -File .\\start-mat-auto.ps1",
     "install-deps": "npm install express compression sharp express-rate-limit helmet cors"
   },
   "engines": {

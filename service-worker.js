@@ -5,13 +5,16 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v5';
+const CACHE_VERSION    = 'mat-auto-v6';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
 const FONT_CACHE       = `${CACHE_VERSION}-fonts`;
 const MAX_DYNAMIC_ITEMS = 60;
 const MAX_IMAGE_ITEMS   = 40;
+const PRODUCT_UPLOAD_QUEUE_DB    = 'matAutoUploadQueue';
+const PRODUCT_UPLOAD_QUEUE_STORE = 'productJobs';
+const PRODUCT_UPLOAD_SYNC_TAG    = 'sync-product-uploads';
 
 const STATIC_ASSETS = [
     './index.html', './about.html', './admin.html', './checkout.html',
@@ -22,6 +25,95 @@ const STATIC_ASSETS = [
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
+function openProductUploadQueueDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(PRODUCT_UPLOAD_QUEUE_DB, 1);
+        request.onupgradeneeded = () => {
+            const queueDb = request.result;
+            if (!queueDb.objectStoreNames.contains(PRODUCT_UPLOAD_QUEUE_STORE)) {
+                queueDb.createObjectStore(PRODUCT_UPLOAD_QUEUE_STORE, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror   = () => reject(request.error || new Error('Upload queue unavailable'));
+    });
+}
+
+async function getQueuedProductUploadJobs() {
+    const queueDb = await openProductUploadQueueDb();
+    return new Promise((resolve, reject) => {
+        const tx      = queueDb.transaction(PRODUCT_UPLOAD_QUEUE_STORE, 'readonly');
+        const request = tx.objectStore(PRODUCT_UPLOAD_QUEUE_STORE).getAll();
+        request.onsuccess = () => resolve((request.result || []).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '')));
+        request.onerror   = () => reject(request.error || new Error('Could not load queued uploads'));
+        tx.oncomplete     = () => queueDb.close();
+        tx.onerror = tx.onabort = () => {
+            queueDb.close();
+            reject(tx.error || new Error('Could not load queued uploads'));
+        };
+    });
+}
+
+async function deleteQueuedProductUploadJob(jobId) {
+    const queueDb = await openProductUploadQueueDb();
+    return new Promise((resolve, reject) => {
+        const tx = queueDb.transaction(PRODUCT_UPLOAD_QUEUE_STORE, 'readwrite');
+        tx.objectStore(PRODUCT_UPLOAD_QUEUE_STORE).delete(jobId);
+        tx.oncomplete = () => {
+            queueDb.close();
+            resolve();
+        };
+        tx.onerror = tx.onabort = () => {
+            queueDb.close();
+            reject(tx.error || new Error('Could not delete queued upload'));
+        };
+    });
+}
+
+async function broadcastUploadEvent(message) {
+    const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+    await Promise.all(allClients.map(client => client.postMessage(message)));
+}
+
+async function postQueuedProductUpload(job) {
+    const response = await fetch('/api/admin/products', {
+        method  : 'POST',
+        headers : {
+            'Content-Type': 'application/json',
+            'X-Admin-Key' : job.adminKey || ''
+        },
+        body: JSON.stringify({ product: job.product })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Upload failed (${response.status})`);
+    }
+}
+
+async function flushQueuedProductUploads() {
+    const jobs = await getQueuedProductUploadJobs().catch(() => []);
+    for (const job of jobs) {
+        try {
+            await postQueuedProductUpload(job);
+            await deleteQueuedProductUploadJob(job.id);
+            await broadcastUploadEvent({
+                type    : 'PRODUCT_UPLOAD_COMPLETE',
+                jobId   : job.id,
+                product : job.product
+            });
+        } catch (err) {
+            await broadcastUploadEvent({
+                type    : 'PRODUCT_UPLOAD_FAILED',
+                jobId   : job.id,
+                product : job.product,
+                error   : err.message || 'Upload failed'
+            });
+            throw err;
+        }
+    }
+}
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -150,6 +242,7 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
     if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
     if (event.data?.type === 'CLEAR_CACHE') caches.keys().then(n => n.forEach(k => caches.delete(k)));
+    if (event.data?.type === 'FLUSH_PRODUCT_UPLOADS') event.waitUntil(flushQueuedProductUploads());
 });
 
 self.addEventListener('push', event => {
@@ -170,4 +263,5 @@ self.addEventListener('notificationclick', event => {
 
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-orders') console.log('[SW] Background sync: orders');
+    if (event.tag === PRODUCT_UPLOAD_SYNC_TAG) event.waitUntil(flushQueuedProductUploads());
 });

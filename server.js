@@ -106,6 +106,7 @@ const MAT_AI = {
     model          : process.env.MAT_AI_MODEL || "meta/llama-4-maverick-17b-128e-instruct",
     apiUrl         : process.env.NVIDIA_API_URL || "https://integrate.api.nvidia.com/v1/chat/completions",
     apiKey         : process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY || "",
+    forceFallback  : process.env.MAT_AI_FORCE_FALLBACK === "true",
     firebaseUrl    : (process.env.MAT_AUTO_FIREBASE_DATABASE_URL || "https://automat-gm-default-rtdb.firebaseio.com").replace(/\/+$/, ""),
     requestTimeout : parseInt(process.env.MAT_AI_TIMEOUT_MS || "45000", 10),
     maxMessages    : 10,
@@ -113,6 +114,8 @@ const MAT_AI = {
     maxImageBytes  : 170 * 1024,
     knowledgeTtlMs : 3 * 60 * 1000,
 };
+
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "MATADMIN2026";
 
 // ============================================================
 // CLUSTER SUPPORT
@@ -487,6 +490,231 @@ function buildMatAiSystemPrompt(knowledge, query, hasImage) {
     ].filter(Boolean).join("\n");
 }
 
+function hasAnyTerm(text, terms = []) {
+    return terms.some(term => text.includes(term));
+}
+
+function buildReplySection(title, items = []) {
+    const cleaned = items.map(item => cleanText(item, 220)).filter(Boolean);
+    if (!cleaned.length) return "";
+    return `${title}:\n- ${cleaned.join("\n- ")}`;
+}
+
+function getPageUrl(fileName = "") {
+    if (!fileName) return "";
+    if (fileName === "index.html") return "index.html";
+    return fileName;
+}
+
+function findRelevantPages(knowledge, query, limit = 4) {
+    const terms = tokenizeSearch(query);
+    return knowledge.pages
+        .map(page => {
+            const haystack = [
+                page.fileName,
+                page.title,
+                page.description,
+                ...(page.headings || []),
+                page.snippet
+            ].join(" ").toLowerCase();
+            const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+            return { page, score };
+        })
+        .filter(entry => entry.score > 0)
+        .sort((a, b) => b.score - a.score || a.page.fileName.localeCompare(b.page.fileName))
+        .slice(0, limit)
+        .map(entry => entry.page);
+}
+
+function buildProductShortList(products = [], limit = 4) {
+    return products.slice(0, limit).map(product =>
+        `${product.name} (${product.category}, GMD ${product.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, ${stockLabel(product.stock)})`
+    );
+}
+
+function stockLabel(stock = 0) {
+    if (stock <= 0) return "out of stock";
+    if (stock <= 3) return `only ${stock} left`;
+    return `${stock} in stock`;
+}
+
+function detectVehicleIntent(query) {
+    const text = String(query || "").toLowerCase();
+    const profiles = [
+        {
+            key: "battery-charging",
+            match: ["battery light", "alternator", "not charging", "dead battery", "jump start", "jump-start", "dim lights"],
+            likely: ["Weak battery or failing alternator output", "Loose, corroded, or slipping battery and charging connections", "Drive belt issue reducing alternator speed"],
+            checks: ["Measure battery voltage with engine off and while idling", "Inspect battery terminals for corrosion and looseness", "Check alternator belt condition and tension", "Look for charging-system warnings or flickering lights"],
+            fixes: ["Clean and tighten battery terminals first", "Replace the battery if it fails a load test", "Replace or test the alternator if voltage stays low while running", "Repair any loose ground or charging cables"],
+            parts: ["Battery", "Alternator", "Drive belt", "Battery terminal set"],
+            followUp: ["Does the engine crank slowly, or is it only the battery light?", "What battery voltage do you see with the engine running?"]
+        },
+        {
+            key: "starting-click",
+            match: ["clicking", "click sound", "starter", "won't start", "wont start", "no start", "no crank", "crank"],
+            likely: ["Low battery voltage", "Starter motor or starter solenoid fault", "Bad battery cable or engine ground"],
+            checks: ["Check if headlights dim heavily while starting", "Test battery voltage before cranking", "Listen for a single click versus repeated rapid clicking", "Inspect starter and ground connections"],
+            fixes: ["Charge or replace a weak battery", "Repair loose or corroded cables", "Replace the starter if voltage is healthy but the starter will not turn"],
+            parts: ["Starter motor", "Battery", "Starter relay", "Ground strap"],
+            followUp: ["Do you hear a single click or repeated rapid clicks?", "Do dashboard lights stay bright when you turn the key?"]
+        },
+        {
+            key: "rough-idle",
+            match: ["rough idle", "shakes", "shaking", "misfire", "stalling", "stalls", "idle problem"],
+            likely: ["Ignition misfire from plugs or coils", "Dirty throttle body or airflow sensor", "Vacuum leak or fuel-delivery issue"],
+            checks: ["Scan for fault codes if available", "Check spark plugs and ignition coils", "Inspect intake hoses for cracks or leaks", "Clean the throttle body and MAF sensor", "Check fuel pressure if the problem gets worse under load"],
+            fixes: ["Replace worn spark plugs or weak coils", "Repair vacuum leaks", "Clean the intake and idle control path", "Service injectors or fuel filter if fuel delivery is weak"],
+            parts: ["Spark plugs", "Ignition coils", "Air filter", "Fuel filter"],
+            followUp: ["Is the check-engine light on?", "Does it shake only at idle or also while accelerating?"]
+        },
+        {
+            key: "overheating",
+            match: ["overheat", "overheating", "temperature", "coolant", "running hot", "hot in traffic"],
+            urgent: true,
+            likely: ["Low coolant or external leak", "Thermostat stuck closed", "Radiator fan not switching on", "Weak water pump or blocked radiator"],
+            checks: ["Stop driving if the gauge is in the red", "Check coolant level only after the engine cools", "Look for leaks around hoses, radiator, and water pump", "Confirm radiator fans engage when hot or with AC on", "Check for pressure in the cooling system and thermostat operation"],
+            fixes: ["Top up with the correct coolant only after cooling down", "Repair leaks before driving again", "Replace a stuck thermostat or failed fan motor", "Flush or replace a blocked radiator if flow is poor"],
+            parts: ["Radiator", "Thermostat", "Water pump", "Coolant hose set", "Radiator fan"],
+            followUp: ["Is coolant disappearing or leaking onto the ground?", "Does it overheat only in traffic, or also at highway speed?"]
+        },
+        {
+            key: "brake",
+            match: ["brake", "brakes", "grinding", "squeal", "soft pedal", "spongy pedal"],
+            urgent: true,
+            likely: ["Worn brake pads or damaged rotors", "Brake fluid leak or air in the system", "Caliper sticking or uneven wear"],
+            checks: ["Do not keep driving if pedal feel is poor", "Inspect pad thickness and rotor surface", "Check brake fluid level and look for wet leaks at lines and calipers", "Listen for grinding or metal-on-metal noise"],
+            fixes: ["Replace worn pads and machine or replace damaged rotors", "Repair fluid leaks and bleed the system", "Replace sticking calipers or seized slide pins"],
+            parts: ["Brake pads", "Brake discs", "Brake caliper", "Brake fluid"],
+            followUp: ["Is the pedal soft, or is the main problem noise?", "Do you feel pulling to one side while braking?"]
+        },
+        {
+            key: "smoke-leak",
+            match: ["smoke", "burning smell", "fuel leak", "oil leak", "knocking", "steam"],
+            urgent: true,
+            likely: ["Fluid leak contacting hot engine parts", "Internal engine issue if there is heavy smoke or knocking", "Cooling-system leak if steam is visible"],
+            checks: ["Stop driving and inspect only when safe", "Identify whether the smoke is white steam, blue oil smoke, or black fuel-rich smoke", "Look for visible leaks under the car or around the engine bay", "Check warning lights and engine temperature immediately"],
+            fixes: ["Do not continue driving until the leak source is found", "Repair leaking hoses, seals, or gaskets", "Arrange a tow if there is heavy smoke, severe knocking, or fire risk"],
+            parts: ["Gasket set", "Coolant hose", "Oil seal", "PCV components"],
+            followUp: ["What color is the smoke?", "Is the engine overheating, misfiring, or losing oil/coolant?"]
+        },
+        {
+            key: "suspension",
+            match: ["clunk", "rattle", "suspension", "shock", "strut", "bushing", "noise over bumps"],
+            likely: ["Worn stabilizer links or bushings", "Weak shocks or struts", "Loose suspension hardware or control-arm wear"],
+            checks: ["Check if the noise happens only on bumps or also while turning", "Inspect sway-bar links, bushings, and top mounts", "Look for leaking shocks or torn bushings", "Check wheel torque and suspension fasteners"],
+            fixes: ["Replace worn links, bushes, or top mounts", "Replace leaking shocks or struts in axle pairs", "Torque loose components to specification"],
+            parts: ["Shock absorber", "Strut mount", "Stabilizer link", "Suspension bushing"],
+            followUp: ["Is the noise from the front or rear?", "Do you also feel vibration in the steering wheel?"]
+        }
+    ];
+
+    return profiles.find(profile => hasAnyTerm(text, profile.match)) || null;
+}
+
+function buildWebsiteHelpReply(knowledge, query) {
+    const siteFacts = knowledge.siteFacts || {};
+    const relevantPages = findRelevantPages(knowledge, query, 5);
+    const pageLines = relevantPages.length
+        ? relevantPages.map(page => `${page.title || page.fileName} (${getPageUrl(page.fileName)})`)
+        : [
+            "Browse the main catalog on index.html#products",
+            "Request a fitment or bulk quote on index.html#quote",
+            "Track existing orders on track.html",
+            "Contact the team on contact.html"
+        ];
+
+    return [
+        `MAT AI can help you use the ${siteFacts.storeName || "Mat Auto"} website directly.`,
+        buildReplySection("Best next steps", [
+            "Browse in-stock items on index.html#products if you already know the part or engine you need.",
+            "Use index.html#quote if you need sourcing help, bulk pricing, or fitment confirmation.",
+            "Use track.html to follow an existing order or delivery update.",
+            `For fast human support, message WhatsApp ${siteFacts.whatsappNumber || "via the contact page"}.`
+        ]),
+        buildReplySection("Relevant website pages", pageLines),
+        buildReplySection("What to send for faster help", [
+            "Vehicle make, model, year, engine size, and transmission if fitment matters.",
+            "Part name or symptom, plus any warning lights or recent repairs.",
+            "Order number if you are checking an existing purchase."
+        ])
+    ].filter(Boolean).join("\n\n");
+}
+
+function buildFallbackVehicleReply(knowledge, query, hasImage) {
+    const profile = detectVehicleIntent(query);
+    const matchedProducts = buildProductShortList(knowledge.matchedProducts || []);
+    const sections = [];
+
+    if (profile) {
+        sections.push(`Here is a practical first-pass plan for your issue (${profile.key.replace(/-/g, " ")}).`);
+        sections.push(buildReplySection("Likely causes", profile.likely));
+        sections.push(buildReplySection("What to check first", profile.checks));
+        sections.push(buildReplySection("Fix path", profile.fixes));
+        sections.push(buildReplySection("Parts to consider", matchedProducts.length ? matchedProducts : profile.parts));
+        sections.push(buildReplySection("Helpful follow-up details", profile.followUp));
+        if (profile.urgent) {
+            sections.push(buildReplySection("Safety", [
+                "This can become a stop-driving issue if braking, steering, heavy smoke, fuel leaks, or overheating are involved.",
+                "If the symptom is severe or getting worse quickly, arrange hands-on inspection before driving further."
+            ]));
+        }
+    } else {
+        sections.push("I can still help, but I need a bit more vehicle detail to narrow it down.");
+        sections.push(buildReplySection("Please send these details", [
+            "Make, model, year, engine size, and transmission",
+            "Exact symptom, when it happens, and whether warning lights are on",
+            "Recent repairs, battery changes, overheating, leaks, or unusual noises"
+        ]));
+        if (matchedProducts.length) {
+            sections.push(buildReplySection("Possible related parts from Mat Auto", matchedProducts));
+        }
+    }
+
+    if (hasImage) {
+        sections.push(buildReplySection("Photo note", [
+            "Your photo was attached successfully.",
+            MAT_AI.apiKey && !MAT_AI.forceFallback
+                ? "Advanced visual analysis is temporarily unavailable, so describe what the image shows and I will guide you from there."
+                : "This server is currently answering in smart local mode, so describe what the photo shows and I will guide you from there."
+        ]));
+    }
+
+    return sections.filter(Boolean).join("\n\n");
+}
+
+function buildMatAiFallbackReply({ knowledge, latestUserMessage, imageDataUrl = "" }) {
+    const query = String(latestUserMessage || "").toLowerCase();
+    const websiteIntent = hasAnyTerm(query, [
+        "website", "site", "page", "order", "orders", "track", "tracking", "quote", "quotes",
+        "contact", "delivery", "payment", "pay", "return", "refund", "whatsapp", "facebook",
+        "catalog", "stock", "shipping", "checkout"
+    ]);
+    const partIntent = hasAnyTerm(query, [
+        "part", "parts", "buy", "price", "stock", "fit", "fits", "fitment", "recommend", "catalog"
+    ]);
+
+    const reply = [];
+    reply.push(
+        websiteIntent
+            ? buildWebsiteHelpReply(knowledge, query)
+            : buildFallbackVehicleReply(knowledge, query, Boolean(imageDataUrl))
+    );
+
+    if (partIntent && !websiteIntent && knowledge.matchedProducts?.length) {
+        reply.push(buildReplySection("Matched Mat Auto parts", buildProductShortList(knowledge.matchedProducts, 5)));
+    }
+
+    const relevantPages = findRelevantPages(knowledge, query, 3);
+    if (relevantPages.length) {
+        reply.push(buildReplySection("Useful website pages", relevantPages.map(page =>
+            `${page.title || page.fileName} (${getPageUrl(page.fileName)})`
+        )));
+    }
+
+    return reply.filter(Boolean).join("\n\n");
+}
+
 function normalizeChatMessages(messages, imageDataUrl = "") {
     const safeMessages = Array.isArray(messages) ? messages.slice(-MAT_AI.maxMessages) : [];
     const normalized = safeMessages
@@ -739,8 +967,8 @@ if (cors) {
 }
 
 // ── Body parsing ──
-app.use(express.json({ limit: "4mb" }));
-app.use(express.urlencoded({ extended: true, limit: "4mb" }));
+app.use(express.json({ limit: "12mb" }));
+app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 
 // ── Compression (fallback if precompressed miss) ──
 if (compression) {
@@ -811,6 +1039,11 @@ app.get("/api/health", (_req, res) => {
         worker : process.pid,
         uptime : Math.round(process.uptime()),
         mem    : Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + " MB",
+        ai     : {
+            providerConfigured: Boolean(MAT_AI.apiKey),
+            fallbackAvailable : true,
+            mode              : MAT_AI.forceFallback || !MAT_AI.apiKey ? "fallback" : "hybrid",
+        },
     });
 });
 
@@ -871,6 +1104,65 @@ app.get("/api/stats", (_req, res) => {
     });
 });
 
+function normalizeAdminProductPayload(raw = {}) {
+    const imageList = Array.isArray(raw.images) ? raw.images : [];
+    const images = imageList
+        .filter(item => typeof item === "string" && /^(data:image\/|https?:\/\/)/i.test(item))
+        .map(item => item.trim())
+        .slice(0, 6);
+
+    const id = Number(raw.id);
+    const createdAt = cleanText(raw.createdAt, 64) || new Date().toISOString();
+    const normalized = {
+        id          : Number.isFinite(id) ? id : Date.now(),
+        name        : cleanText(raw.name, 120),
+        category    : cleanText(raw.category, 48).toLowerCase() || "parts",
+        price       : Math.max(0, safeNumber(raw.price, 0)),
+        stock       : Math.max(0, Math.round(safeNumber(raw.stock, 0))),
+        description : cleanText(raw.description, 3000),
+        specs       : cleanText(raw.specs, 1800),
+        featured    : Boolean(raw.featured),
+        images,
+        image       : images[0] || "",
+        rating      : Math.max(0, safeNumber(raw.rating, 5)),
+        views       : Math.max(0, Math.round(safeNumber(raw.views, 0))),
+        createdAt
+    };
+
+    return normalized;
+}
+
+app.post("/api/admin/products", async (req, res) => {
+    const adminKey = String(req.get("x-admin-key") || req.body?.adminKey || "").trim();
+    if (!adminKey || adminKey !== ADMIN_API_KEY) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const product = normalizeAdminProductPayload(req.body?.product || req.body || {});
+    if (!product.name || !product.description) {
+        return res.status(400).json({ error: "Product name and description are required." });
+    }
+
+    const firebaseUrl = `${MAT_AI.firebaseUrl}/matAutoProducts/${encodeURIComponent(product.id)}.json`;
+
+    try {
+        const response = await fetch(firebaseUrl, {
+            method  : "PUT",
+            headers : { "Content-Type": "application/json" },
+            body    : JSON.stringify(product)
+        });
+
+        if (!response.ok) {
+            return res.status(502).json({ error: `Catalog save failed (${response.status})` });
+        }
+
+        res.status(201).json({ ok: true, id: product.id });
+    } catch (err) {
+        console.error("[Admin Products] Save failed:", err);
+        res.status(500).json({ error: "Product upload failed", detail: err.message });
+    }
+});
+
 app.get("/api/mat-ai/context", async (_req, res) => {
     try {
         const knowledge = await getMatAiKnowledge("");
@@ -897,6 +1189,11 @@ app.get("/api/mat-ai/context", async (_req, res) => {
                 description: page.description,
                 headings   : page.headings,
             })),
+            capabilities: {
+                mode         : MAT_AI.forceFallback || !MAT_AI.apiKey ? "fallback" : "hybrid",
+                imageAnalysis: !MAT_AI.forceFallback && Boolean(MAT_AI.apiKey),
+                smartFallback: true,
+            }
         });
     } catch (err) {
         console.error("[MAT AI] Context error:", err.message);
@@ -919,7 +1216,28 @@ app.post("/api/mat-ai/chat", async (req, res) => {
         const latestUserMessage = messages[messages.length - 1].content;
         const knowledge = await getMatAiKnowledge(latestUserMessage);
         const systemPrompt = buildMatAiSystemPrompt(knowledge, latestUserMessage, Boolean(imageDataUrl));
-        const reply = await callNvidiaMatAi(messages, systemPrompt);
+        let reply = "";
+        let mode = "advanced";
+        let warning = "";
+        let providerError = "";
+
+        try {
+            if (MAT_AI.forceFallback) {
+                throw Object.assign(new Error("MAT AI fallback mode is enabled on this server."), { statusCode: 503 });
+            }
+            reply = await callNvidiaMatAi(messages, systemPrompt);
+        } catch (err) {
+            mode = "fallback";
+            providerError = cleanText(err.message || "Unknown MAT AI provider error.", 220);
+            warning = MAT_AI.apiKey && !MAT_AI.forceFallback
+                ? "Advanced AI was temporarily unavailable, so MAT AI answered in smart local mode."
+                : "Advanced AI is not configured on this server, so MAT AI answered in smart local mode.";
+            reply = buildMatAiFallbackReply({
+                knowledge,
+                latestUserMessage,
+                imageDataUrl,
+            });
+        }
         const matchedProducts = knowledge.matchedProducts.slice(0, 6).map(product => ({
             id         : product.id,
             name       : product.name,
@@ -935,6 +1253,9 @@ app.post("/api/mat-ai/chat", async (req, res) => {
 
         res.json({
             reply,
+            mode,
+            warning,
+            providerError,
             matchedProducts,
             context: {
                 pageCount    : knowledge.pages.length,

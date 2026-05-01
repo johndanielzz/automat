@@ -1,6 +1,6 @@
 "use strict";
 
-const APP_BUILD = "2026-04-30-4";
+const APP_BUILD = "2026-05-01-1";
 console.info(`Mat Auto app.js build ${APP_BUILD} loaded.`);
 
 // ===========================================================================
@@ -124,6 +124,11 @@ const LS = {
     allOrders   : "maAllOrders",
     productsDev : "maDevProducts"
 };
+
+const PRODUCT_UPLOAD_QUEUE_DB    = "matAutoUploadQueue";
+const PRODUCT_UPLOAD_QUEUE_STORE = "productJobs";
+const PRODUCT_UPLOAD_SYNC_TAG    = "sync-product-uploads";
+let productUploadDrainPromise    = null;
 
 // ---------------------------------------------------------------------------
 // PLACEHOLDER IMAGE
@@ -296,6 +301,226 @@ async function uploadImages(files) {
     };
 
     return Promise.all(fileArr.map(uploadSingleImage));
+}
+
+function openProductUploadQueueDb() {
+    return new Promise((resolve, reject) => {
+        if (typeof indexedDB === "undefined") {
+            reject(new Error("IndexedDB is not available in this browser."));
+            return;
+        }
+
+        const request = indexedDB.open(PRODUCT_UPLOAD_QUEUE_DB, 1);
+        request.onupgradeneeded = () => {
+            const queueDb = request.result;
+            if (!queueDb.objectStoreNames.contains(PRODUCT_UPLOAD_QUEUE_STORE)) {
+                queueDb.createObjectStore(PRODUCT_UPLOAD_QUEUE_STORE, { keyPath: "id" });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror   = () => reject(request.error || new Error("Could not open upload queue."));
+    });
+}
+
+async function getQueuedProductUploadJobs() {
+    const queueDb = await openProductUploadQueueDb();
+    return new Promise((resolve, reject) => {
+        const tx      = queueDb.transaction(PRODUCT_UPLOAD_QUEUE_STORE, "readonly");
+        const request = tx.objectStore(PRODUCT_UPLOAD_QUEUE_STORE).getAll();
+
+        request.onsuccess = () => resolve((request.result || []).sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || "")));
+        request.onerror   = () => reject(request.error || new Error("Could not read upload queue."));
+        tx.oncomplete     = () => queueDb.close();
+        tx.onabort        = () => {
+            queueDb.close();
+            reject(tx.error || new Error("Upload queue transaction failed."));
+        };
+    });
+}
+
+async function putQueuedProductUploadJob(job) {
+    const queueDb = await openProductUploadQueueDb();
+    return new Promise((resolve, reject) => {
+        const tx = queueDb.transaction(PRODUCT_UPLOAD_QUEUE_STORE, "readwrite");
+        tx.objectStore(PRODUCT_UPLOAD_QUEUE_STORE).put(job);
+        tx.oncomplete = () => {
+            queueDb.close();
+            resolve(job);
+        };
+        tx.onerror = tx.onabort = () => {
+            queueDb.close();
+            reject(tx.error || new Error("Could not save upload job."));
+        };
+    });
+}
+
+async function deleteQueuedProductUploadJob(jobId) {
+    const queueDb = await openProductUploadQueueDb();
+    return new Promise((resolve, reject) => {
+        const tx = queueDb.transaction(PRODUCT_UPLOAD_QUEUE_STORE, "readwrite");
+        tx.objectStore(PRODUCT_UPLOAD_QUEUE_STORE).delete(jobId);
+        tx.oncomplete = () => {
+            queueDb.close();
+            resolve();
+        };
+        tx.onerror = tx.onabort = () => {
+            queueDb.close();
+            reject(tx.error || new Error("Could not remove upload job."));
+        };
+    });
+}
+
+function createProductId() {
+    return Date.now() + Math.floor(Math.random() * 1000);
+}
+
+function buildQueuedProductPayload({ name, category, price, stock, desc, specs, featured, images }) {
+    return {
+        id          : createProductId(),
+        name,
+        category,
+        price,
+        stock,
+        description : desc,
+        specs,
+        featured,
+        images      : images.length ? images : [PLACEHOLDER_IMAGE],
+        image       : images[0] || PLACEHOLDER_IMAGE,
+        rating      : 5,
+        views       : 0,
+        createdAt   : new Date().toISOString()
+    };
+}
+
+async function compressImagesForQueue(files) {
+    const selectedFiles = Array.from(files || []).slice(0, 6);
+    if (!selectedFiles.length) return [PLACEHOLDER_IMAGE];
+    return Promise.all(selectedFiles.map(file => compressImage(file, 800, 800, 0.72)));
+}
+
+async function postQueuedProductUpload(job) {
+    const response = await fetch("/api/admin/products", {
+        method  : "POST",
+        headers : {
+            "Content-Type": "application/json",
+            "X-Admin-Key" : job.adminKey || ""
+        },
+        body: JSON.stringify({ product: job.product })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Upload failed (${response.status})`);
+    }
+
+    return response.json().catch(() => ({ ok: true }));
+}
+
+async function requestProductUploadSync() {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        if ("sync" in registration) {
+            await registration.sync.register(PRODUCT_UPLOAD_SYNC_TAG);
+        }
+        registration.active?.postMessage({ type: "FLUSH_PRODUCT_UPLOADS" });
+    } catch (err) {
+        console.warn("Product upload sync registration failed:", err.message || err);
+    }
+}
+
+async function flushQueuedProductUploads() {
+    if (productUploadDrainPromise) return productUploadDrainPromise;
+
+    productUploadDrainPromise = (async () => {
+        const jobs = await getQueuedProductUploadJobs().catch(() => []);
+        for (const job of jobs) {
+            try {
+                await postQueuedProductUpload(job);
+                await deleteQueuedProductUploadJob(job.id);
+                window.dispatchEvent(new CustomEvent("matAutoProductUploadComplete", { detail: { job } }));
+            } catch (err) {
+                console.warn("Queued product upload failed:", err.message || err);
+                window.dispatchEvent(new CustomEvent("matAutoProductUploadFailed", { detail: { job, error: err } }));
+                if (typeof navigator !== "undefined" && navigator.onLine === false) break;
+            }
+        }
+    })().finally(() => {
+        productUploadDrainPromise = null;
+    });
+
+    return productUploadDrainPromise;
+}
+
+async function registerAppServiceWorker() {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+    if (window.__matAutoSwRegistrationPromise) return window.__matAutoSwRegistrationPromise;
+
+    window.__matAutoSwRegistrationPromise = navigator.serviceWorker.register("service-worker.js")
+        .then(registration => {
+            window.dispatchEvent(new CustomEvent("swready"));
+            return registration;
+        })
+        .catch(err => {
+            console.warn("Service worker registration failed:", err);
+            return null;
+        });
+
+    return window.__matAutoSwRegistrationPromise;
+}
+
+function bindProductUploadRuntime() {
+    if (typeof window === "undefined" || window.__matAutoProductUploadRuntimeBound) return;
+    window.__matAutoProductUploadRuntimeBound = true;
+
+    registerAppServiceWorker().catch(() => {});
+
+    window.addEventListener("online", () => {
+        flushQueuedProductUploads().catch(() => {});
+        requestProductUploadSync().catch(() => {});
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            flushQueuedProductUploads().catch(() => {});
+        }
+    });
+
+    window.addEventListener("swready", () => {
+        requestProductUploadSync().catch(() => {});
+    });
+
+    navigator.serviceWorker?.addEventListener("message", event => {
+        const { data } = event;
+        if (!data?.type) return;
+
+        if (data.type === "PRODUCT_UPLOAD_COMPLETE" && data.product) {
+            window.dispatchEvent(new CustomEvent("matAutoProductUploadComplete", {
+                detail: { job: { product: data.product, id: data.jobId || data.product.id } }
+            }));
+        }
+
+        if (data.type === "PRODUCT_UPLOAD_FAILED") {
+            window.dispatchEvent(new CustomEvent("matAutoProductUploadFailed", {
+                detail: { job: { id: data.jobId, product: data.product }, error: new Error(data.error || "Upload failed") }
+            }));
+        }
+    });
+
+    window.addEventListener("matAutoProductUploadComplete", event => {
+        const product = normalizeProduct(event.detail?.job?.product || {});
+        if (!product?.id) return;
+        const idx = state.products.findIndex(item => String(item.id) === String(product.id));
+        if (idx >= 0) state.products[idx] = product;
+        else state.products.unshift(product);
+        if (qs("#productsList")) renderAdminProducts();
+        if (qs("#totalProductsCount")) renderAdminStats();
+        if (typeof showToast === "function" && qs(".admin-container")) {
+            showToast("success", `"${product.name}" finished uploading.`);
+        }
+    });
+
+    flushQueuedProductUploads().catch(() => {});
 }
 
 // ---------------------------------------------------------------------------
@@ -1551,6 +1776,7 @@ function logoutAdmin() {
 // ADMIN SETUP
 // ---------------------------------------------------------------------------
 async function setupAdminPage() {
+    bindProductUploadRuntime();
     requireAdminAuth();
     qs("#adminLoginForm")?.addEventListener("submit", e => {
         e.preventDefault();
@@ -1582,6 +1808,12 @@ function renderAdminDashboard() {
     setupAdminSearch();
 
     if (!db) return;
+    db.ref(FB.products).on("value", snap => {
+        if (!isAdminAuthed()) return;
+        state.products = normalizeFirebaseList(snap.exists() ? snap.val() : []).map(normalizeProduct);
+        renderAdminProducts();
+        renderAdminStats();
+    });
     db.ref(FB.orders).on("value", snap => {
         if (!isAdminAuthed()) return;
         state.orders = normalizeFirebaseList(snap.exists() ? snap.val() : []);
@@ -1624,14 +1856,34 @@ function renderAdminStats() {
 
 // ---------------------------------------------------------------------------
 // ✅ UPGRADED ADMIN PRODUCT FORM
-// Uses the new uploadImages() which auto-falls back to base64 if Storage
-// has CORS issues — no more hard errors for the admin.
+// Queues product uploads locally, compresses images for speed,
+// and lets the service worker finish publishing in the background.
 // ---------------------------------------------------------------------------
 function setupAdminProductForm() {
     const form      = qs("#productForm");
     const preview   = qs("#imagePreview");
     const fileInput = qs("#productImage");
     if (!form) return;
+    if (form.dataset.boundAdminProductForm === "true") return;
+    form.dataset.boundAdminProductForm = "true";
+
+    const progressWrap = qs("#uploadProgressWrap");
+    const progressFill = qs("#uploadProgressFill");
+    const statusText   = qs("#uploadStatusText");
+    const speedText    = qs("#uploadSpeedText");
+    const batchList    = qs("#batchProgressList");
+
+    const updateUploadUi = ({ visible = false, progress = 0, status = "Preparing...", detail = "" } = {}) => {
+        progressWrap?.classList.toggle("visible", visible);
+        if (progressFill) progressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+        if (statusText) statusText.textContent = status;
+        if (speedText)  speedText.textContent  = detail;
+        if (batchList) {
+            batchList.innerHTML = visible
+                ? `<div class="batch-progress-item"><strong>${status}</strong><span>${detail || "Background upload active"}</span></div>`
+                : "";
+        }
+    };
 
     // Live preview with compression indicator
     fileInput?.addEventListener("change", () => {
@@ -1672,36 +1924,58 @@ function setupAdminProductForm() {
             submitBtn.textContent = label;
         };
 
-        setBtn(true, "⏳ Saving…");
-        showToast("info", files.length ? "Optimizing and uploading images…" : "Saving product…", 6000);
+        setBtn(true, "⏳ Queueing…");
+        updateUploadUi({
+            visible  : true,
+            progress : files.length ? 12 : 40,
+            status   : files.length ? "Preparing product images..." : "Preparing product...",
+            detail   : files.length
+                ? `${Math.min(files.length, 6)} image(s) will keep uploading in the background.`
+                : "The product will save even if you leave this page."
+        });
+        showToast("info", files.length ? "Preparing a faster background upload..." : "Queueing product save...", 5000);
 
         try {
-            // ✅ Smart upload — tries Storage, falls back to base64 automatically
-            const images = files.length
-                ? await uploadImages(files)
-                : [PLACEHOLDER_IMAGE];
+            const images = await compressImagesForQueue(files);
+            updateUploadUi({
+                visible  : true,
+                progress : 72,
+                status   : "Upload queued",
+                detail   : "You can leave this page while the upload continues."
+            });
 
-            const newProduct = {
-                id          : Date.now(),
-                name, category, price, stock,
-                description : desc, specs, featured,
-                images      : images.length ? images : [PLACEHOLDER_IMAGE],
-                image       : images[0]     || PLACEHOLDER_IMAGE,
-                rating      : 5,
-                views       : 0,
-                createdAt   : new Date().toISOString()
+            const newProduct = buildQueuedProductPayload({
+                name, category, price, stock, desc, specs, featured, images
+            });
+            const job = {
+                id        : `product-${newProduct.id}`,
+                adminKey  : ADMIN_PASSWORD,
+                createdAt : new Date().toISOString(),
+                product   : newProduct
             };
 
-            state.products.unshift(newProduct);
-            await saveProductRecord(newProduct);
-            renderAdminProducts();
-            renderAdminStats();
+            await putQueuedProductUploadJob(job);
+            flushQueuedProductUploads().catch(() => {});
+            requestProductUploadSync().catch(() => {});
+
             form.reset();
             if (preview) preview.innerHTML = "";
-            showToast("success", `✅ "${name}" added to inventory`);
+            updateUploadUi({
+                visible  : true,
+                progress : 100,
+                status   : "Background upload started",
+                detail   : "The product will publish as soon as the upload finishes."
+            });
+            showToast("success", `"${name}" is queued. Upload will keep running in the background.`, 5500);
         } catch (err) {
             console.error("Product save failed:", err);
-            showToast("error", "Could not save product. Check your connection and try again.");
+            updateUploadUi({
+                visible  : true,
+                progress : 0,
+                status   : "Upload queue failed",
+                detail   : "Please try again."
+            });
+            showToast("error", "Could not queue this product. Check your connection and try again.");
         } finally {
             setBtn(false, origLabel);
         }
@@ -2041,6 +2315,7 @@ function renderAdminPromos() {
 // PAGE INIT
 // ---------------------------------------------------------------------------
 async function initPage() {
+    bindProductUploadRuntime();
     showLoader("Loading Mat Auto…");
     loadLocalState();
     loadTheme();
