@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Meet The Owner - Mat Auto</title>
+    <meta name="description" content="Meet Ebube John Okoye, the website owner behind Mat Auto. Learn about his background as a 27-year-old web developer and businessman focused on digital growth, trust, and customer-first experiences.">
+    <meta property="og:title" content="Meet The Owner - Mat Auto">
+    <meta property="og:description" content="Get to know Ebube John Okoye, the web developer and businessman behind the Mat Auto platform.">
+    <meta property="og:type" content="profile">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat Auto">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="image.jpg">
+    <link rel="apple-touch-icon" href="image.jpg">
+    <style>
+        .owner-hero {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(3rem, 8vw, 6rem) 0;
+            background:
+                radial-gradient(circle at top right, rgba(244,130,31,0.22), transparent 32%),
+                radial-gradient(circle at left center, rgba(255,255,255,0.08), transparent 28%),
+                linear-gradient(135deg, var(--navy-deepest) 0%, var(--navy) 48%, var(--navy-mid) 100%);
+            color: #fff;
+        }
+        .owner-hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 28%, transparent 72%, rgba(255,255,255,0.04));
+            pointer-events: none;
+        }
+        .owner-grid {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+            gap: clamp(1.5rem, 4vw, 3rem);
+            align-items: center;
+        }
+        .owner-photo-card,
+        .owner-story-card,
+        .owner-detail-card,
+        .owner-quote-card {
+            border-radius: var(--r-2xl);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: var(--shadow-lg);
+        }
+        .owner-photo-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            padding: 1rem;
+        }
+        .owner-photo-frame {
+            min-height: 430px;
+            border-radius: calc(var(--r-2xl) - 8px);
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(244,130,31,0.16), rgba(255,255,255,0.05)),
+                linear-gradient(180deg, #152441 0%, #0d1729 100%);
+            border: 1px solid rgba(255,255,255,0.14);
+            position: relative;
+        }
+        .owner-photo-frame img,
+        .owner-photo-placeholder {
+            width: 100%;
+            height: 100%;
+            min-height: 430px;
+            object-fit: cover;
+        }
+        .owner-photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.86);
+        }
+        .owner-photo-placeholder strong {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.2rem, 3vw, 1.7rem);
+        }
+        .owner-photo-placeholder span {
+            color: rgba(255,255,255,0.62);
+            max-width: 16rem;
+        }
+        .owner-photo-note {
+            margin-top: 1rem;
+            color: rgba(255,255,255,0.68);
+            font-size: 0.84rem;
+            text-align: center;
+        }
+        .owner-story-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(18px);
+            padding: clamp(1.5rem, 3vw, 2.4rem);
+        }
+        .owner-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(244,130,31,0.16);
+            border: 1px solid rgba(244,130,31,0.3);
+            color: #ffd2aa;
+            padding: 0.5rem 0.9rem;
+            border-radius: var(--r-full);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .owner-story-card h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2.2rem, 6vw, 4.2rem);
+            line-height: 1.02;
+            margin-bottom: 0.8rem;
+        }
+        .owner-subtitle {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: rgba(255,255,255,0.72);
+            margin-bottom: 1.2rem;
+        }
+        .owner-story-card p {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 1rem;
+            max-width: 60ch;
+        }
+        .owner-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin: 1.6rem 0 0;
+        }
+        .owner-stat {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--r-xl);
+            padding: 1rem;
+        }
+        .owner-stat strong {
+            display: block;
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.1rem, 2vw, 1.45rem);
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+        .owner-stat span {
+            color: rgba(255,255,255,0.62);
+            font-size: 0.86rem;
+        }
+        .owner-content {
+            padding: clamp(2.5rem, 6vw, 5rem) 0;
+        }
+        .owner-section {
+            margin-bottom: clamp(2rem, 5vw, 3.5rem);
+        }
+        .owner-section-head {
+            max-width: 720px;
+            margin-bottom: 1.5rem;
+        }
+        .owner-section-head h2 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            margin-bottom: 0.6rem;
+        }
+        .owner-section-head p {
+            color: var(--text-mid);
+        }
+        .owner-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+        }
+        .owner-detail-card,
+        .owner-quote-card {
+            background: var(--surface);
+            padding: 1.4rem;
+            border: 1px solid var(--border);
+        }
+        .owner-detail-card h3,
+        .owner-quote-card h3 {
+            margin-bottom: 0.7rem;
+            color: var(--navy);
+        }
+        .owner-detail-card p,
+        .owner-quote-card p,
+        .owner-detail-card li {
+            color: var(--text-mid);
+        }
+        .owner-detail-card ul {
+            margin: 0;
+            padding-left: 1.15rem;
+            line-height: 1.8;
+        }
+        .owner-highlight {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.25rem;
+        }
+        .owner-quote-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+        }
+        .owner-quote-mark {
+            font-family: 'Syne', sans-serif;
+            font-size: 3rem;
+            line-height: 1;
+            color: var(--primary);
+            margin-bottom: 0.35rem;
+        }
+        .owner-cta {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            border-radius: var(--r-2xl);
+            padding: clamp(1.8rem, 4vw, 2.8rem);
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-glow-soft);
+        }
+        .owner-cta h2,
+        .owner-cta p {
+            color: #fff;
+        }
+        .owner-cta .btn {
+            white-space: nowrap;
+        }
+        @media (max-width: 980px) {
+            .owner-grid,
+            .owner-highlight,
+            .owner-card-grid {
+                grid-template-columns: 1fr;
+            }
+            .owner-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Ebube John Okoye",
+        "jobTitle": "Web Developer and Businessman",
+        "description": "Owner profile page for Ebube John Okoye, a 27-year-old web developer and businessman behind the Mat Auto website.",
+        "worksFor": {
+            "@type": "Organization",
+            "name": "Mat Auto"
+        }
+    }
+    </script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="image.jpg" alt="Mat Auto Logo" class="brand-logo">
+                <h1>Mat Auto</h1>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#products">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="owner.html" class="active">Owner</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="orders.html">My Orders</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="owner-hero">
+        <div class="container owner-grid">
+            <div class="owner-photo-card">
+                <div class="owner-photo-frame">
+                    <img src="owner-photo.jpg" alt="Portrait of Ebube John Okoye" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="owner-photo-placeholder" style="display:none;">
+                        <strong>Owner Photo Space</strong>
+                        <span>Add your picture as <code>owner-photo.jpg</code> in this folder and it will show here automatically.</span>
+                    </div>
+                </div>
+                <p class="owner-photo-note">Built with a dedicated photo slot so your personal brand can stand out clearly.</p>
+            </div>
+
+            <div class="owner-story-card">
+                <div class="owner-kicker">Founder Profile</div>
+                <h1>Ebube John Okoye</h1>
+                <p class="owner-subtitle">27-year-old web developer and businessman building digital experiences with clarity, ambition, and long-term business vision.</p>
+                <p>Ebube John Okoye represents a new generation of builders who understand both technology and opportunity. He combines the technical discipline of a web developer with the practical mindset of a businessman, creating websites and digital systems that are meant to perform in the real world.</p>
+                <p>His approach is not only about making websites look good. It is about creating platforms that feel trustworthy, load fast, communicate clearly, and help businesses grow with confidence.</p>
+                <p>Whether the goal is stronger branding, better customer experience, or a more scalable online presence, Ebube believes every digital product should support real business results.</p>
+
+                <div class="owner-stat-grid">
+                    <div class="owner-stat">
+                        <strong>Web Developer</strong>
+                        <span>Focused on clean structure, usability, and performance.</span>
+                    </div>
+                    <div class="owner-stat">
+                        <strong>Business Mindset</strong>
+                        <span>Builds with growth, trust, and customer value in mind.</span>
+                    </div>
+                    <div class="owner-stat">
+                        <strong>27 Years Old</strong>
+                        <span>Young, driven, and committed to long-term impact.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="owner-content">
+        <div class="container">
+            <section class="owner-section">
+                <div class="owner-section-head">
+                    <h2>The Story Behind The Brand</h2>
+                    <p>This page introduces the person behind the website, the mindset behind the business, and the vision shaping the digital presence of Mat Auto.</p>
+                </div>
+                <div class="owner-highlight">
+                    <div class="owner-detail-card">
+                        <h3>Professional Identity</h3>
+                        <p>Ebube John Okoye is a motivated web developer with a strong interest in building modern, reliable, and user-friendly digital products. At the same time, he brings the perspective of a businessman who understands that great technology should also support growth, reputation, and real customer relationships.</p>
+                        <p>That mix of technical skill and entrepreneurial thinking makes his work practical, intentional, and business-ready.</p>
+                    </div>
+                    <div class="owner-quote-card">
+                        <div class="owner-quote-mark">"</div>
+                        <h3>Personal Vision</h3>
+                        <p>Build with purpose. Design for people. Create systems that help businesses move forward with confidence.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="owner-section">
+                <div class="owner-section-head">
+                    <h2>What Defines Ebube</h2>
+                    <p>More than a title, this is about the qualities that shape how he works, leads, and builds.</p>
+                </div>
+                <div class="owner-card-grid">
+                    <article class="owner-detail-card">
+                        <h3>Creative Problem Solving</h3>
+                        <p>Ebube enjoys turning ideas into working experiences. He looks beyond appearance and thinks carefully about how users interact with a website from the first click to the final action.</p>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Business Awareness</h3>
+                        <p>He values websites that do more than exist online. His direction favors conversion, trust, simplicity, and strong brand presentation that helps customers feel confident.</p>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Growth Mindset</h3>
+                        <p>At 27, he brings energy, hunger, and a forward-looking mindset. He sees technology as a tool for creating opportunities, opening markets, and building something durable.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="owner-section">
+                <div class="owner-section-head">
+                    <h2>Strengths And Focus Areas</h2>
+                    <p>This profile highlights the kind of value Ebube aims to bring through digital work and business leadership.</p>
+                </div>
+                <div class="owner-card-grid">
+                    <article class="owner-detail-card">
+                        <h3>Development Focus</h3>
+                        <ul>
+                            <li>Responsive website design for desktop and mobile users</li>
+                            <li>Clean layouts that present products and services clearly</li>
+                            <li>Fast-loading pages with strong visual structure</li>
+                            <li>User-friendly experiences that reduce friction</li>
+                        </ul>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Business Focus</h3>
+                        <ul>
+                            <li>Building digital platforms that support trust and credibility</li>
+                            <li>Strengthening the online presence of a growing brand</li>
+                            <li>Thinking in terms of value, visibility, and long-term growth</li>
+                            <li>Balancing creativity with practical business outcomes</li>
+                        </ul>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Leadership Style</h3>
+                        <ul>
+                            <li>Hands-on and involved in the details that matter</li>
+                            <li>Focused on quality, consistency, and presentation</li>
+                            <li>Interested in building things that customers can trust</li>
+                            <li>Driven by progress, learning, and meaningful results</li>
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
+            <section class="owner-section">
+                <div class="owner-section-head">
+                    <h2>Why This Matters For Mat Auto</h2>
+                    <p>The quality of a website often reflects the quality of the thinking behind it. This owner profile helps visitors connect the platform to a real person with vision and intent.</p>
+                </div>
+                <div class="owner-card-grid">
+                    <article class="owner-detail-card">
+                        <h3>Trust</h3>
+                        <p>Showing the person behind the website makes the brand feel more real, human, and accountable.</p>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Brand Identity</h3>
+                        <p>It gives Mat Auto a stronger story by linking the platform to leadership, ambition, and personality.</p>
+                    </article>
+                    <article class="owner-detail-card">
+                        <h3>Connection</h3>
+                        <p>Customers are more likely to remember and respect a business when they know who is behind it.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="owner-section">
+                <div class="owner-cta">
+                    <div>
+                        <h2>Meet The Mind Behind Mat Auto</h2>
+                        <p>Ebube John Okoye brings together technical skill, business thinking, and a serious focus on building something valuable.</p>
+                    </div>
+                    <a href="contact.html" class="btn btn-secondary">Contact The Team</a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Mat Auto</h4>
+                <ul>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="owner.html">Meet The Owner</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="orders.html">My Orders</a></li>
+                    <li><a href="warranty.html">Warranty</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <ul>
+                    <li><a href="https://www.facebook.com/profile.php?id=61574154117727" target="_blank" rel="noopener">Facebook</a></li>
+                    <li><a href="https://wa.me/message/BRC6GJHD6PHCC1" target="_blank" rel="noopener">WhatsApp</a></li>
+                    <li><a href="index.html#products">Products</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Intro</h4>
+                <p style="margin-bottom:0;">Ebube John Okoye is the owner featured on this page. Add <code>owner-photo.jpg</code> to this folder to display his picture automatically.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mat Auto. All rights reserved. | Built with vision, business focus, and customer trust.</p>
+        </div>
+    </footer>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-storage-compat.js"></script>
+    <script src="app.js?v=2026-05-01-1"></script>
+</body>
+</html>

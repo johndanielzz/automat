@@ -17,11 +17,11 @@ const PRODUCT_UPLOAD_QUEUE_STORE = 'productJobs';
 const PRODUCT_UPLOAD_SYNC_TAG    = 'sync-product-uploads';
 
 const STATIC_ASSETS = [
-    './index.html', './about.html', './admin.html', './checkout.html',
+    './index.html', './about.html', './owner.html', './mat-ai.html', './admin.html', './checkout.html',
     './contact.html', './features.html', './orders.html', './offline.html',
     './promos.html', './reviews.html', './faq.html', './track.html', './warranty.html',
     './reciept.html', './receipt.html', './delivery-drivers.html',
-    './styles.css', './app.js', './app-perf-patch.js', './manifest.json'
+    './styles.css', './mat-ai.css', './app.js', './mat-ai.js', './app-perf-patch.js', './manifest.json'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
