@@ -3,10 +3,10 @@
 (() => {
     const STANDALONE_PAGE = document.body.classList.contains("mat-ai-page");
     const MAT_AI_THEME_KEY = "maDarkMode";
-    const MAT_AI_SESSION_KEY = "maMatAiSessionV2";
+    const MAT_AI_SESSION_KEY = "maMatAiSessionV3";
     const MAT_AI_API_BASE_KEY = "maMatAiApiBase";
     const MAX_HISTORY_MESSAGES = 12;
-    const REQUEST_TIMEOUT_MS = 12000;
+    const REQUEST_TIMEOUT_MS = 18000;
 
     const state = {
         messages: [],
@@ -14,6 +14,7 @@
         imageName: "",
         imageBytes: 0,
         busy: false,
+        backendReady: false,
         context: null,
         apiBase: "",
         lastAssistantReply: "",
@@ -55,9 +56,7 @@
         navLinks: document.getElementById("navLinks"),
     };
 
-    if (!els.chatForm || !els.chatMessages || !els.input) {
-        return;
-    }
+    if (!els.chatForm || !els.chatMessages || !els.input) return;
 
     const MAT_AI_API_CANDIDATES = buildApiCandidates();
     init();
@@ -71,6 +70,8 @@
         const restored = restoreSession();
         if (!restored) renderWelcomeMessage();
         syncActionButtons();
+        syncChatLogState();
+        setInteractionAvailability(false);
         loadContext();
     }
 
@@ -91,13 +92,6 @@
         });
 
         document.querySelectorAll("[data-prompt]").forEach(button => {
-            button.addEventListener("click", () => {
-                els.input.value = button.getAttribute("data-prompt") || "";
-                els.input.focus();
-            });
-        });
-
-        document.querySelectorAll(".mat-side-prompt").forEach(button => {
             button.addEventListener("click", () => {
                 els.input.value = button.getAttribute("data-prompt") || "";
                 els.input.focus();
@@ -134,9 +128,8 @@
     }
 
     function syncThemeButton() {
-        if (els.darkModeBtn) {
-            els.darkModeBtn.textContent = document.body.classList.contains("dark-mode") ? "☀ Light" : "🌙 Dark";
-        }
+        if (!els.darkModeBtn) return;
+        els.darkModeBtn.textContent = document.body.classList.contains("dark-mode") ? "☀ Light" : "🌙 Dark";
     }
 
     async function loadContext() {
@@ -144,40 +137,30 @@
             const data = await apiRequest("/api/mat-ai/context");
             state.context = data;
             hydrateContext(data);
-            const fallbackMode = data.capabilities?.mode === "fallback";
-            setStatus(
-                fallbackMode
-                    ? "MAT AI is ready in smart local mode. You can still get diagnosis help, website guidance, and part suggestions."
-                    : "MAT AI is ready. Ask about the site, your car issue, parts, or upload a photo.",
-                "ready"
-            );
-            updateConnectionUi(
-                fallbackMode ? "Smart Mode" : "Live AI",
-                fallbackMode
-                    ? "This website is answering from its server-side smart fallback, so image understanding may be limited."
-                    : (state.apiBase || "MAT AI backend connected."),
-                fallbackMode ? "warn" : "ok"
-            );
-        } catch (error) {
-            try {
-                const fallbackData = await loadBrowserFallbackContext();
-                state.context = fallbackData;
-                clearSavedApiBaseIfUnconfigured();
-                hydrateContext(fallbackData);
-                setStatus(
-                    "MAT AI is ready in GitHub smart mode. It can answer website questions, suggest parts, and guide basic diagnosis without a server.",
-                    "ready"
-                );
+
+            const liveMode = data.capabilities?.mode === "live" || data.capabilities?.mode === "hybrid";
+            if (!liveMode) {
+                state.backendReady = false;
+                setInteractionAvailability(false);
+                setStatus("Live MAT AI is not configured on the backend yet. Add the provider key in Vercel and redeploy.", "error");
                 updateConnectionUi(
-                    "GitHub Smart Mode",
-                    "Running directly from GitHub Pages browser data. Live cloud AI and true photo analysis need a connected backend.",
-                    "warn"
+                    "Setup required",
+                    state.apiBase || "The backend responded, but the live AI provider is not ready.",
+                    "error"
                 );
-            } catch (fallbackError) {
-                const message = fallbackError.message || error.message || "MAT AI context could not load right now.";
-                setStatus(message, "error");
-                updateConnectionUi("Needs Setup", message, "error");
+                return;
             }
+
+            state.backendReady = true;
+            setInteractionAvailability(true);
+            setStatus("Live MAT AI is online. Ask about engines, parts, fitment, repairs, or this website.", "ready");
+            updateConnectionUi("Live AI online", state.apiBase || "Connected to the deployed backend.", "ok");
+        } catch (error) {
+            state.backendReady = false;
+            setInteractionAvailability(false);
+            const message = error.message || "MAT AI could not connect to the live backend.";
+            setStatus(message, "error");
+            updateConnectionUi("Backend offline", message, "error");
         }
     }
 
@@ -186,6 +169,7 @@
         if (els.sitePages) els.sitePages.textContent = numberOrDash(data.pageCount);
         if (els.storeCurrency) els.storeCurrency.textContent = data.store?.currency || "GMD";
         if (els.storeWhatsapp) els.storeWhatsapp.textContent = data.store?.whatsappNumber || "Available on site";
+
         const categoryCount = Object.keys(data.categoryCounts || {}).length;
         if (els.catalogSummary) {
             els.catalogSummary.textContent = `${numberOrDash(data.productCount)} items / ${numberOrDash(categoryCount)} categories`;
@@ -207,12 +191,14 @@
 
     function renderWelcomeMessage() {
         appendMessage("assistant", [
-            "I’m MAT AI. I can help with:",
-            "- Car symptoms and likely causes",
-            "- Step-by-step repair guidance",
-            "- Part recommendations from Mat Auto when relevant",
-            "- Questions about this website, orders, quotes, and catalog pages",
-            "- Vehicle photo analysis and fitment follow-up"
+            "I am MAT AI, your automotive and website assistant.",
+            "",
+            "I can help with:",
+            "- car symptoms, engine concerns, and repair guidance",
+            "- parts recommendations and pre-purchase checks",
+            "- fitment follow-up questions",
+            "- ordering, quotes, contact, and website navigation",
+            "- vehicle photo uploads for visible clues and part guidance"
         ].join("\n"), false);
     }
 
@@ -220,11 +206,13 @@
         try {
             const raw = localStorage.getItem(MAT_AI_SESSION_KEY);
             if (!raw) return false;
+
             const session = JSON.parse(raw);
-            const messages = Array.isArray(session?.messages) ? session.messages : [];
-            state.messages = messages
-                .filter(entry => entry && (entry.role === "user" || entry.role === "assistant") && entry.content)
-                .slice(-MAX_HISTORY_MESSAGES);
+            state.messages = Array.isArray(session?.messages)
+                ? session.messages
+                    .filter(entry => entry && (entry.role === "user" || entry.role === "assistant") && entry.content)
+                    .slice(-MAX_HISTORY_MESSAGES)
+                : [];
             state.lastAssistantReply = String(session?.lastAssistantReply || "");
             state.lastProducts = Array.isArray(session?.lastProducts) ? session.lastProducts : [];
 
@@ -232,9 +220,7 @@
 
             els.chatMessages.innerHTML = "";
             state.messages.forEach(message => appendMessage(message.role, message.content, false));
-            if (state.lastProducts.length) {
-                renderRelatedProducts(state.lastProducts, true);
-            }
+            if (state.lastProducts.length) renderRelatedProducts(state.lastProducts, true);
             return true;
         } catch {
             return false;
@@ -249,7 +235,7 @@
                 lastProducts: state.lastProducts.slice(0, 6),
             }));
         } catch {
-            // Ignore storage failures so chat still works.
+            // Ignore storage failures.
         }
     }
 
@@ -260,15 +246,26 @@
         els.chatMessages.innerHTML = "";
         renderWelcomeMessage();
         clearImageSelection();
-        if (state.context?.featured) renderRelatedProducts(state.context.featured, true);
-        else renderRelatedProducts([], true);
-        setStatus("Chat cleared. MAT AI is ready for a new question.", "ready");
+        renderRelatedProducts(state.context?.featured || [], true);
+        setStatus(
+            state.backendReady
+                ? "Chat cleared. Live MAT AI is ready for a new question."
+                : "Chat cleared. Connect the live backend to continue.",
+            state.backendReady ? "ready" : "error"
+        );
         persistSession();
         syncActionButtons();
+        syncChatLogState();
     }
 
     async function handleSubmit(event) {
         event.preventDefault();
+
+        if (!state.backendReady) {
+            setStatus("The live MAT AI backend is not ready yet. Finish the Vercel AI setup first.", "error");
+            return;
+        }
+
         const prompt = els.input.value.trim();
         if (!prompt && !state.imageDataUrl) {
             setStatus("Type a question or upload a car photo first.", "error");
@@ -282,41 +279,36 @@
         appendMessage("user", userText, false);
         els.input.value = "";
         setBusy(true);
-        setStatus(state.imageDataUrl ? "Analyzing your message and photo…" : "Thinking through your question…", "pending");
+        setStatus(state.imageDataUrl ? "Sending your message and photo to live MAT AI…" : "MAT AI is thinking…", "pending");
 
         try {
             const data = await requestMatAiReply(payloadMessages, state.imageDataUrl || "");
-
             const reply = data.reply || "I could not generate a reply.";
+
             appendMessage("assistant", reply, false);
             state.messages = [...payloadMessages, { role: "assistant", content: reply }].slice(-MAX_HISTORY_MESSAGES);
             state.lastAssistantReply = reply;
             state.lastProducts = Array.isArray(data.matchedProducts) ? data.matchedProducts : [];
             renderRelatedProducts(state.lastProducts);
             clearImageSelection();
-            if (data.mode === "browser-fallback") {
-                setStatus(data.warning || "MAT AI answered in GitHub smart mode.", "ready");
-                updateConnectionUi(
-                    "GitHub Smart Mode",
-                    data.warning || "Running from browser data on GitHub Pages. Live cloud AI and true photo analysis need a backend.",
-                    "warn"
-                );
-            } else if (data.mode === "fallback") {
-                setStatus(data.warning || "MAT AI answered in smart local mode.", "pending");
-                updateConnectionUi("Smart Mode", data.warning || "Cloud AI is temporarily unavailable; site-side fallback is active.", "warn");
+
+            if (data.mode && data.mode !== "advanced") {
+                setStatus(data.warning || "MAT AI responded, but the backend reported a degraded mode.", "pending");
+                updateConnectionUi("Check AI provider", data.warning || "The backend did not report full live mode.", "warn");
             } else {
-                setStatus("MAT AI is ready for your next question.", "ready");
-                updateConnectionUi("Live AI", state.apiBase || "MAT AI backend connected.", "ok");
+                setStatus("Live MAT AI is ready for your next question.", "ready");
+                updateConnectionUi("Live AI online", state.apiBase || "Connected to the deployed backend.", "ok");
             }
+
             persistSession();
             syncActionButtons();
         } catch (error) {
-            const failureReply = `I hit a problem: ${error.message}`;
+            const failureReply = `I hit a live backend problem: ${error.message}`;
             appendMessage("assistant", failureReply, false);
             state.messages = [...payloadMessages, { role: "assistant", content: failureReply }].slice(-MAX_HISTORY_MESSAGES);
             state.lastAssistantReply = failureReply;
             setStatus(error.message || "MAT AI request failed.", "error");
-            updateConnectionUi("Connection Error", error.message || "Backend request failed.", "error");
+            updateConnectionUi("Connection error", error.message || "Backend request failed.", "error");
             persistSession();
             syncActionButtons();
         } finally {
@@ -326,18 +318,38 @@
 
     function setBusy(next) {
         state.busy = next;
-        if (els.sendBtn) els.sendBtn.disabled = next;
-        if (els.uploadImageBtn) els.uploadImageBtn.disabled = next;
+        if (els.sendBtn) els.sendBtn.disabled = next || !state.backendReady;
+        if (els.uploadImageBtn) els.uploadImageBtn.disabled = next || !state.backendReady;
+        if (els.imageInput) els.imageInput.disabled = next || !state.backendReady;
+        if (els.input) els.input.disabled = next || !state.backendReady;
         if (els.clearChatBtn) els.clearChatBtn.disabled = next;
         if (els.copyLastReplyBtn) els.copyLastReplyBtn.disabled = next || !state.lastAssistantReply;
         if (els.whatsappSummaryBtn) els.whatsappSummaryBtn.disabled = next || !state.lastAssistantReply;
     }
 
+    function setInteractionAvailability(enabled) {
+        if (els.input) {
+            els.input.disabled = !enabled;
+            els.input.placeholder = enabled
+                ? "Ask about a vehicle issue, engine, part, fitment concern, order, or this website."
+                : "Connect the live MAT AI backend to start chatting.";
+        }
+        if (els.sendBtn) els.sendBtn.disabled = !enabled || state.busy;
+        if (els.uploadImageBtn) els.uploadImageBtn.disabled = !enabled || state.busy;
+        if (els.imageInput) els.imageInput.disabled = !enabled || state.busy;
+    }
+
     async function handleImageSelection(event) {
+        if (!state.backendReady) {
+            setStatus("The live backend must be ready before image uploads can be used.", "error");
+            return;
+        }
+
         const file = event.target.files?.[0];
         if (!file) return;
+
         try {
-            setStatus("Compressing your photo for visual analysis…", "pending");
+            setStatus("Compressing your photo for live AI analysis…", "pending");
             const compressed = await compressImage(file);
             state.imageDataUrl = compressed.dataUrl;
             state.imageName = file.name;
@@ -370,19 +382,19 @@
         const concern = (els.vehicleConcern?.value || "").trim();
 
         if (!make && !model && !year && !concern) {
-            setStatus("Add at least a vehicle detail or the main symptom first.", "error");
+            setStatus("Add at least one vehicle detail or the main symptom first.", "error");
             els.vehicleConcern?.focus();
             return;
         }
 
         const vehicle = [year, make, model].filter(Boolean).join(" ");
         const promptParts = [];
-        if (vehicle) promptParts.push(`I need help with a ${vehicle}.`);
+        if (vehicle) promptParts.push(`I need professional help with a ${vehicle}.`);
         if (concern) promptParts.push(`The main issue is: ${concern}.`);
-        promptParts.push("Please tell me the likely causes, what to inspect first, safety risk, and which Mat Auto parts may help.");
+        promptParts.push("Please explain the likely causes, what I should inspect first, the safety risk, and which Mat Auto parts may help.");
         els.input.value = promptParts.join(" ");
         els.input.focus();
-        setStatus("Vehicle details added to the prompt. Add anything else you want, then send.", "ready");
+        setStatus("Vehicle details added to the prompt. Review it and send when ready.", "ready");
     }
 
     async function copyLastReply() {
@@ -390,6 +402,7 @@
             setStatus("There is no MAT AI reply to copy yet.", "error");
             return;
         }
+
         try {
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(state.lastAssistantReply);
@@ -444,7 +457,6 @@
     }
 
     function appendMessage(role, text, persist = false) {
-        if (!els.chatMessages) return;
         const article = document.createElement("article");
         article.className = `mat-message mat-message-${role}`;
         article.innerHTML = `
@@ -458,6 +470,14 @@
             state.messages.push({ role, content: text });
             state.messages = state.messages.slice(-MAX_HISTORY_MESSAGES);
         }
+
+        syncChatLogState();
+    }
+
+    function syncChatLogState() {
+        if (!els.chatMessages) return;
+        const hasMessages = els.chatMessages.querySelectorAll(".mat-message").length > 0;
+        els.chatMessages.classList.toggle("has-messages", hasMessages);
     }
 
     function renderRichText(text) {
@@ -466,10 +486,9 @@
         let openList = false;
 
         const closeList = () => {
-            if (openList) {
-                html += "</ul>";
-                openList = false;
-            }
+            if (!openList) return;
+            html += "</ul>";
+            openList = false;
         };
 
         lines.forEach(line => {
@@ -499,11 +518,12 @@
 
     function renderRelatedProducts(products, showFallbackText = false) {
         if (!els.relatedProducts) return;
+
         const list = Array.isArray(products) ? products : [];
         if (!list.length) {
             els.relatedProducts.innerHTML = showFallbackText
-                ? `<p class="mat-empty-copy">MAT AI will surface relevant catalog items here when your question matches a part or repair need.</p>`
-                : `<p class="mat-empty-copy">No strong catalog match yet. Try including the part name, make, model, or symptom.</p>`;
+                ? `<p class="mat-empty-copy">Relevant Mat Auto parts will appear here after you ask a question.</p>`
+                : `<p class="mat-empty-copy">No strong catalog match yet. Add the part name, symptom, make, model, or engine details.</p>`;
             return;
         }
 
@@ -624,8 +644,7 @@
     async function apiRequest(path, options = {}) {
         const base = await discoverApiBase();
         updateConnectionUi("Connected", base, "ok");
-        const url = joinApiUrl(base, path);
-        const response = await fetchWithTimeout(url, {
+        const response = await fetchWithTimeout(joinApiUrl(base, path), {
             method: options.method || "GET",
             headers: {
                 "Accept": "application/json",
@@ -642,72 +661,13 @@
     }
 
     async function requestMatAiReply(messages, imageDataUrl) {
-        if (isBrowserFallbackMode()) {
-            return await requestBrowserFallbackReply(messages, imageDataUrl);
-        }
-
-        try {
-            return await apiRequest("/api/mat-ai/chat", {
-                method: "POST",
-                body: JSON.stringify({
-                    messages,
-                    imageDataUrl,
-                }),
-            });
-        } catch (error) {
-            if (!canUseBrowserFallback()) throw error;
-            const fallbackData = await loadBrowserFallbackContext();
-            state.context = fallbackData;
-            clearSavedApiBaseIfUnconfigured();
-            hydrateContext(fallbackData);
-            return await requestBrowserFallbackReply(messages, imageDataUrl);
-        }
-    }
-
-    async function requestBrowserFallbackReply(messages, imageDataUrl) {
-        if (!canUseBrowserFallback()) {
-            throw new Error("Browser fallback is not available on this page.");
-        }
-        return await globalThis.MatAiBrowserFallback.respond({
-            messages,
-            imageDataUrl,
+        return await apiRequest("/api/mat-ai/chat", {
+            method: "POST",
+            body: JSON.stringify({
+                messages,
+                imageDataUrl,
+            }),
         });
-    }
-
-    async function loadBrowserFallbackContext() {
-        if (!canUseBrowserFallback()) {
-            throw new Error("MAT AI could not find a live backend and browser fallback is unavailable.");
-        }
-        return await globalThis.MatAiBrowserFallback.loadContext();
-    }
-
-    function isBrowserFallbackMode() {
-        return state.context?.capabilities?.mode === "browser-fallback";
-    }
-
-    function canUseBrowserFallback() {
-        return Boolean(
-            globalThis.MatAiBrowserFallback
-            && typeof globalThis.MatAiBrowserFallback.loadContext === "function"
-            && typeof globalThis.MatAiBrowserFallback.respond === "function"
-        );
-    }
-
-    function clearSavedApiBaseIfUnconfigured() {
-        if (!window.location.hostname.endsWith(".github.io")) return;
-        if (hasExplicitApiBaseConfig()) return;
-        try {
-            localStorage.removeItem(MAT_AI_API_BASE_KEY);
-        } catch {
-            // Ignore storage failures.
-        }
-    }
-
-    function hasExplicitApiBaseConfig() {
-        const queryBase = new URLSearchParams(window.location.search).get("matAiApiBase");
-        const metaBase = document.querySelector('meta[name="mat-ai-api-base"]')?.getAttribute("content");
-        const configured = globalThis.__MAT_AI_API_BASE__;
-        return Boolean(String(queryBase || "").trim() || String(metaBase || "").trim() || String(configured || "").trim());
     }
 
     async function discoverApiBase() {
@@ -722,7 +682,11 @@
                 const data = await parseJsonResponse(response);
                 if (response.ok && data?.status === "ok") {
                     state.apiBase = candidate;
-                    try { localStorage.setItem(MAT_AI_API_BASE_KEY, candidate); } catch {}
+                    try {
+                        localStorage.setItem(MAT_AI_API_BASE_KEY, candidate);
+                    } catch {
+                        // Ignore storage failures.
+                    }
                     return candidate;
                 }
             } catch {
@@ -731,10 +695,10 @@
         }
 
         if (window.location.hostname.endsWith(".github.io")) {
-            throw new Error("MAT AI could not reach the live backend for this GitHub Pages site. Hard refresh the page to update cached files, then confirm the Vercel backend is live at `/api/health`.");
+            throw new Error("This page could not reach the live MAT AI backend. Point `mat-ai-config.js` to your Vercel domain first.");
         }
 
-        throw new Error("MAT AI could not find a live backend for this website. Start this project with `start-mat-auto.bat` or `npm start`, then open `http://127.0.0.1:4010/`, or connect `mat-ai-config.js` / the `mat-ai-api-base` meta tag to your deployed backend.");
+        throw new Error("MAT AI could not find a live backend for this website. On Vercel, confirm `/api/health` works. Locally, start the server first.");
     }
 
     function buildApiCandidates() {
@@ -756,29 +720,19 @@
         if (configured) candidates.push(String(configured).trim());
 
         const { protocol, origin, hostname, port } = window.location;
-        const isGithubPagesHost = /\.github\.io$/i.test(hostname || "");
-
-        if (!isGithubPagesHost && (protocol === "http:" || protocol === "https:")) {
-            candidates.push(origin);
-        }
+        if (protocol === "http:" || protocol === "https:") candidates.push(origin);
 
         const isPreviewPort = port === "3000" || port === "4173" || port === "5500" || port === "5501" || port === "8080";
-        if (!isGithubPagesHost && hostname && isPreviewPort) {
+        if (hostname && isPreviewPort) {
             candidates.push(`${protocol}//${hostname}:4010`);
         }
 
-        if (!isGithubPagesHost) {
-            candidates.push("http://127.0.0.1:4010");
-            candidates.push("http://localhost:4010");
-            candidates.push("http://127.0.0.1:3000");
-            candidates.push("http://localhost:3000");
-        }
+        candidates.push("http://127.0.0.1:4010");
+        candidates.push("http://localhost:4010");
+        candidates.push("http://127.0.0.1:3000");
+        candidates.push("http://localhost:3000");
 
-        return Array.from(new Set(
-            candidates
-                .map(normalizeApiCandidate)
-                .filter(Boolean)
-        ));
+        return Array.from(new Set(candidates.map(normalizeApiCandidate).filter(Boolean)));
     }
 
     function normalizeApiCandidate(value) {
@@ -795,9 +749,7 @@
         try {
             return await fetch(url, { ...options, mode: "cors", signal: controller.signal });
         } catch (error) {
-            if (error.name === "AbortError") {
-                throw new Error("MAT AI backend request timed out.");
-            }
+            if (error.name === "AbortError") throw new Error("MAT AI backend request timed out.");
             throw error;
         } finally {
             window.clearTimeout(timer);
@@ -808,6 +760,7 @@
         const contentType = (response.headers.get("content-type") || "").toLowerCase();
         const text = await response.text();
         if (!text) return {};
+
         if (contentType.includes("application/json")) {
             try {
                 return JSON.parse(text);
@@ -818,10 +771,7 @@
 
         const sample = text.trim().slice(0, 120).toLowerCase();
         if (sample.startsWith("<!doctype") || sample.startsWith("<html") || sample.includes("<body")) {
-            if (window.location.hostname.endsWith(".github.io")) {
-                throw new Error("MAT AI reached a static website response instead of a live backend. Connect the page to your Vercel backend with `mat-ai-config.js` or the `mat-ai-api-base` meta tag, or move the site to Vercel.");
-            }
-            throw new Error("MAT AI reached an HTML page instead of the backend API. Confirm `/api/health` and `/api/mat-ai/chat` are running on this website, or start the local site with `start-mat-auto.bat`.");
+            throw new Error("MAT AI reached an HTML page instead of the backend API. Confirm the site is running on Vercel with `/api/health` available.");
         }
 
         try {

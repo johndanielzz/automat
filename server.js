@@ -107,6 +107,7 @@ const MAT_AI = {
     apiUrl         : process.env.NVIDIA_API_URL || "https://integrate.api.nvidia.com/v1/chat/completions",
     apiKey         : process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY || "",
     forceFallback  : process.env.MAT_AI_FORCE_FALLBACK === "true",
+    strictLiveMode : process.env.MAT_AI_STRICT_LIVE_MODE !== "false",
     firebaseUrl    : (process.env.MAT_AUTO_FIREBASE_DATABASE_URL || "https://automat-gm-default-rtdb.firebaseio.com").replace(/\/+$/, ""),
     requestTimeout : parseInt(process.env.MAT_AI_TIMEOUT_MS || "45000", 10),
     maxMessages    : 10,
@@ -649,24 +650,31 @@ function buildMatAiSystemPrompt(knowledge, query, hasImage) {
         .join(", ");
 
     return [
-        `You are MAT AI, the on-site automotive assistant for ${siteFacts.storeName || "Mat Auto"}.`,
+        `You are MAT AI, the live automotive website assistant for ${siteFacts.storeName || "Mat Auto"}.`,
         `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
+        "Identity and scope:",
+        "- You are a professional automotive assistant focused on cars, engines, drivetrains, brakes, suspension, electrical faults, fitment follow-up, and parts buying advice.",
+        "- You also know the Mat Auto website, ordering flow, quote flow, contact pages, and live catalog context provided below.",
+        "- Sound calm, direct, and trustworthy. Do not sound playful, vague, or overly salesy.",
         "Primary goals:",
-        "1. Answer questions about this website, its pages, buying flows, and the Mat Auto catalog using the provided site context.",
-        "2. Help users diagnose car issues, identify visible car parts or vehicle details from images, explain likely causes, and suggest safe next steps.",
-        "3. Recommend parts from the Mat Auto catalog first when they are relevant, and clearly say when a recommendation is based on general automotive knowledge instead of confirmed catalog data.",
-        "4. Be honest about uncertainty. Never pretend to know exact fitment, exact trim, or exact internal specifications from a blurry image alone.",
+        "1. Answer website and catalog questions using the provided site context first.",
+        "2. Help users troubleshoot vehicle problems with practical, workshop-style guidance.",
+        "3. Recommend relevant Mat Auto products first when they truly match the issue.",
+        "4. Clearly separate confirmed catalog facts from general automotive reasoning.",
+        "5. Be honest about uncertainty. Never pretend to know exact fitment, exact trim, or exact internal specifications from a blurry image alone.",
+        "Response rules:",
+        "- Lead with the direct answer, then organize technical help clearly.",
+        "- For diagnosis or repair help, prefer sections such as Likely Causes, What To Check First, Recommended Fix Path, Parts To Consider, and Safety.",
+        "- For parts advice, mention what should be verified before buying, especially make, model, year, engine, VIN, engine code, or transmission when fitment matters.",
+        "- For website questions, tell the user exactly which Mat Auto page or flow to use next.",
+        "- Keep answers concise but professional. Avoid filler.",
         "Safety rules:",
-        "- If symptoms suggest brake failure, steering loss, fuel leaks, overheating, smoke, fire risk, airbag/SRS faults, EV high-voltage issues, or severe engine knocking, advise the user to stop driving and seek qualified help.",
-        "- Repair instructions must be practical, step-by-step, and mention the tools/parts needed when possible.",
+        "- If symptoms suggest brake failure, steering loss, fuel leaks, overheating, smoke, fire risk, airbag or SRS faults, EV high-voltage issues, or severe engine knocking, advise the user to stop driving and seek qualified help.",
+        "- Repair instructions must be practical, step-by-step, and mention tools, fluids, or parts when useful.",
         "- If critical context is missing for diagnosis, ask concise follow-up questions such as make, model, year, engine size, transmission, symptoms, warning lights, mileage, or recent repairs.",
         hasImage
             ? "- An image is attached in the latest user message. Use it for visual reasoning, but label image-based conclusions as inferred unless clearly visible."
             : "- No image is attached unless the user message includes one.",
-        "Response style:",
-        "- Be concise but useful.",
-        "- For repair help, prefer sections like Likely Cause, What To Check, Fix Steps, Parts To Consider, and Safety when that fits the question.",
-        "- For website questions, answer directly and mention relevant page names or flows when helpful.",
         "- When recommending products from Mat Auto, include product name, category, price, and stock if available.",
         "",
         `Store facts: currency=${siteFacts.currency || "GMD"}, WhatsApp primary=${siteFacts.whatsappNumber || "unknown"}, WhatsApp alt=${siteFacts.whatsappNumberAlt || "unknown"}, Facebook=${siteFacts.facebookUrl || "unknown"}.`,
@@ -1228,6 +1236,7 @@ app.get("/api/health", async (_req, res) => {
         model  : MAT_AI.model,
         source : "none",
     }));
+    const liveReady = !MAT_AI.forceFallback && Boolean(providerConfig.apiKey);
     res.json({
         status : "ok",
         ts     : Date.now(),
@@ -1237,8 +1246,8 @@ app.get("/api/health", async (_req, res) => {
         mem    : Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + " MB",
         ai     : {
             providerConfigured: Boolean(providerConfig.apiKey),
-            fallbackAvailable : true,
-            mode              : MAT_AI.forceFallback || !providerConfig.apiKey ? "fallback" : "hybrid",
+            fallbackAvailable : !MAT_AI.strictLiveMode,
+            mode              : liveReady ? "live" : "setup-required",
             source            : providerConfig.source || "none",
             model             : providerConfig.model || MAT_AI.model,
         },
@@ -1462,6 +1471,7 @@ app.get("/api/mat-ai/context", async (_req, res) => {
     try {
         const knowledge = await getMatAiKnowledge("");
         const providerConfig = await resolveMatAiProviderConfig();
+        const liveReady = !MAT_AI.forceFallback && Boolean(providerConfig.apiKey);
         res.json({
             store         : knowledge.siteFacts,
             pageCount     : knowledge.pages.length,
@@ -1486,9 +1496,9 @@ app.get("/api/mat-ai/context", async (_req, res) => {
                 headings   : page.headings,
             })),
             capabilities: {
-                mode         : MAT_AI.forceFallback || !providerConfig.apiKey ? "fallback" : "hybrid",
-                imageAnalysis: !MAT_AI.forceFallback && Boolean(providerConfig.apiKey),
-                smartFallback: true,
+                mode         : liveReady ? "live" : "setup-required",
+                imageAnalysis: liveReady,
+                smartFallback: !MAT_AI.strictLiveMode,
                 source       : providerConfig.source || "none",
             }
         });
@@ -1514,27 +1524,39 @@ app.post("/api/mat-ai/chat", async (req, res) => {
         const knowledge = await getMatAiKnowledge(latestUserMessage);
         const systemPrompt = buildMatAiSystemPrompt(knowledge, latestUserMessage, Boolean(imageDataUrl));
         const providerConfig = await resolveMatAiProviderConfig();
+        if (MAT_AI.forceFallback) {
+            return res.status(503).json({
+                error: "Live MAT AI is disabled on this server. Turn off fallback mode to use the professional assistant.",
+            });
+        }
+        if (!providerConfig.apiKey) {
+            return res.status(503).json({
+                error: "Live MAT AI is not configured yet. Add the NVIDIA API key in Vercel or through the admin AI settings.",
+            });
+        }
         let reply = "";
         let mode = "advanced";
         let warning = "";
         let providerError = "";
 
         try {
-            if (MAT_AI.forceFallback) {
-                throw Object.assign(new Error("MAT AI fallback mode is enabled on this server."), { statusCode: 503 });
-            }
             reply = await callNvidiaMatAi(messages, systemPrompt, providerConfig);
         } catch (err) {
+            if (MAT_AI.strictLiveMode) {
+                const status = err.statusCode || 502;
+                return res.status(status).json({
+                    error: cleanText(err.message || "Live MAT AI is temporarily unavailable. Please try again.", 220),
+                    status,
+                });
+            }
             mode = "fallback";
             providerError = cleanText(err.message || "Unknown MAT AI provider error.", 220);
-            warning = providerConfig.apiKey && !MAT_AI.forceFallback
-                ? "Advanced AI was temporarily unavailable, so MAT AI answered in smart local mode."
-                : "Advanced AI is not configured on this server, so MAT AI answered in smart local mode.";
+            warning = "Advanced AI was temporarily unavailable, so MAT AI answered in smart local mode.";
             reply = buildMatAiFallbackReply({
                 knowledge,
                 latestUserMessage,
                 imageDataUrl,
-                advancedAiConfigured: Boolean(providerConfig.apiKey),
+                advancedAiConfigured: true,
             });
         }
         const matchedProducts = knowledge.matchedProducts.slice(0, 6).map(product => ({

@@ -54,11 +54,15 @@ In `Project Settings -> Environment Variables`, add:
 - `NVIDIA_API_KEY`
 - `MAT_AI_MODEL`
 - `MAT_AUTO_FIREBASE_DATABASE_URL`
+- `MAT_AI_STRICT_LIVE_MODE`
 
 Recommended values:
 
 - `MAT_AI_MODEL=meta/llama-4-maverick-17b-128e-instruct`
 - `MAT_AUTO_FIREBASE_DATABASE_URL=https://automat-gm-default-rtdb.firebaseio.com`
+- `MAT_AI_STRICT_LIVE_MODE=true`
+
+With `MAT_AI_STRICT_LIVE_MODE=true`, the public MAT AI page expects a real live AI provider response and will not quietly switch visitors into browser or local fallback behavior.
 
 ## 4. Deploy
 
