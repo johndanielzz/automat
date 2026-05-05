@@ -949,8 +949,8 @@ function normalizeChatMessages(messages, imageDataUrl = "") {
 
 function validateImageDataUrl(imageDataUrl = "") {
     if (!imageDataUrl) return "";
-    const match = String(imageDataUrl).match(/^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/i);
-    if (!match) throw Object.assign(new Error("Image must be a PNG, JPEG, or WEBP data URL."), { statusCode: 400 });
+    const match = String(imageDataUrl).trim().match(/^data:image\/([a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/i);
+    if (!match) throw Object.assign(new Error("Image must be a valid base64 image data URL."), { statusCode: 400 });
     const bytes = Buffer.from(match[2], "base64").length;
     if (bytes > MAT_AI.maxImageBytes) {
         throw Object.assign(new Error("Image is too large after compression. Please upload a smaller photo."), { statusCode: 413 });

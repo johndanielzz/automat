@@ -257,31 +257,52 @@
             els.featuredPartsGallery.innerHTML = `<p class="mat-empty-copy">Featured part images will appear here when catalog images are available.</p>`;
             return;
         }
+        els.featuredPartsGallery.innerHTML = "";
 
-        els.featuredPartsGallery.innerHTML = list.map(product => {
+        list.forEach(product => {
             const image = sanitizeAssetUrl(product.image);
-            return `
-                <article class="mat-featured-card">
-                    ${image ? `<img class="mat-featured-thumb" src="${image}" alt="${escapeHtml(product.name || "Car part")}">` : ""}
-                    <div class="mat-featured-body">
-                        <strong>${escapeHtml(product.name || "Featured part")}</strong>
-                        <span class="mat-featured-meta">${escapeHtml(product.category || "parts")} · ${formatCurrency(product.price)}</span>
-                        <div class="mat-featured-actions">
-                            <button class="btn btn-ghost btn-sm" type="button" data-featured-part="${encodeURIComponent(product.name || "")}">
-                                Ask About This
-                            </button>
-                        </div>
-                    </div>
-                </article>
-            `;
-        }).join("");
+            const article = document.createElement("article");
+            article.className = "mat-featured-card";
 
-        els.featuredPartsGallery.querySelectorAll("[data-featured-part]").forEach(button => {
+            if (image) {
+                const img = document.createElement("img");
+                img.className = "mat-featured-thumb";
+                img.alt = product.name || "Car part";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.src = image;
+                article.appendChild(img);
+            }
+
+            const body = document.createElement("div");
+            body.className = "mat-featured-body";
+
+            const title = document.createElement("strong");
+            title.textContent = product.name || "Featured part";
+            body.appendChild(title);
+
+            const meta = document.createElement("span");
+            meta.className = "mat-featured-meta";
+            meta.textContent = `${product.category || "parts"} · ${formatCurrency(product.price)}`;
+            body.appendChild(meta);
+
+            const actions = document.createElement("div");
+            actions.className = "mat-featured-actions";
+
+            const button = document.createElement("button");
+            button.className = "btn btn-ghost btn-sm";
+            button.type = "button";
+            button.textContent = "Ask About This";
             button.addEventListener("click", () => {
-                const name = decodeURIComponent(button.getAttribute("data-featured-part") || "");
+                const name = product.name || "this part";
                 els.input.value = `Tell me what to check before buying or replacing ${name}, and which vehicles or symptoms it is usually related to.`;
                 els.input.focus();
             });
+
+            actions.appendChild(button);
+            body.appendChild(actions);
+            article.appendChild(body);
+            els.featuredPartsGallery.appendChild(article);
         });
     }
 
@@ -659,34 +680,57 @@
                 : `<p class="mat-empty-copy">No strong catalog match yet. Add the part name, symptom, make, model, or engine details.</p>`;
             return;
         }
+        els.relatedProducts.innerHTML = "";
 
-        els.relatedProducts.innerHTML = list.map(product => {
+        list.forEach(product => {
             const productImage = sanitizeAssetUrl(product.image);
-            return `
-                <article class="mat-related-card">
-                    ${productImage ? `<img class="mat-related-thumb" src="${productImage}" alt="${escapeHtml(product.name || "Part")}">` : ""}
-                    <div class="mat-related-card-body">
-                        <h3>${escapeHtml(product.name || "Part")}</h3>
-                        <div class="mat-related-meta">
-                            <span>${escapeHtml((product.category || "parts").toUpperCase())}</span>
-                            <span>${formatCurrency(product.price)}</span>
-                            <span>${stockLabel(product.stock)}</span>
-                        </div>
-                        <p>${escapeHtml(product.description || product.specs || "Ask MAT AI if this part fits your issue.")}</p>
-                        <button class="btn btn-primary btn-sm" type="button" data-ask-product="${encodeURIComponent(product.name || "")}">
-                            Ask About This Part
-                        </button>
-                    </div>
-                </article>
-            `;
-        }).join("");
+            const article = document.createElement("article");
+            article.className = "mat-related-card";
 
-        els.relatedProducts.querySelectorAll("[data-ask-product]").forEach(button => {
+            if (productImage) {
+                const img = document.createElement("img");
+                img.className = "mat-related-thumb";
+                img.alt = product.name || "Part";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.src = productImage;
+                article.appendChild(img);
+            }
+
+            const body = document.createElement("div");
+            body.className = "mat-related-card-body";
+
+            const title = document.createElement("h3");
+            title.textContent = product.name || "Part";
+            body.appendChild(title);
+
+            const meta = document.createElement("div");
+            meta.className = "mat-related-meta";
+            [String((product.category || "parts").toUpperCase()), formatCurrency(product.price), stockLabel(product.stock)]
+                .forEach(value => {
+                    const chip = document.createElement("span");
+                    chip.textContent = value;
+                    meta.appendChild(chip);
+                });
+            body.appendChild(meta);
+
+            const description = document.createElement("p");
+            description.textContent = product.description || product.specs || "Ask MAT AI if this part fits your issue.";
+            body.appendChild(description);
+
+            const button = document.createElement("button");
+            button.className = "btn btn-primary btn-sm";
+            button.type = "button";
+            button.textContent = "Ask About This Part";
             button.addEventListener("click", () => {
-                const name = decodeURIComponent(button.getAttribute("data-ask-product") || "this%20part");
+                const name = product.name || "this part";
                 els.input.value = `Tell me if ${name} is the right part for my issue and what I should verify before buying.`;
                 els.input.focus();
             });
+            body.appendChild(button);
+
+            article.appendChild(body);
+            els.relatedProducts.appendChild(article);
         });
     }
 
@@ -991,9 +1035,21 @@
     function sanitizeAssetUrl(value) {
         const url = String(value || "").trim();
         if (!url) return "";
-        if (/^(https?:\/\/|data:image\/|\.{0,2}\/)/i.test(url)) return escapeHtml(url);
-        if (/^[a-z0-9/_-]+\.(?:png|jpe?g|webp|gif|svg)$/i.test(url)) return escapeHtml(url);
+        if (isValidImageDataUrl(url)) return url;
+        if (/^(https?:\/\/|\.{0,2}\/)/i.test(url)) return url;
+        if (/^[a-z0-9/_-]+\.(?:png|jpe?g|webp|gif|svg)$/i.test(url)) return url;
         return "";
+    }
+
+    function isValidImageDataUrl(value) {
+        const text = String(value || "").trim();
+        const match = text.match(/^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,([a-z0-9+/=]+)$/i);
+        if (!match) return false;
+        try {
+            return typeof atob(match[1].slice(0, 128)) === "string";
+        } catch {
+            return false;
+        }
     }
 
     function linkify(text) {
