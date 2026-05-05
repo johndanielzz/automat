@@ -909,7 +909,7 @@ async function registerAppServiceWorker() {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
     if (window.__matAutoSwRegistrationPromise) return window.__matAutoSwRegistrationPromise;
 
-    window.__matAutoSwRegistrationPromise = navigator.serviceWorker.register("service-worker.js?v=2026-05-05-3", {
+    window.__matAutoSwRegistrationPromise = navigator.serviceWorker.register("/service-worker.js?v=2026-05-06-1", {
         updateViaCache: "none",
     })
         .then(registration => {

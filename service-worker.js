@@ -5,7 +5,7 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v21';
+const CACHE_VERSION    = 'mat-auto-v22';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
@@ -29,7 +29,7 @@ const STATIC_ASSETS = [
     './reciept.html', './receipt.html', './delivery-drivers.html',
     './styles.css', './mat-ai.css', './app.js', './mat-ai-config.js', './mat-ai-browser-fallback.js', './mat-ai.js', './app-perf-patch.js', './manifest.json',
     './app.js?v=2026-05-01-7',
-    './mat-ai-config.js?v=2026-05-05-2', './mat-ai.js?v=2026-05-05-2'
+    './mat-ai-config.js?v=2026-05-06-1', './mat-ai.js?v=2026-05-06-1'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

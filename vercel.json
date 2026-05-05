@@ -1,8 +1,30 @@
 {
   "version": 2,
   "functions": {
-    "api/[...path].js": {
+    "api/**/*.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/api/mat-ai/context",
+      "destination": "/api/mat-ai/context"
+    },
+    {
+      "source": "/api/mat-ai/chat",
+      "destination": "/api/mat-ai/chat"
+    },
+    {
+      "source": "/api/admin/mat-ai/config",
+      "destination": "/api/admin/mat-ai/config"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/[...path]"
+    }
+  ]
 }

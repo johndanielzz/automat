@@ -184,7 +184,7 @@
     async function ensureLatestServiceWorker() {
         if (!("serviceWorker" in navigator)) return;
         try {
-            const registration = await navigator.serviceWorker.register("service-worker.js?v=2026-05-05-3", {
+            const registration = await navigator.serviceWorker.register("/service-worker.js?v=2026-05-06-1", {
                 updateViaCache: "none",
             });
             registration.update().catch(() => {});
