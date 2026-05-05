@@ -8,7 +8,7 @@
     <meta property="og:title" content="MAT AI | Mat Auto">
     <meta property="og:description" content="A live automotive website assistant for repairs, parts, engines, and Mat Auto ordering help.">
     <meta property="og:type" content="website">
-    <meta name="theme-color" content="#10213f">
+    <meta name="theme-color" content="#111827">
     <meta name="mat-ai-api-base" content="">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -50,78 +50,44 @@
 
     <main class="mat-shell">
         <div class="container">
-            <section class="mat-overview-card" aria-labelledby="matAiPageTitle">
-                <div class="mat-overview-copy">
-                    <span class="eyebrow">Live website assistant</span>
-                    <h1 id="matAiPageTitle">Simple car help, fast parts guidance, and a professional AI agent for your full website.</h1>
-                    <p>MAT AI is designed to feel calm and easy to use while still knowing your catalog, your website pages, and common vehicle issues across engines, parts, repairs, and ordering questions.</p>
-                    <div class="mat-overview-pills" aria-label="Assistant capabilities">
-                        <span class="mat-overview-pill">Cars and engines</span>
-                        <span class="mat-overview-pill">Parts and fitment guidance</span>
-                        <span class="mat-overview-pill">Vehicle photo uploads</span>
-                        <span class="mat-overview-pill">Website-aware support</span>
-                    </div>
-                </div>
-                <div class="mat-overview-side">
-                    <div class="mat-connection-card">
-                        <p class="panel-kicker">Live Status</p>
-                        <span class="mat-connection-pill" id="matConnectionState" data-state="warn">Checking backend…</span>
-                        <p id="matConnectionHost" class="mat-connection-host">Detecting the live MAT AI backend for this website.</p>
-                    </div>
-                    <div class="mat-overview-stats">
-                        <article class="mat-stat-card">
-                            <strong id="siteProducts">--</strong>
-                            <span>Catalog items known</span>
-                        </article>
-                        <article class="mat-stat-card">
-                            <strong id="sitePages">--</strong>
-                            <span>Website pages grounded</span>
-                        </article>
-                    </div>
-                </div>
-            </section>
-
-            <section class="mat-workspace" id="matAiConsole">
-                <section class="mat-console-card" aria-labelledby="matAiTitle">
-                    <div class="mat-console-head">
-                        <div>
-                            <p class="eyebrow">Conversation</p>
-                            <h2 id="matAiTitle">Talk to MAT AI</h2>
+            <div class="mat-app-shell">
+                <aside class="mat-rail mat-rail-left">
+                    <section class="mat-rail-card">
+                        <span class="eyebrow">Live website assistant</span>
+                        <h1>MAT AI</h1>
+                        <p class="mat-rail-copy">A cleaner, faster chat assistant for car parts, engines, fitment, repairs, and your full Mat Auto website.</p>
+                        <div class="mat-status-stack">
+                            <span class="mat-connection-pill" id="matConnectionState" data-state="warn">Checking backend…</span>
+                            <p id="matConnectionHost" class="mat-connection-host">Detecting the live MAT AI backend for this website.</p>
                         </div>
-                        <div class="mat-console-actions">
-                            <button class="btn btn-ghost btn-sm" id="copyLastReplyBtn" type="button">Copy Reply</button>
-                            <button class="btn btn-outline btn-sm" id="whatsappSummaryBtn" type="button">Send to WhatsApp</button>
-                            <button class="btn btn-ghost btn-sm" id="clearChatBtn" type="button">Clear Chat</button>
-                        </div>
-                    </div>
+                    </section>
 
-                    <div class="mat-prompt-grid" aria-label="Quick prompts">
-                        <button class="mat-prompt-card" type="button" data-prompt="My Toyota Corolla has a rough idle and shakes at traffic lights. Help me diagnose it like a mechanic.">
-                            <strong>Rough idle</strong>
-                            <span>Get likely causes, checks, and parts to inspect.</span>
-                        </button>
-                        <button class="mat-prompt-card" type="button" data-prompt="I need brake parts for my car. Tell me what to check before buying and what parts I should replace together.">
-                            <strong>Brake parts</strong>
-                            <span>Ask about pads, discs, calipers, fluid, and safety.</span>
-                        </button>
-                        <button class="mat-prompt-card" type="button" data-prompt="Explain this website to me and tell me how to order, request a quote, or contact Mat Auto.">
-                            <strong>Website help</strong>
-                            <span>Order flows, pages, support, and contact guidance.</span>
-                        </button>
-                        <button class="mat-prompt-card" type="button" data-prompt="Analyze this car photo and tell me what vehicle clues, visible parts, or damage concerns you can see.">
-                            <strong>Analyze photo</strong>
-                            <span>Upload a vehicle image for visual guidance.</span>
-                        </button>
-                    </div>
-
-                    <div class="mat-vehicle-builder" aria-label="Vehicle details builder">
-                        <div class="mat-builder-head">
-                            <div>
-                                <p class="panel-kicker">Smart prompt builder</p>
-                                <p class="mat-builder-copy">Add a few vehicle details and MAT AI will build a cleaner diagnostic prompt for you.</p>
-                            </div>
-                            <button class="btn btn-outline btn-sm" id="buildVehiclePromptBtn" type="button">Build Prompt</button>
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Quick Stats</p>
+                        <div class="mat-stat-list">
+                            <article class="mat-stat-tile">
+                                <strong id="siteProducts">--</strong>
+                                <span>Catalog items</span>
+                            </article>
+                            <article class="mat-stat-tile">
+                                <strong id="sitePages">--</strong>
+                                <span>Website pages</span>
+                            </article>
                         </div>
+                    </section>
+
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Quick Prompts</p>
+                        <div class="mat-quick-prompts" aria-label="Quick prompts">
+                            <button class="mat-quick-prompt" type="button" data-prompt="My Toyota Corolla has a rough idle and shakes at traffic lights. Help me diagnose it like a mechanic.">Rough idle diagnosis</button>
+                            <button class="mat-quick-prompt" type="button" data-prompt="I need brake parts for my car. Tell me what to check before buying and what parts I should replace together.">Brake parts advice</button>
+                            <button class="mat-quick-prompt" type="button" data-prompt="Identify this car part from the photo and tell me what it does, common failure signs, and what I should verify before replacing it.">Identify a car part</button>
+                            <button class="mat-quick-prompt" type="button" data-prompt="Explain this website to me and tell me how to order, request a quote, or contact Mat Auto.">Website help</button>
+                        </div>
+                    </section>
+
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Vehicle Prompt Builder</p>
                         <div class="mat-vehicle-grid">
                             <label>
                                 <span>Make</span>
@@ -140,19 +106,46 @@
                                 <input id="matVehicleConcern" type="text" placeholder="Battery light is on and the car struggles to start">
                             </label>
                         </div>
-                    </div>
+                        <button class="btn btn-outline btn-sm mat-builder-btn" id="buildVehiclePromptBtn" type="button">Build Prompt</button>
+                    </section>
+                </aside>
+
+                <section class="mat-chat-stage" id="matAiConsole">
+                    <header class="mat-chat-header">
+                        <div>
+                            <span class="eyebrow">Conversation</span>
+                            <h2>Talk to MAT AI</h2>
+                            <p>Ask about engines, part numbers, fitment, repair steps, warning signs, or upload a car-part photo for analysis.</p>
+                        </div>
+                        <div class="mat-header-actions">
+                            <button class="btn btn-ghost btn-sm" id="copyLastReplyBtn" type="button">Copy Reply</button>
+                            <button class="btn btn-outline btn-sm" id="whatsappSummaryBtn" type="button">Send to WhatsApp</button>
+                            <button class="btn btn-ghost btn-sm" id="clearChatBtn" type="button">Clear Chat</button>
+                        </div>
+                    </header>
 
                     <div class="mat-status" id="assistantStatus" aria-live="polite">Connecting to live MAT AI…</div>
 
-                    <div class="mat-chat-log" id="chatMessages" aria-live="polite" aria-label="Conversation"></div>
+                    <section class="mat-chat-board" id="chatDropZone" aria-label="MAT AI conversation area">
+                        <div class="mat-chat-intro">
+                            <div class="mat-intro-card">
+                                <strong>What MAT AI is best at</strong>
+                                <p>Car parts, engine issues, fitment guidance, visible part identification, pre-purchase checks, and website support.</p>
+                            </div>
+                            <div class="mat-intro-card">
+                                <strong>Photo support</strong>
+                                <p>Upload, drag, paste, or take a photo of a car part. MAT AI will help identify it and explain what to inspect next.</p>
+                            </div>
+                        </div>
 
-                    <form class="mat-composer" id="chatForm">
+                        <div class="mat-chat-log" id="chatMessages" aria-live="polite" aria-label="Conversation"></div>
+                    </section>
+
+                    <form class="mat-composer-card" id="chatForm">
                         <label class="sr-only" for="matAiInput">Ask MAT AI anything about your car or this website</label>
-                        <textarea id="matAiInput" class="mat-textarea" rows="4" placeholder="Ask about a vehicle issue, engine, part, fitment concern, order, or this website." disabled></textarea>
-                        <div class="mat-composer-tip">Tip: press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send on desktop.</div>
 
                         <div class="mat-upload-preview" id="imagePreviewCard" hidden>
-                            <img id="imagePreview" alt="Selected vehicle preview">
+                            <img id="imagePreview" alt="Selected car part or vehicle preview">
                             <div class="mat-upload-meta">
                                 <strong id="imagePreviewName">Vehicle photo</strong>
                                 <span id="imagePreviewSize">Compressed for AI analysis</span>
@@ -160,19 +153,27 @@
                             <button class="btn btn-ghost btn-sm" id="removeImageBtn" type="button">Remove</button>
                         </div>
 
+                        <textarea id="matAiInput" class="mat-textarea" rows="4" placeholder="Message MAT AI about a car issue, engine, part, fitment concern, order, or this website." disabled></textarea>
+
+                        <div class="mat-composer-meta">
+                            <span>Paste a photo with <kbd>Ctrl</kbd> + <kbd>V</kbd>, drag an image here, upload one, or take a live picture.</span>
+                        </div>
+
                         <div class="mat-composer-actions">
                             <div class="mat-upload-actions">
                                 <input type="file" id="matAiImage" accept="image/png,image/jpeg,image/jpg" hidden disabled>
-                                <button class="btn btn-outline" id="uploadImageBtn" type="button" disabled>Upload Car Photo</button>
-                                <span class="mat-helper-text">PNG or JPG only. Photos are compressed before sending to the live AI backend.</span>
+                                <input type="file" id="matAiCamera" accept="image/png,image/jpeg,image/jpg" capture="environment" hidden disabled>
+                                <button class="btn btn-outline btn-sm" id="uploadImageBtn" type="button" disabled>Add Photo</button>
+                                <button class="btn btn-outline btn-sm" id="takePhotoBtn" type="button" disabled>Take Photo</button>
+                                <button class="btn btn-ghost btn-sm" id="scanPartPromptBtn" type="button">Scan Car Part</button>
                             </div>
-                            <button class="btn btn-primary btn-large" id="sendBtn" type="submit" disabled>Send Message</button>
+                            <button class="btn btn-primary btn-large" id="sendBtn" type="submit" disabled>Send</button>
                         </div>
                     </form>
                 </section>
 
-                <aside class="mat-sidebar">
-                    <section class="mat-side-card">
+                <aside class="mat-rail mat-rail-right">
+                    <section class="mat-rail-card">
                         <p class="panel-kicker">Store Snapshot</p>
                         <div class="mat-kv-list">
                             <div><span>Currency</span><strong id="storeCurrency">GMD</strong></div>
@@ -181,33 +182,35 @@
                         </div>
                     </section>
 
-                    <section class="mat-side-card">
-                        <p class="panel-kicker">Best Results</p>
-                        <ul class="mat-mini-list">
-                            <li>Include make, model, year, engine size, and warning lights.</li>
-                            <li>For fitment, VIN or engine code gives the best answer.</li>
-                            <li>For part advice, say whether you want OEM, budget, or urgent replacement.</li>
-                        </ul>
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Part Photo Examples</p>
+                        <div class="mat-featured-parts" id="featuredPartsGallery">
+                            <p class="mat-empty-copy">Featured part images will appear here when catalog images are available.</p>
+                        </div>
                     </section>
 
-                    <section class="mat-side-card">
-                        <p class="panel-kicker">Known Website Areas</p>
-                        <div class="mat-pill-list" id="knownPages"></div>
-                    </section>
-
-                    <section class="mat-side-card">
+                    <section class="mat-rail-card">
                         <p class="panel-kicker">Related Parts</p>
                         <div class="mat-related-grid" id="relatedProducts">
                             <p class="mat-empty-copy">Relevant Mat Auto parts will appear here after you ask a question.</p>
                         </div>
                     </section>
 
-                    <section class="mat-side-card">
-                        <p class="panel-kicker">Safety First</p>
-                        <p>If the car has brake failure, steering problems, overheating, fuel leaks, severe smoke, or strong warning lights, stop driving and get hands-on inspection immediately.</p>
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Known Website Areas</p>
+                        <div class="mat-pill-list" id="knownPages"></div>
+                    </section>
+
+                    <section class="mat-rail-card">
+                        <p class="panel-kicker">Best Results</p>
+                        <ul class="mat-mini-list">
+                            <li>Include make, model, year, engine size, and warning lights.</li>
+                            <li>For fitment, VIN or engine code gives the best answer.</li>
+                            <li>For part photos, use a clear close-up in good light.</li>
+                        </ul>
                     </section>
                 </aside>
-            </section>
+            </div>
         </div>
     </main>
 
@@ -231,7 +234,7 @@
         </div>
     </footer>
 
-    <script src="mat-ai-config.js?v=2026-05-05-1"></script>
-    <script src="mat-ai.js?v=2026-05-05-1"></script>
+    <script src="mat-ai-config.js?v=2026-05-05-2"></script>
+    <script src="mat-ai.js?v=2026-05-05-2"></script>
 </body>
 </html>

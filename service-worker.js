@@ -5,7 +5,7 @@
 //           Network-Only for Firebase/API
 // ============================================================
 
-const CACHE_VERSION    = 'mat-auto-v18';
+const CACHE_VERSION    = 'mat-auto-v21';
 const STATIC_CACHE     = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE    = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE      = `${CACHE_VERSION}-images`;
@@ -29,7 +29,7 @@ const STATIC_ASSETS = [
     './reciept.html', './receipt.html', './delivery-drivers.html',
     './styles.css', './mat-ai.css', './app.js', './mat-ai-config.js', './mat-ai-browser-fallback.js', './mat-ai.js', './app-perf-patch.js', './manifest.json',
     './app.js?v=2026-05-01-7',
-    './mat-ai-config.js?v=2026-05-05-1', './mat-ai.js?v=2026-05-05-1'
+    './mat-ai-config.js?v=2026-05-05-2', './mat-ai.js?v=2026-05-05-2'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -378,7 +378,7 @@ self.addEventListener('install', event => {
             .then(cache => Promise.allSettled(
                 STATIC_ASSETS.map(url =>
                     fetch(url, { cache: 'reload' })
-                        .then(res => { if (res.ok) cache.put(url, res); })
+                        .then(res => { if (res.ok) cache.put(url, res.clone()); })
                         .catch(() => {})
                 )
             ))
@@ -405,9 +405,11 @@ async function trimCache(cacheName, maxItems) {
 }
 
 function isExternal(url) {
-    return ['firebasedatabase.app','firebaseio.com','googleapis.com','gstatic.com',
+    return url.origin !== self.location.origin
+        || ['firebasedatabase.app','firebaseio.com','googleapis.com','gstatic.com',
             'firebasestorage','google-analytics','anthropic.com']
-        .some(h => url.hostname.includes(h)) || url.pathname.includes('/v1/messages');
+            .some(h => url.hostname.includes(h))
+        || url.pathname.includes('/v1/messages');
 }
 
 function isFont(url)   { return FONT_ORIGINS.some(h => url.hostname.includes(h)); }
@@ -422,8 +424,22 @@ self.addEventListener('fetch', event => {
     if (request.method !== 'GET') return;
     let url; try { url = new URL(request.url); } catch { return; }
 
-    if (isExternal(url)) {
-        event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+    // Never intercept cross-origin files here.
+    // Let the browser handle fonts, Firebase CDN scripts, and other remote assets directly.
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    // Keep API routes network-only so MAT AI and admin calls are never served stale cache entries.
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(
+            fetch(request).catch(() => new Response(JSON.stringify({
+                error: 'Network error while contacting the API.'
+            }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+            }))
+        );
         return;
     }
 
@@ -434,7 +450,12 @@ self.addEventListener('fetch', event => {
             const fresh = await fetch(request);
             if (fresh.ok) cache.put(request, fresh.clone());
             return fresh;
-        }));
+        }).catch(() => new Response('', { status: 503 })));
+        return;
+    }
+
+    if (isExternal(url)) {
+        event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
         return;
     }
 
@@ -445,7 +466,9 @@ self.addEventListener('fetch', event => {
                 if (res.ok) { cache.put(request, res.clone()); trimCache(IMAGE_CACHE, MAX_IMAGE_ITEMS); }
                 return res;
             }).catch(() => null);
-            return cached || networkFetch || new Response('', { status: 404 });
+            if (cached) return cached;
+            const fresh = await networkFetch;
+            return fresh || new Response('', { status: 404 });
         }));
         return;
     }
@@ -490,9 +513,15 @@ self.addEventListener('fetch', event => {
 
     event.respondWith(
         fetch(request).then(res => {
-            if (res.ok) caches.open(DYNAMIC_CACHE).then(c => c.put(request, res.clone()));
+            if (res.ok) {
+                const resClone = res.clone();
+                caches.open(DYNAMIC_CACHE).then(c => c.put(request, resClone));
+            }
             return res;
-        }).catch(() => caches.match(request))
+        }).catch(async () => {
+            const cached = await caches.match(request);
+            return cached || new Response('Network error', { status: 503 });
+        })
     );
 });
 

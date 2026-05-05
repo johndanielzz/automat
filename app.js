@@ -909,8 +909,23 @@ async function registerAppServiceWorker() {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
     if (window.__matAutoSwRegistrationPromise) return window.__matAutoSwRegistrationPromise;
 
-    window.__matAutoSwRegistrationPromise = navigator.serviceWorker.register("service-worker.js")
+    window.__matAutoSwRegistrationPromise = navigator.serviceWorker.register("service-worker.js?v=2026-05-05-3", {
+        updateViaCache: "none",
+    })
         .then(registration => {
+            registration.update().catch(() => {});
+            if (registration.waiting) {
+                registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
+            registration.addEventListener("updatefound", () => {
+                const worker = registration.installing;
+                if (!worker) return;
+                worker.addEventListener("statechange", () => {
+                    if (worker.state === "installed" && registration.waiting) {
+                        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+                    }
+                });
+            });
             window.dispatchEvent(new CustomEvent("swready"));
             return registration;
         })
