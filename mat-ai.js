@@ -775,9 +775,7 @@
     }
 
     async function apiRequest(path, options = {}) {
-        const base = await discoverApiBase();
-        updateConnectionUi("Connected", base, "ok");
-        const response = await fetchWithTimeout(joinApiUrl(base, path), {
+        const requestInit = {
             method: options.method || "GET",
             headers: {
                 "Accept": "application/json",
@@ -785,12 +783,23 @@
                 ...(options.headers || {}),
             },
             body: options.body,
-        });
-        const data = await parseJsonResponse(response);
-        if (!response.ok) {
-            throw new Error(data?.error || `MAT AI request failed (${response.status}).`);
+        };
+
+        const base = await discoverApiBase();
+        updateConnectionUi("Connected", base, "ok");
+
+        try {
+            return await performApiRequest(joinApiUrl(base, path), requestInit);
+        } catch (error) {
+            if (!shouldRetryApiRequest(error, base)) {
+                throw error;
+            }
+
+            clearSavedApiBase();
+            const fallbackBase = normalizeApiCandidate(window.location.origin);
+            updateConnectionUi("Reconnecting", fallbackBase, "warn");
+            return await performApiRequest(joinApiUrl(fallbackBase, path), requestInit);
         }
-        return data;
     }
 
     async function requestMatAiReply(messages, imageDataUrl) {
@@ -839,13 +848,6 @@
         const queryBase = new URLSearchParams(window.location.search).get("matAiApiBase");
         if (queryBase) candidates.push(String(queryBase).trim());
 
-        try {
-            const savedBase = localStorage.getItem(MAT_AI_API_BASE_KEY);
-            if (savedBase) candidates.push(String(savedBase).trim());
-        } catch {
-            // Ignore storage failures.
-        }
-
         const metaBase = document.querySelector('meta[name="mat-ai-api-base"]')?.getAttribute("content");
         if (metaBase) candidates.push(String(metaBase).trim());
 
@@ -854,6 +856,13 @@
 
         const { protocol, origin, hostname, port } = window.location;
         if (protocol === "http:" || protocol === "https:") candidates.push(origin);
+
+        try {
+            const savedBase = localStorage.getItem(MAT_AI_API_BASE_KEY);
+            if (savedBase) candidates.push(String(savedBase).trim());
+        } catch {
+            // Ignore storage failures.
+        }
 
         const isPreviewPort = port === "3000" || port === "4173" || port === "5500" || port === "5501" || port === "8080";
         if (hostname && isPreviewPort) {
@@ -874,6 +883,34 @@
 
     function joinApiUrl(base, path) {
         return `${String(base || "").replace(/\/+$/, "")}${path}`;
+    }
+
+    function clearSavedApiBase() {
+        state.apiBase = "";
+        try {
+            localStorage.removeItem(MAT_AI_API_BASE_KEY);
+        } catch {
+            // Ignore storage failures.
+        }
+    }
+
+    async function performApiRequest(url, init) {
+        const response = await fetchWithTimeout(url, init);
+        const data = await parseJsonResponse(response);
+        if (!response.ok) {
+            throw new Error(data?.error || `MAT AI request failed (${response.status}).`);
+        }
+        return data;
+    }
+
+    function shouldRetryApiRequest(error, currentBase) {
+        const message = String(error?.message || "").toLowerCase();
+        if (!currentBase) return false;
+        if (normalizeApiCandidate(currentBase) === normalizeApiCandidate(window.location.origin)) return false;
+        return message.includes("failed to fetch")
+            || message.includes("networkerror")
+            || message.includes("load failed")
+            || message.includes("network request failed");
     }
 
     async function fetchWithTimeout(url, options, timeoutMs = REQUEST_TIMEOUT_MS) {

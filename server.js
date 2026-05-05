@@ -498,6 +498,7 @@ function normalizeCatalogProduct(raw = {}, index = 0) {
     const compatibility = Array.isArray(raw.compatibility)
         ? raw.compatibility.map(item => cleanText(item, 120)).filter(Boolean).slice(0, 8)
         : cleanText(raw.compatibility, 480).split(/[\n,;|]+/).map(item => cleanText(item, 120)).filter(Boolean).slice(0, 8);
+    const image = normalizeCatalogImage(raw.image || (Array.isArray(raw.images) ? raw.images[0] : ""));
     return {
         id          : raw.id || `product-${index + 1}`,
         name        : cleanText(raw.name, 120) || `Product ${index + 1}`,
@@ -514,7 +515,7 @@ function normalizeCatalogProduct(raw = {}, index = 0) {
         warranty    : cleanText(raw.warranty, 120),
         deliveryEta : cleanText(raw.deliveryEta, 120),
         compatibility,
-        image       : cleanText(raw.image || (Array.isArray(raw.images) ? raw.images[0] : ""), 400),
+        image,
         searchable  : [
             cleanText(raw.name, 180),
             cleanText(raw.category, 80),
@@ -528,6 +529,21 @@ function normalizeCatalogProduct(raw = {}, index = 0) {
             cleanText(raw.model, 80)
         ].join(" ").toLowerCase()
     };
+}
+
+function normalizeCatalogImage(value = "") {
+    const image = String(value || "").trim();
+    if (!image) return "";
+    if (/^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[a-z0-9+/=]+$/i.test(image)) {
+        return image;
+    }
+    if (/^https?:\/\/\S+$/i.test(image)) {
+        return image;
+    }
+    if (/^[./a-z0-9_-]+\.(?:png|jpe?g|webp|gif|svg)$/i.test(image)) {
+        return image;
+    }
+    return "";
 }
 
 async function fetchCatalogProducts() {
@@ -933,8 +949,8 @@ function normalizeChatMessages(messages, imageDataUrl = "") {
 
 function validateImageDataUrl(imageDataUrl = "") {
     if (!imageDataUrl) return "";
-    const match = String(imageDataUrl).match(/^data:image\/(png|jpe?g);base64,([A-Za-z0-9+/=]+)$/i);
-    if (!match) throw Object.assign(new Error("Image must be a PNG or JPEG data URL."), { statusCode: 400 });
+    const match = String(imageDataUrl).match(/^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/i);
+    if (!match) throw Object.assign(new Error("Image must be a PNG, JPEG, or WEBP data URL."), { statusCode: 400 });
     const bytes = Buffer.from(match[2], "base64").length;
     if (bytes > MAT_AI.maxImageBytes) {
         throw Object.assign(new Error("Image is too large after compression. Please upload a smaller photo."), { statusCode: 413 });
